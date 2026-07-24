@@ -4,6 +4,9 @@ package io.github.onedream921.alphavue.common.exception;
 public enum PublicErrorMessage {
     INVALID_REQUEST("Invalid request"),
     VALIDATION_FAILED("Validation failed"),
+    INVALID_CREDENTIALS("Invalid credentials"),
+    LOGIN_TEMPORARILY_LOCKED("Login temporarily locked"),
+    UNAUTHORIZED("Authentication required"),
     INTERNAL_SERVER_ERROR("Internal server error");
 
     private final String value;

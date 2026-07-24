@@ -1,5 +1,6 @@
 package io.github.onedream921.alphavue.common.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(
                         HttpStatus.BAD_REQUEST.value(), PublicErrorMessage.VALIDATION_FAILED.value(), traceId(request)));
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotLoggedIn(HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(
+                        HttpStatus.UNAUTHORIZED.value(), PublicErrorMessage.UNAUTHORIZED.value(), traceId(request)));
     }
 
     @ExceptionHandler(Exception.class)

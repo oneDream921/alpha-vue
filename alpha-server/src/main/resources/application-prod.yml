@@ -14,9 +14,10 @@ spring:
     locations: classpath:db/migration
 
 sa-token:
-  token-name: ${SA_TOKEN_NAME:Alpha-Token}
-  timeout: ${SA_TOKEN_TIMEOUT:2592000}
-  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT:-1}
+  token-name: ${SA_TOKEN_NAME:Authorization}
+  token-prefix: Bearer
+  timeout: ${SA_TOKEN_TIMEOUT:28800}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT:1800}
   is-concurrent: ${SA_TOKEN_IS_CONCURRENT:true}
   is-share: ${SA_TOKEN_IS_SHARE:false}
   token-style: ${SA_TOKEN_STYLE:uuid}

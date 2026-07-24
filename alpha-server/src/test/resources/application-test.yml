@@ -13,4 +13,8 @@ spring:
         enabled: false
 
 sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 28800
+  active-timeout: 1800
   is-log: false
