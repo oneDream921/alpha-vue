@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+    min-width: 320px;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    color: var(--alpha-text);
+    background: var(--alpha-canvas);
+    font-family:
+        Inter, 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui,
+        sans-serif;
+}
+
+.base-layout {
+    min-height: 100vh;
+}
+
+.desktop-sidebar {
+    min-height: 100vh;
+    background: var(--alpha-sidebar) !important;
+}
+
+.navigation-list,
+.mobile-navigation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+}
+
+.brand {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    margin: 0 0 20px 4px;
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    background: var(--alpha-primary);
+    border-radius: var(--alpha-radius);
+    place-items: center;
+}
+
+.navigation-link {
+    padding: 9px 12px;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.desktop-sidebar .navigation-link {
+    color: #cbd5e1;
+}
+
+.desktop-sidebar .router-link-active {
+    color: white;
+    background: rgb(255 255 255 / 12%);
+}
+
+.app-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    height: var(--alpha-header-height);
+    padding: 0 16px;
+    line-height: normal;
+    background: var(--alpha-surface);
+    border-bottom: 1px solid var(--alpha-border);
+}
+
+.app-title {
+    color: var(--alpha-text);
+    font-weight: 600;
+}
+
+.app-content {
+    min-height: calc(100vh - var(--alpha-header-height));
+    padding: 24px;
+}
+
+.page-placeholder {
+    max-width: 1120px;
+    padding: 24px;
+    background: var(--alpha-surface);
+    border-radius: var(--alpha-radius);
+}
+
+@media (max-width: 767px) {
+    .app-content {
+        padding: 16px;
+    }
+}

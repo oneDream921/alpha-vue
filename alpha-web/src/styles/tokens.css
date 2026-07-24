@@ -1,0 +1,11 @@
+:root {
+    --alpha-primary: #1677ff;
+    --alpha-surface: #ffffff;
+    --alpha-canvas: #f5f7fa;
+    --alpha-text: #1f2937;
+    --alpha-muted: #667085;
+    --alpha-border: #e4e7ec;
+    --alpha-sidebar: #111827;
+    --alpha-header-height: 56px;
+    --alpha-radius: 8px;
+}
