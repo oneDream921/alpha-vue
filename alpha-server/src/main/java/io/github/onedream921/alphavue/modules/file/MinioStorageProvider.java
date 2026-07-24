@@ -15,24 +15,26 @@ public class MinioStorageProvider implements StorageProvider {
     public static final String NAME = "minio";
 
     private final FileStorageProperties.Minio properties;
-    private final MinioClient client;
+    private final FileStorageProperties fileProperties;
+    private volatile MinioClient client;
 
     public MinioStorageProvider(FileStorageProperties fileProperties) {
+        this.fileProperties = fileProperties;
         this.properties = fileProperties.getMinio();
-        this.client = MinioClient.builder()
-                .endpoint(properties.getEndpoint())
-                .credentials(properties.getAccessKey(), properties.getSecretKey())
-                .build();
     }
 
     @Override
     public void store(String key, InputStream input, String contentType) throws IOException {
         try {
-            client.putObject(PutObjectArgs.builder()
+            String serverContentType = fileProperties.safeContentTypeForKey(key);
+            if (serverContentType == null) {
+                throw new IOException("Storage key has no allowed server-side content type");
+            }
+            client().putObject(PutObjectArgs.builder()
                     .bucket(properties.getBucket())
                     .object(key)
                     .stream(input, -1, 10 * 1024 * 1024)
-                    .contentType(contentType)
+                    .contentType(serverContentType)
                     .build());
         } catch (Exception exception) {
             throw new IOException("Unable to store object in MinIO", exception);
@@ -42,7 +44,7 @@ public class MinioStorageProvider implements StorageProvider {
     @Override
     public void delete(String key) throws IOException {
         try {
-            client.removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
+            client().removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
         } catch (Exception exception) {
             throw new IOException("Unable to delete object from MinIO", exception);
         }
@@ -59,5 +61,25 @@ public class MinioStorageProvider implements StorageProvider {
 
     private static String trimTrailingSlash(String value) {
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    private MinioClient client() {
+        MinioClient current = client;
+        if (current != null) {
+            return current;
+        }
+        synchronized (this) {
+            if (client == null) {
+                if (properties.getAccessKey() == null || properties.getAccessKey().isBlank()
+                        || properties.getSecretKey() == null || properties.getSecretKey().isBlank()) {
+                    throw new IllegalStateException("MINIO_ACCESS_KEY and MINIO_SECRET_KEY are required for MinIO storage");
+                }
+                client = MinioClient.builder()
+                        .endpoint(properties.getEndpoint())
+                        .credentials(properties.getAccessKey(), properties.getSecretKey())
+                        .build();
+            }
+            return client;
+        }
     }
 }

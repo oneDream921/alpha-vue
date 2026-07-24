@@ -24,7 +24,7 @@ alpha:
     local-public-url: ${FILE_LOCAL_PUBLIC_URL:/uploads}
     minio:
       endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
-      access-key: ${MINIO_ACCESS_KEY:minioadmin}
-      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      access-key: ${MINIO_ACCESS_KEY:}
+      secret-key: ${MINIO_SECRET_KEY:}
       bucket: ${MINIO_BUCKET:alpha-vue}
       public-url: ${MINIO_PUBLIC_URL:}

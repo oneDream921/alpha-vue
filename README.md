@@ -15,4 +15,4 @@ cp deploy/.env.example deploy/.env
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d
 ```
 
-The backend defaults to the development profile. Configure database, Redis, MinIO, and application secrets through environment variables; see `deploy/.env.example` for local values.
+The backend defaults to the development profile. Configure database, Redis, MinIO, and application secrets through environment variables; see `deploy/.env.example` for local values. When `FILE_STORAGE_PROVIDER=minio`, `MINIO_ACCESS_KEY` and `MINIO_SECRET_KEY` are required application credentials; they are separate from `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` used to administer the local MinIO service.
