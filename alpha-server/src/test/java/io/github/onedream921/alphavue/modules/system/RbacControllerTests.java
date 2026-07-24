@@ -1,0 +1,180 @@
+package io.github.onedream921.alphavue.modules.system;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class RbacControllerTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void removeRbacFixtures() {
+        jdbcTemplate.update("DELETE FROM sys_role_menu WHERE role_id IN (SELECT id FROM sys_role WHERE code LIKE 'RBAC_%')");
+        jdbcTemplate.update("DELETE FROM sys_user_role WHERE user_id IN (SELECT id FROM sys_user WHERE username LIKE 'rbac-%') "
+                + "OR role_id IN (SELECT id FROM sys_role WHERE code LIKE 'RBAC_%')");
+        jdbcTemplate.update("DELETE FROM sys_user WHERE username LIKE 'rbac-%'");
+        jdbcTemplate.update("DELETE FROM sys_role WHERE code LIKE 'RBAC_%'");
+        jdbcTemplate.update("DELETE FROM sys_menu WHERE title LIKE 'RBAC %'");
+        jdbcTemplate.update("DELETE FROM sys_oper_log WHERE module = 'System'");
+    }
+
+    @Test
+    void deniesUserManagementToAuthenticatedUserWithoutPermission() throws Exception {
+        long userId = insertUser("rbac-no-access");
+        long roleId = insertRole("RBAC_NO_ACCESS");
+        jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)", userId, roleId);
+
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(login("rbac-no-access"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void listsUsersForUserGrantedListPermission() throws Exception {
+        long userId = insertUser("rbac-list-user");
+        long roleId = insertRole("RBAC_LIST_USER");
+        long menuId = insertMenu("RBAC User List", "system:user:list");
+        jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)", userId, roleId);
+        jdbcTemplate.update("INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)", roleId, menuId);
+
+        mockMvc.perform(get("/api/system/users?page=1&size=10")
+                        .header("Authorization", bearer(login("rbac-list-user"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.records[?(@.username == 'admin')]").exists());
+    }
+
+    @Test
+    void validatesAndSoftDeletesUsers() throws Exception {
+        String adminToken = login("admin");
+
+        mockMvc.perform(post("/api/system/users")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"\",\"password\":\"short\",\"nickname\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+
+        MvcResult created = mockMvc.perform(post("/api/system/users")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"rbac-created\",\"password\":\"change-me-123\",\"nickname\":\"Created user\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("rbac-created"))
+                .andReturn();
+        long userId = jsonId(created);
+
+        mockMvc.perform(delete("/api/system/users/{id}", userId)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_user WHERE id = ?", Integer.class, userId))
+                .isEqualTo(1);
+        awaitOperations("Create user", "Delete user");
+    }
+
+    @Test
+    void assignsMenusToRolesAuditsChangesAndPreservesSuperAdmin() throws Exception {
+        String adminToken = login("admin");
+        MvcResult role = mockMvc.perform(post("/api/system/roles")
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"RBAC editable role\",\"code\":\"RBAC_EDITABLE\",\"sortOrder\":5}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        long roleId = jsonId(role);
+        long menuId = insertMenu("RBAC Managed Menu", "system:menu:update");
+
+        mockMvc.perform(put("/api/system/roles/{id}/menus", roleId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuIds\":[" + menuId + "]}"))
+                .andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ? AND menu_id = ?", Integer.class, roleId, menuId))
+                .isEqualTo(1);
+
+        mockMvc.perform(delete("/api/system/roles/1").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        awaitOperations("Create role", "Assign role menus");
+    }
+
+    private long insertUser(String username) {
+        jdbcTemplate.update("INSERT INTO sys_user (username, password, nickname, must_change_password) VALUES (?, ?, ?, 0)",
+                username, BCrypt.hashpw("password-123", BCrypt.gensalt()), username);
+        return jdbcTemplate.queryForObject("SELECT id FROM sys_user WHERE username = ?", Long.class, username);
+    }
+
+    private long insertRole(String code) {
+        jdbcTemplate.update("INSERT INTO sys_role (name, code) VALUES (?, ?)", code, code);
+        return jdbcTemplate.queryForObject("SELECT id FROM sys_role WHERE code = ?", Long.class, code);
+    }
+
+    private long insertMenu(String title, String permission) {
+        jdbcTemplate.update("INSERT INTO sys_menu (parent_id, title, menu_type, permission) VALUES (0, ?, 'BUTTON', ?)",
+                title, permission);
+        return jdbcTemplate.queryForObject("SELECT id FROM sys_menu WHERE title = ?", Long.class, title);
+    }
+
+    private String login(String username) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + username + "\",\"password\":\""
+                                + ("admin".equals(username) ? "admin123" : "password-123") + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return result.getResponse().getContentAsString().replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");
+    }
+
+    private static String bearer(String token) {
+        return "Bearer " + token;
+    }
+
+    private static long jsonId(MvcResult result) throws Exception {
+        return Long.parseLong(result.getResponse().getContentAsString()
+                .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*(\\d+).*", "$1"));
+    }
+
+    private void awaitOperations(String... operations) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            List<String> recorded = jdbcTemplate.queryForList(
+                    "SELECT operation FROM sys_oper_log WHERE module = 'System'", String.class);
+            if (recorded.containsAll(List.of(operations))) {
+                return;
+            }
+            Thread.sleep(20);
+        }
+        throw new AssertionError("Timed out waiting for audited operations " + List.of(operations));
+    }
+}

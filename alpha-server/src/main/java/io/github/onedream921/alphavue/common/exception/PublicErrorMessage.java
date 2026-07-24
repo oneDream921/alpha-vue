@@ -7,6 +7,7 @@ public enum PublicErrorMessage {
     INVALID_CREDENTIALS("Invalid credentials"),
     LOGIN_TEMPORARILY_LOCKED("Login temporarily locked"),
     UNAUTHORIZED("Authentication required"),
+    FORBIDDEN("Permission denied"),
     INTERNAL_SERVER_ERROR("Internal server error");
 
     private final String value;
