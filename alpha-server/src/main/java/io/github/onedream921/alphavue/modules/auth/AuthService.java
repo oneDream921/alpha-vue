@@ -30,14 +30,13 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request, String ipAddress) {
-        if (loginFailureStore.isLocked(request.username(), ipAddress)) {
+        if (!loginFailureStore.reserveAttempt(request.username(), ipAddress)) {
             auditLogService.recordLogin(request.username(), null, false, ipAddress);
             throw new BusinessException(429, PublicErrorMessage.LOGIN_TEMPORARILY_LOCKED);
         }
 
         UserAccount account = findAccount(request.username());
         if (account == null || !BCrypt.checkpw(request.password(), account.passwordHash())) {
-            loginFailureStore.recordFailure(request.username(), ipAddress);
             auditLogService.recordLogin(request.username(), null, false, ipAddress);
             throw new BusinessException(401, PublicErrorMessage.INVALID_CREDENTIALS);
         }
@@ -97,9 +96,8 @@ public class AuthService {
     }
 
     public interface LoginFailureStore {
-        boolean isLocked(String username, String ipAddress);
-
-        void recordFailure(String username, String ipAddress);
+        /** Atomically reserves one of the five permitted attempts in the fifteen-minute window. */
+        boolean reserveAttempt(String username, String ipAddress);
 
         void clear(String username, String ipAddress);
     }

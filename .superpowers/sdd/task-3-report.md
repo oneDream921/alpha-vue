@@ -20,3 +20,18 @@
 - `mvn -q package -DskipTests` — passed.
 
 The environment has no local Redis executable, so the test profile intentionally uses Sa-Token's in-memory DAO and in-memory failure-limit store; production/dev profiles use Redis-backed implementations without this Docker dependency.
+
+## Review remediation
+
+- Replaced the separate lock check and failure increment with `reserveAttempt`, which reserves an attempt before account lookup or BCrypt verification. Redis executes the cap check, increment, and first-attempt 15-minute expiry in one Lua script; the test-profile implementation provides the same expiry-aware operation under a lock. This permits exactly five attempts per username/IP window and rejects later requests before BCrypt.
+- `OperationLogAspect` now captures both the numeric login ID and its username before proceeding to the controller, so a logout cannot erase the actor before asynchronous audit persistence.
+
+## Remediation TDD and validation
+
+1. RED: `AuthControllerTests#admitsOnlyFiveSimultaneousFailedLoginAttemptsPerUsernameAndIp` sent ten barrier-synchronized bad requests. Before the fix, all ten received `401` (expected five `401` and five `429`).
+2. RED: `AuthControllerTests#recordsLogoutOperationWithThePrincipalThatInitiatedIt` persisted a null `user_id` before the fix.
+3. GREEN: both remediation tests pass, including the post-cap `429` check and persisted logout `user_id=1`, `username=admin` assertion.
+4. `/Applications/IntelliJ IDEA.app/Contents/plugins/maven-plugin/lib/maven3/bin/mvn -q -Dtest=AuthControllerTests test` — passed: 5 tests, 0 failures/errors.
+5. `/Applications/IntelliJ IDEA.app/Contents/plugins/maven-plugin/lib/maven3/bin/mvn -q test` — passed: 10 tests, 0 failures/errors.
+
+`mvn` is not on this environment's PATH; the validated IntelliJ-bundled Maven executable was used for the commands above.

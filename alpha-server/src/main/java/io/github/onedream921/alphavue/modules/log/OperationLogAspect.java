@@ -8,7 +8,10 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /** Captures operation metadata only; request and response payloads stay redacted. */
 @Aspect
@@ -17,11 +20,14 @@ import org.springframework.stereotype.Component;
 public class OperationLogAspect {
 
     private final AuditLogService auditLogService;
+    private final JdbcTemplate jdbcTemplate;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
 
-    public OperationLogAspect(AuditLogService auditLogService, HttpServletRequest request, HttpServletResponse response) {
+    public OperationLogAspect(AuditLogService auditLogService, JdbcTemplate jdbcTemplate,
+            HttpServletRequest request, HttpServletResponse response) {
         this.auditLogService = auditLogService;
+        this.jdbcTemplate = jdbcTemplate;
         this.request = request;
         this.response = response;
     }
@@ -29,17 +35,16 @@ public class OperationLogAspect {
     @Around("@annotation(operationLog)")
     public Object record(ProceedingJoinPoint joinPoint, OperationLog operationLog) throws Throwable {
         long startedAt = System.nanoTime();
+        LoginPrincipal principal = currentPrincipal();
         boolean succeeded = false;
         try {
             Object result = joinPoint.proceed();
             succeeded = true;
             return result;
         } finally {
-            Object loginId = StpUtil.getLoginIdDefaultNull();
-            Long userId = loginId == null ? null : Long.valueOf(loginId.toString());
             auditLogService.recordOperation(
-                    userId,
-                    null,
+                    principal.userId(),
+                    principal.username(),
                     operationLog.module(),
                     operationLog.operation(),
                     request.getMethod(),
@@ -50,5 +55,21 @@ public class OperationLogAspect {
                     (System.nanoTime() - startedAt) / 1_000_000,
                     (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE));
         }
+    }
+
+    private LoginPrincipal currentPrincipal() {
+        Object loginId = StpUtil.getLoginIdDefaultNull();
+        if (loginId == null) {
+            return new LoginPrincipal(null, null);
+        }
+        Long userId = Long.valueOf(loginId.toString());
+        List<String> usernames = jdbcTemplate.query(
+                "SELECT username FROM sys_user WHERE id = ?",
+                (resultSet, rowNum) -> resultSet.getString("username"),
+                userId);
+        return new LoginPrincipal(userId, usernames.isEmpty() ? null : usernames.getFirst());
+    }
+
+    private record LoginPrincipal(Long userId, String username) {
     }
 }

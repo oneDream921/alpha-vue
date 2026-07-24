@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -22,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /** Sa-Token HTTP protection, Redis session storage, and test-safe login limits. */
@@ -32,6 +32,17 @@ public class SaTokenConfig implements WebMvcConfigurer {
 
     private static final int MAX_LOGIN_FAILURES = 5;
     private static final Duration LOGIN_FAILURE_WINDOW = Duration.ofMinutes(15);
+    private static final DefaultRedisScript<Long> RESERVE_LOGIN_ATTEMPT = new DefaultRedisScript<>("""
+            local attempts = redis.call('GET', KEYS[1])
+            if attempts and tonumber(attempts) >= tonumber(ARGV[1]) then
+                return 0
+            end
+            local count = redis.call('INCR', KEYS[1])
+            if count == 1 then
+                redis.call('PEXPIRE', KEYS[1], ARGV[2])
+            end
+            return 1
+            """, Long.class);
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -87,18 +98,13 @@ public class SaTokenConfig implements WebMvcConfigurer {
         }
 
         @Override
-        public boolean isLocked(String username, String ipAddress) {
-            String attempts = redisTemplate.opsForValue().get(key(username, ipAddress));
-            return attempts != null && Integer.parseInt(attempts) >= MAX_LOGIN_FAILURES;
-        }
-
-        @Override
-        public void recordFailure(String username, String ipAddress) {
-            String key = key(username, ipAddress);
-            Long count = redisTemplate.opsForValue().increment(key);
-            if (count != null && count == 1) {
-                redisTemplate.expire(key, LOGIN_FAILURE_WINDOW);
-            }
+        public boolean reserveAttempt(String username, String ipAddress) {
+            Long reserved = redisTemplate.execute(
+                    RESERVE_LOGIN_ATTEMPT,
+                    List.of(key(username, ipAddress)),
+                    Integer.toString(MAX_LOGIN_FAILURES),
+                    Long.toString(LOGIN_FAILURE_WINDOW.toMillis()));
+            return Long.valueOf(1L).equals(reserved);
         }
 
         @Override
@@ -108,21 +114,30 @@ public class SaTokenConfig implements WebMvcConfigurer {
     }
 
     private static final class InMemoryLoginFailureStore implements AuthService.LoginFailureStore {
-        private final Map<String, Integer> attempts = new ConcurrentHashMap<>();
+        private final Map<String, FailureWindow> attempts = new java.util.HashMap<>();
 
         @Override
-        public boolean isLocked(String username, String ipAddress) {
-            return attempts.getOrDefault(key(username, ipAddress), 0) >= MAX_LOGIN_FAILURES;
+        public synchronized boolean reserveAttempt(String username, String ipAddress) {
+            String key = key(username, ipAddress);
+            long now = System.nanoTime();
+            FailureWindow current = attempts.get(key);
+            if (current == null || current.expiresAtNanos() <= now) {
+                attempts.put(key, new FailureWindow(1, now + LOGIN_FAILURE_WINDOW.toNanos()));
+                return true;
+            }
+            if (current.attempts() >= MAX_LOGIN_FAILURES) {
+                return false;
+            }
+            attempts.put(key, new FailureWindow(current.attempts() + 1, current.expiresAtNanos()));
+            return true;
         }
 
         @Override
-        public void recordFailure(String username, String ipAddress) {
-            attempts.merge(key(username, ipAddress), 1, Integer::sum);
-        }
-
-        @Override
-        public void clear(String username, String ipAddress) {
+        public synchronized void clear(String username, String ipAddress) {
             attempts.remove(key(username, ipAddress));
+        }
+
+        private record FailureWindow(int attempts, long expiresAtNanos) {
         }
     }
 
