@@ -1,0 +1,15 @@
+.idea/
+.worktrees/
+
+# Java
+target/
+*.log
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Local environment
+.env
+.env.local
