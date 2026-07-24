@@ -3,12 +3,12 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-alpha_vue}
-      MYSQL_USER: ${MYSQL_USER:-alpha}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-alpha}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in deploy/.env}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in deploy/.env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in deploy/.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in deploy/.env}
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_PORT:?Set MYSQL_PORT in deploy/.env}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -31,9 +31,9 @@ services:
           exec redis-server --appendonly yes;
         fi
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in deploy/.env}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:?Set REDIS_PORT in deploy/.env}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -50,15 +50,15 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-alpha-minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me-minio}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in deploy/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/.env}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_API_PORT:?Set MINIO_API_PORT in deploy/.env}:9000"
+      - "${MINIO_CONSOLE_PORT:?Set MINIO_CONSOLE_PORT in deploy/.env}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
