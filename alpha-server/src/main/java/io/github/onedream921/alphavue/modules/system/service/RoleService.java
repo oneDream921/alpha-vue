@@ -79,7 +79,9 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
     public void replaceMenus(long roleId, Set<Long> menuIds) {
         requireRole(roleId);
         if (!menuIds.isEmpty() && menuMapper.selectCount(new LambdaQueryWrapper<SysMenu>()
-                .in(SysMenu::getId, menuIds)) != menuIds.size()) {
+                .in(SysMenu::getId, menuIds)
+                .eq(SysMenu::getStatus, 1)
+                .eq(SysMenu::getDeleted, 0)) != menuIds.size()) {
             throw invalidRequest();
         }
         jdbcTemplate.update("DELETE FROM sys_role_menu WHERE role_id = ?", roleId);

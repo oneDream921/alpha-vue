@@ -54,6 +54,14 @@ class RbacControllerTests {
         mockMvc.perform(get("/api/system/users").header("Authorization", bearer(login("rbac-no-access"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(403));
+
+        mockMvc.perform(post("/api/system/users")
+                        .header("Authorization", bearer(login("rbac-no-access")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"rbac-denied-create\",\"password\":\"change-me-123\",\"nickname\":\"Denied\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+        awaitFailedOperationAudit("Create user", 403);
     }
 
     @Test
@@ -71,6 +79,51 @@ class RbacControllerTests {
                 .andExpect(jsonPath("$.data.page").value(1))
                 .andExpect(jsonPath("$.data.size").value(10))
                 .andExpect(jsonPath("$.data.records[?(@.username == 'admin')]").exists());
+    }
+
+    @Test
+    void preissuedTokenLosesProtectedAccessWhenUserIsDisabledOrDeleted() throws Exception {
+        long disabledUserId = insertUser("rbac-token-disabled");
+        String disabledToken = login("rbac-token-disabled");
+
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", bearer(disabledToken)))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE sys_user SET status = 0 WHERE id = ?", disabledUserId);
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", bearer(disabledToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+
+        long deletedUserId = insertUser("rbac-token-deleted");
+        String deletedToken = login("rbac-token-deleted");
+        jdbcTemplate.update("UPDATE sys_user SET deleted = 1 WHERE id = ?", deletedUserId);
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", bearer(deletedToken)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void revokesPermissionsWhenAssignedRoleIsDisabledOrDeletedAfterLogin() throws Exception {
+        long userId = insertUser("rbac-role-lifecycle");
+        long roleId = insertRole("RBAC_ROLE_LIFECYCLE");
+        long menuId = insertMenu("RBAC Lifecycle List", "system:user:list");
+        jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)", userId, roleId);
+        jdbcTemplate.update("INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)", roleId, menuId);
+        String token = login("rbac-role-lifecycle");
+
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE sys_role SET status = 0 WHERE id = ?", roleId);
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+
+        jdbcTemplate.update("UPDATE sys_role SET status = 1 WHERE id = ?", roleId);
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE sys_role SET deleted = 1 WHERE id = ?", roleId);
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
     }
 
     @Test
@@ -129,6 +182,37 @@ class RbacControllerTests {
         awaitOperations("Create role", "Assign role menus");
     }
 
+    @Test
+    void rejectsInactiveAssignmentsAndAuditsExpectedFailuresWithTheirHttpStatus() throws Exception {
+        String adminToken = login("admin");
+        long userId = insertUser("rbac-assignment-user");
+        long disabledRoleId = insertRole("RBAC_DISABLED_ASSIGNMENT");
+        jdbcTemplate.update("UPDATE sys_role SET status = 0 WHERE id = ?", disabledRoleId);
+        long editableRoleId = insertRole("RBAC_EDITABLE_ASSIGNMENT");
+        long disabledMenuId = insertMenu("RBAC Disabled Assignment Menu", "system:menu:update");
+        jdbcTemplate.update("UPDATE sys_menu SET status = 0 WHERE id = ?", disabledMenuId);
+
+        mockMvc.perform(put("/api/system/users/{id}/roles", userId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"roleIds\":[" + disabledRoleId + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        mockMvc.perform(put("/api/system/roles/{id}/menus", editableRoleId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuIds\":[" + disabledMenuId + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_user_role WHERE user_id = ?", Integer.class, userId))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ?", Integer.class, editableRoleId))
+                .isZero();
+        awaitFailedOperationAudit("Assign user roles", 400);
+        awaitFailedOperationAudit("Assign role menus", 400);
+    }
+
     private long insertUser(String username) {
         jdbcTemplate.update("INSERT INTO sys_user (username, password, nickname, must_change_password) VALUES (?, ?, ?, 0)",
                 username, BCrypt.hashpw("password-123", BCrypt.gensalt()), username);
@@ -176,5 +260,21 @@ class RbacControllerTests {
             Thread.sleep(20);
         }
         throw new AssertionError("Timed out waiting for audited operations " + List.of(operations));
+    }
+
+    private void awaitFailedOperationAudit(String operation, int responseCode) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            Integer count = jdbcTemplate.queryForObject("""
+                            SELECT COUNT(*) FROM sys_oper_log
+                            WHERE module = 'System' AND operation = ? AND response_code = ?
+                              AND status = 0 AND request_params = '[redacted]'
+                            """, Integer.class, operation, responseCode);
+            if (count != null && count > 0) {
+                return;
+            }
+            Thread.sleep(20);
+        }
+        throw new AssertionError("Timed out waiting for failed audit of " + operation);
     }
 }

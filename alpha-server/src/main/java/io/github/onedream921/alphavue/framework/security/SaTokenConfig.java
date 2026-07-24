@@ -14,6 +14,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -43,10 +44,18 @@ public class SaTokenConfig implements WebMvcConfigurer {
             end
             return 1
             """, Long.class);
+    private final JdbcTemplate jdbcTemplate;
+
+    public SaTokenConfig(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new SaInterceptor(handler -> StpUtil.checkLogin()))
+        registry.addInterceptor(new SaInterceptor(handler -> {
+                    StpUtil.checkLogin();
+                    requireActiveAccount();
+                }))
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/api/auth/login",
@@ -61,6 +70,21 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/**/*.jpg",
                         "/**/*.svg",
                         "/webjars/**");
+    }
+
+    /** Invalidates a previously issued session as soon as its account is disabled or soft-deleted. */
+    private void requireActiveAccount() {
+        Object loginId = StpUtil.getLoginIdDefaultNull();
+        if (loginId == null) {
+            return;
+        }
+        Integer activeAccounts = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sys_user WHERE id = ? AND deleted = 0 AND status = 1",
+                Integer.class, loginId);
+        if (activeAccounts == null || activeAccounts == 0) {
+            StpUtil.logout();
+            StpUtil.checkLogin();
+        }
     }
 
     /**

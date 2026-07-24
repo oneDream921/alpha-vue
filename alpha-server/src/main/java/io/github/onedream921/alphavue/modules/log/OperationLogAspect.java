@@ -1,6 +1,7 @@
 package io.github.onedream921.alphavue.modules.log;
 
 import cn.dev33.satoken.stp.StpUtil;
+import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,10 +38,15 @@ public class OperationLogAspect {
         long startedAt = System.nanoTime();
         LoginPrincipal principal = currentPrincipal();
         boolean succeeded = false;
+        int responseCode = 500;
         try {
             Object result = joinPoint.proceed();
             succeeded = true;
+            responseCode = response.getStatus();
             return result;
+        } catch (BusinessException exception) {
+            responseCode = exception.code();
+            throw exception;
         } finally {
             auditLogService.recordOperation(
                     principal.userId(),
@@ -49,7 +55,7 @@ public class OperationLogAspect {
                     operationLog.operation(),
                     request.getMethod(),
                     request.getRequestURI(),
-                    succeeded ? response.getStatus() : 500,
+                    responseCode,
                     succeeded,
                     request.getRemoteAddr(),
                     (System.nanoTime() - startedAt) / 1_000_000,

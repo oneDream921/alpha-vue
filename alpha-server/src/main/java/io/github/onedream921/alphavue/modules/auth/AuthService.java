@@ -72,8 +72,14 @@ public class AuthService {
                                m.permission, m.icon, m.sort_order
                         FROM sys_menu m
                         JOIN sys_role_menu rm ON rm.menu_id = m.id
+                        JOIN sys_role r ON r.id = rm.role_id
                         JOIN sys_user_role ur ON ur.role_id = rm.role_id
+                        JOIN sys_user u ON u.id = ur.user_id
                         WHERE ur.user_id = ?
+                          AND u.deleted = 0
+                          AND u.status = 1
+                          AND r.deleted = 0
+                          AND r.status = 1
                           AND m.deleted = 0
                           AND m.status = 1
                           AND m.visible = 1

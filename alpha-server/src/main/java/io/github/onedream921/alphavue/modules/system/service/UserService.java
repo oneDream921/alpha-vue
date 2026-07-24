@@ -85,7 +85,9 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     public void replaceRoles(long userId, Set<Long> roleIds) {
         requireUser(userId);
         if (!roleIds.isEmpty() && roleMapper.selectCount(new LambdaQueryWrapper<SysRole>()
-                .in(SysRole::getId, roleIds)) != roleIds.size()) {
+                .in(SysRole::getId, roleIds)
+                .eq(SysRole::getStatus, 1)
+                .eq(SysRole::getDeleted, 0)) != roleIds.size()) {
             throw invalidRequest();
         }
         jdbcTemplate.update("DELETE FROM sys_user_role WHERE user_id = ?", userId);
