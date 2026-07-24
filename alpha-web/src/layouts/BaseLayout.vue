@@ -6,7 +6,7 @@ const viewportWidth = ref(
     typeof window === 'undefined' ? 1024 : window.innerWidth,
 )
 const mobileDrawerOpen = ref(false)
-const desktopCollapsed = ref(false)
+const desktopCollapsed = ref(viewportWidth.value < 1024)
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -45,7 +45,11 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
             :trigger="null"
             class="desktop-sidebar"
         >
-            <nav aria-label="主导航" class="navigation-list">
+            <nav
+                id="primary-navigation"
+                aria-label="主导航"
+                class="navigation-list"
+            >
                 <RouterLink to="/" class="brand" aria-label="Alpha Vue 首页"
                     >AV</RouterLink
                 >
@@ -95,9 +99,11 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                     <MenuUnfoldOutlined />
                 </a-button>
                 <a-button
-                    v-else-if="isDesktop"
+                    v-else
                     type="text"
-                    aria-label="折叠侧栏"
+                    :aria-controls="'primary-navigation'"
+                    :aria-expanded="!sidebarCollapsed"
+                    :aria-label="sidebarCollapsed ? '展开侧栏' : '折叠侧栏'"
                     @click="desktopCollapsed = !desktopCollapsed"
                 >
                     <MenuUnfoldOutlined v-if="sidebarCollapsed" />
