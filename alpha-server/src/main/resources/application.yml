@@ -14,3 +14,17 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+alpha:
+  file:
+    provider: ${FILE_STORAGE_PROVIDER:local}
+    allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:txt,pdf,png,jpg,jpeg,gif,doc,docx,xls,xlsx}
+    max-size-bytes: ${FILE_MAX_SIZE_BYTES:10485760}
+    local-root: ${FILE_LOCAL_ROOT:uploads}
+    local-public-url: ${FILE_LOCAL_PUBLIC_URL:/uploads}
+    minio:
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      bucket: ${MINIO_BUCKET:alpha-vue}
+      public-url: ${MINIO_PUBLIC_URL:}

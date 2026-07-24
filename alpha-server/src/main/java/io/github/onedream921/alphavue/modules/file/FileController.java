@@ -1,0 +1,65 @@
+package io.github.onedream921.alphavue.modules.file;
+
+import cn.dev33.satoken.stp.StpUtil;
+import io.github.onedream921.alphavue.common.api.ApiResponse;
+import io.github.onedream921.alphavue.common.api.PageResponse;
+import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.modules.log.OperationLog;
+import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.http.MediaType;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+@Validated
+@RestController
+@RequestMapping("/api/files")
+public class FileController {
+
+    private final FileService fileService;
+    private final SystemAccessService access;
+
+    public FileController(FileService fileService, SystemAccessService access) {
+        this.fileService = fileService;
+        this.access = access;
+    }
+
+    @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @OperationLog(module = "File", operation = "Upload file")
+    public ApiResponse<FileService.FileView> upload(@RequestPart("file") MultipartFile file, HttpServletRequest request) {
+        access.require("file:upload");
+        long uploaderId = Long.parseLong(StpUtil.getLoginId().toString());
+        return ApiResponse.success(fileService.upload(file, uploaderId), traceId(request));
+    }
+
+    @GetMapping
+    public ApiResponse<PageResponse<FileService.FileView>> page(
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+            HttpServletRequest request) {
+        access.require("file:list");
+        return ApiResponse.success(fileService.page(page, size), traceId(request));
+    }
+
+    @DeleteMapping("/{id}")
+    @OperationLog(module = "File", operation = "Delete file")
+    public ApiResponse<Void> delete(@PathVariable long id, HttpServletRequest request) {
+        access.require("file:delete");
+        fileService.delete(id);
+        return ApiResponse.success(null, traceId(request));
+    }
+
+    private static String traceId(HttpServletRequest request) {
+        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+    }
+}
