@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
@@ -15,23 +17,29 @@ import java.util.UUID;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(
             BusinessException exception, HttpServletRequest request) {
         return ResponseEntity.status(resolveStatus(exception.code()))
-                .body(ApiResponse.error(exception.code(), exception.getMessage(), traceId(request)));
+                .body(ApiResponse.error(exception.code(), exception.publicMessage().value(), traceId(request)));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(HttpServletRequest request) {
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "Validation failed", traceId(request)));
+                .body(ApiResponse.error(
+                        HttpStatus.BAD_REQUEST.value(), PublicErrorMessage.VALIDATION_FAILED.value(), traceId(request)));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnexpectedException(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleUnexpectedException(Exception exception, HttpServletRequest request) {
+        String traceId = traceId(request);
+        LOGGER.error("Unhandled request exception [traceId={}]", traceId, exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", traceId(request)));
+                .body(ApiResponse.error(
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(), PublicErrorMessage.INTERNAL_SERVER_ERROR.value(), traceId));
     }
 
     private HttpStatus resolveStatus(int code) {

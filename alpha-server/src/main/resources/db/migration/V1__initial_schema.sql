@@ -1,8 +1,3 @@
-CREATE TABLE migration_probe (
-    id BIGINT PRIMARY KEY,
-    created_at TIMESTAMP NOT NULL
-);
-
 CREATE TABLE sys_dept (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     parent_id BIGINT NOT NULL DEFAULT 0,

@@ -17,11 +17,11 @@ class AlphaVueApplicationTests {
 
     @Test
     void contextLoadsWithMigratedDataSource() {
-        Integer migrationProbeTableCount = jdbcTemplate.queryForObject(
+        Integer userTableCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
-                        + "WHERE TABLE_SCHEMA = 'public' AND TABLE_NAME = 'migration_probe'",
+                        + "WHERE TABLE_SCHEMA = 'public' AND TABLE_NAME = 'sys_user'",
                 Integer.class);
 
-        assertThat(migrationProbeTableCount).isEqualTo(1);
+        assertThat(userTableCount).isEqualTo(1);
     }
 }
