@@ -71,3 +71,16 @@ Verification run from the repository root:
 ```
 
 Results: all checks passed. Vitest reported `2 passed` test files and `5 passed` tests. The production build retained only Vite's non-failing initial chunk-size advisory.
+
+## Re-review test correction (2026-07-25)
+
+- Updated the 1024px desktop sidebar test to click the exposed `展开侧栏` control after collapsing, then assert the sidebar returns to its expanded state and the `折叠侧栏` control is restored.
+
+Focused verification run from the repository root:
+
+```sh
+/opt/homebrew/bin/pnpm --dir alpha-web test -- BaseLayout.test.ts
+/opt/homebrew/bin/pnpm --dir alpha-web typecheck
+```
+
+Results: both checks passed. Vitest reported `2 passed` test files and `5 passed` tests, including all `3` `BaseLayout` cases; `vue-tsc --noEmit` completed without errors. Vitest also emitted Node's pre-existing non-failing experimental `localStorage` warning.

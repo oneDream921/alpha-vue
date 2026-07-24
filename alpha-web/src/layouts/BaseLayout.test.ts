@@ -72,6 +72,10 @@ describe('BaseLayout', () => {
         await wrapper.get('[aria-label="折叠侧栏"]').trigger('click')
 
         expect(sidebar.classes()).toContain('ant-layout-sider-collapsed')
-        expect(wrapper.get('[aria-label="展开侧栏"]')).toBeTruthy()
+
+        await wrapper.get('[aria-label="展开侧栏"]').trigger('click')
+
+        expect(sidebar.classes()).not.toContain('ant-layout-sider-collapsed')
+        expect(wrapper.get('[aria-label="折叠侧栏"]')).toBeTruthy()
     })
 })
