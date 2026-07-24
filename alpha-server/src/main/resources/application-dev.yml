@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/alpha_vue?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USER:alpha}
+    password: ${MYSQL_PASSWORD:alpha}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+
+sa-token:
+  token-name: ${SA_TOKEN_NAME:Alpha-Token}
+  timeout: ${SA_TOKEN_TIMEOUT:2592000}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT:-1}
+  is-concurrent: ${SA_TOKEN_IS_CONCURRENT:true}
+  is-share: ${SA_TOKEN_IS_SHARE:false}
+  token-style: ${SA_TOKEN_STYLE:uuid}
+  is-log: ${SA_TOKEN_IS_LOG:false}

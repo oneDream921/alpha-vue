@@ -1,3 +1,4 @@
+alpha-server/target/
 .idea/
 .worktrees/
 
@@ -13,3 +14,7 @@ coverage/
 # Local environment
 .env
 .env.local
+
+*.iml
+.DS_Store
+deploy/.env
