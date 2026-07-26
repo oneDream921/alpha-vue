@@ -156,9 +156,7 @@ onMounted(refresh)
                 <h1>Redis 管理</h1>
                 <p>可查询全库键和值内容；删除前请确认影响</p>
             </div>
-            <a-button :loading="loading" @click="refresh"
-                ><ReloadOutlined />刷新</a-button
-            >
+            <a-button @click="refresh"><ReloadOutlined />刷新</a-button>
         </div>
         <a-alert
             v-if="queryError"

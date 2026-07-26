@@ -125,6 +125,9 @@ function openEdit(row: Dept) {
     })
     editorOpen.value = true
 }
+function setParentId(value: string | number | null | undefined) {
+    form.parentId = value == null ? undefined : Number(value)
+}
 async function save() {
     const payload = {
         parentId: form.parentId ?? 0,
@@ -247,7 +250,7 @@ onMounted(load)
                 <div class="form-grid">
                     <a-form-item label="上级部门" name="parentId"
                         ><a-tree-select
-                            v-model:value="form.parentId"
+                            :value="form.parentId"
                             class="full-width"
                             :tree-data="parentDeptOptions"
                             placeholder="请选择上级部门（不选为顶级）"
@@ -257,6 +260,7 @@ onMounted(load)
                                 children: 'children',
                             }"
                             allow-clear
+                            @update:value="setParentId"
                             tree-default-expand-all /></a-form-item
                     ><a-form-item label="排序" name="sortOrder"
                         ><a-input-number

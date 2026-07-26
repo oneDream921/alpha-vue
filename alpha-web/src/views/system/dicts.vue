@@ -334,22 +334,26 @@ onMounted(loadTypes)
                                         record.status === 1 ? '启用' : '停用'
                                     " /></template
                         ></a-table-column>
-                        <a-table-column title="操作" width="130"
+                        <a-table-column title="操作" width="80" align="center"
                             ><template #default="{ record }"
                                 ><a-space
-                                    ><a-button
-                                        v-permission="'system:dict:update'"
-                                        type="link"
-                                        size="small"
-                                        @click.stop="openTypeEdit(record)"
-                                        ><EditOutlined />编辑</a-button
-                                    ><a-button
-                                        v-permission="'system:dict:delete'"
-                                        type="link"
-                                        danger
-                                        size="small"
-                                        @click.stop="removeType(record)"
-                                        ><DeleteOutlined />删除</a-button
+                                    ><a-tooltip title="编辑"
+                                        ><a-button
+                                            v-permission="'system:dict:update'"
+                                            type="link"
+                                            size="small"
+                                            aria-label="编辑"
+                                            @click.stop="openTypeEdit(record)"
+                                            ><EditOutlined /></a-button></a-tooltip
+                                    ><a-tooltip title="删除"
+                                        ><a-button
+                                            v-permission="'system:dict:delete'"
+                                            type="link"
+                                            danger
+                                            size="small"
+                                            aria-label="删除"
+                                            @click.stop="removeType(record)"
+                                            ><DeleteOutlined /></a-button></a-tooltip
                                     ></a-space
                                 ></template
                             ></a-table-column
@@ -432,22 +436,26 @@ onMounted(loadTypes)
                                     }}</a-tag
                                 ></template
                             ></a-table-column
-                        ><a-table-column title="操作" width="140" align="center"
+                        ><a-table-column title="操作" width="80" align="center"
                             ><template #default="{ record }"
                                 ><a-space
-                                    ><a-button
-                                        v-permission="'system:dict:update'"
-                                        type="link"
-                                        size="small"
-                                        @click="openItemEdit(record)"
-                                        ><EditOutlined />编辑</a-button
-                                    ><a-button
-                                        v-permission="'system:dict:delete'"
-                                        type="link"
-                                        danger
-                                        size="small"
-                                        @click="removeItem(record)"
-                                        ><DeleteOutlined />删除</a-button
+                                    ><a-tooltip title="编辑"
+                                        ><a-button
+                                            v-permission="'system:dict:update'"
+                                            type="link"
+                                            size="small"
+                                            aria-label="编辑"
+                                            @click="openItemEdit(record)"
+                                            ><EditOutlined /></a-button></a-tooltip
+                                    ><a-tooltip title="删除"
+                                        ><a-button
+                                            v-permission="'system:dict:delete'"
+                                            type="link"
+                                            danger
+                                            size="small"
+                                            aria-label="删除"
+                                            @click="removeItem(record)"
+                                            ><DeleteOutlined /></a-button></a-tooltip
                                     ></a-space
                                 ></template
                             ></a-table-column
