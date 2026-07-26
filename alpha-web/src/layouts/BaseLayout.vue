@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     ApartmentOutlined,
+    BookOutlined,
     DashboardOutlined,
     FileTextOutlined,
     FolderOpenOutlined,
@@ -9,6 +10,7 @@ import {
     MenuOutlined,
     MenuUnfoldOutlined,
     SafetyOutlined,
+    SettingOutlined,
     UserOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -60,6 +62,18 @@ const navigation = computed(() =>
             title: '部门管理',
             icon: ApartmentOutlined,
             permission: 'system:dept:list',
+        },
+        {
+            path: '/system/configs',
+            title: '参数配置',
+            icon: SettingOutlined,
+            permission: 'system:config:list',
+        },
+        {
+            path: '/system/dicts',
+            title: '数据字典',
+            icon: BookOutlined,
+            permission: 'system:dict:list',
         },
         {
             path: '/files',
