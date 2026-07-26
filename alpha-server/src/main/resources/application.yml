@@ -52,8 +52,6 @@ knife4j:
   enable: false
 
 alpha:
-  redis-management:
-    prefixes: ${REDIS_MANAGEMENT_PREFIXES:auth:,satoken:}
   file:
     provider: ${FILE_STORAGE_PROVIDER:local}
     allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:txt,pdf,png,jpg,jpeg,gif,webp,doc,docx,xls,xlsx}

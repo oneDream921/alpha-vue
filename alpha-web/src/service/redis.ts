@@ -14,7 +14,8 @@ export interface RedisKeyMetadata {
     type: string
     ttlSeconds?: number
     sizeBytes?: number
-    valueRedacted: true
+    value?: string
+    valueTruncated: boolean
 }
 
 export interface RedisKeyPage {
@@ -27,6 +28,7 @@ export interface RedisKeyQuery {
     prefix: string
     cursor: string
     count: number
+    keyword?: string
 }
 
 export const redisApi = {

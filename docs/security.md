@@ -12,7 +12,7 @@
 - 每个请求生成 traceId，写入 MDC、响应头和统一响应；生产日志按天滚动并保留 30 天。
 - API 响应设置 `nosniff`、拒绝 iframe、Referrer-Policy、Permissions-Policy 与 `Cache-Control: no-store`；CSP、TLS、HSTS 和限流由边缘反向代理统一配置。
 - 数据库连接池使用 HikariCP，并通过 Actuator/Micrometer 暴露运行指标；Redis 连接池采用有限等待，Sa-Token 键检索使用带上限的 `SCAN`，禁止在生产路径使用 `KEYS`。
-- Redis 运维台仅允许 `alpha.redis-management.prefixes` 中的前缀（开发默认 `auth:`、`satoken:`），禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。验证码、登录失败窗口和会话键永不返回值；删除单键需 `monitor:redis:delete` 权限并记录脱敏审计。
+- Redis 运维台使用带上限的 `SCAN` 查询全库键和值预览，禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
 - OpenAPI/Knife4j 仅在 `dev` profile 开启。生产默认关闭；`/actuator/health/**` 可供存活/就绪探针访问，其他 Actuator 端点必须由网关或内部网络和应用鉴权共同保护。
 - `deploy/.env`、生产凭据、Token 和真实个人数据不得提交。MinIO 应用凭据不得复用 root 凭据。
 

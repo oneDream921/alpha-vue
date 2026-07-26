@@ -57,11 +57,10 @@ class RedisManagementControllerTests {
     }
 
     @Test
-    void listsOnlyManagedPrefixWithCursorAndRedactsCaptchaValues() throws Exception {
+    void listsRedisKeysWithCursorAndValues() throws Exception {
         String token = login("admin");
 
         mockMvc.perform(get("/api/monitor/redis/keys")
-                        .param("prefix", "auth:")
                         .param("cursor", "0")
                         .param("count", "1")
                         .header("Authorization", bearer(token)))
@@ -70,14 +69,30 @@ class RedisManagementControllerTests {
                 .andExpect(jsonPath("$.data.records[0].category").value("验证码"))
                 .andExpect(jsonPath("$.data.records[0].type").value("string"))
                 .andExpect(jsonPath("$.data.records[0].ttlSeconds").value(120))
-                .andExpect(jsonPath("$.data.records[0].valueRedacted").value(true))
-                .andExpect(jsonPath("$.data.records[0].value").doesNotExist())
+                .andExpect(jsonPath("$.data.records[0].value").value("1234"))
+                .andExpect(jsonPath("$.data.records[0].valueTruncated").value(false))
                 .andExpect(jsonPath("$.data.nextCursor").value("1"))
                 .andExpect(jsonPath("$.data.hasMore").value(true));
     }
 
     @Test
-    void rejectsOutOfScopePrefixesAndDirectKeys() throws Exception {
+    void continuesScanningUntilKeywordMatchesOrCursorEnds() throws Exception {
+        String token = login("admin");
+
+        mockMvc.perform(get("/api/monitor/redis/keys")
+                        .param("prefix", "auth:")
+                        .param("cursor", "0")
+                        .param("count", "1")
+                        .param("keyword", "login:failure")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records[0].key").value("auth:login:failure:alice:127.0.0.1"))
+                .andExpect(jsonPath("$.data.nextCursor").value("0"))
+                .andExpect(jsonPath("$.data.hasMore").value(false));
+    }
+
+    @Test
+    void allowsAnyPrefixOrDirectKeyButKeepsValidationLimits() throws Exception {
         String token = login("admin");
 
         mockMvc.perform(get("/api/monitor/redis/keys")
@@ -85,13 +100,23 @@ class RedisManagementControllerTests {
                         .param("cursor", "0")
                         .param("count", "10")
                         .header("Authorization", bearer(token)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("请求参数错误"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records[0].key").value("other-app:secret"))
+                .andExpect(jsonPath("$.data.records[0].category").value("业务/缓存数据"))
+                .andExpect(jsonPath("$.data.records[0].value").value("shared-cache-value"));
+        mockMvc.perform(get("/api/monitor/redis/keys")
+                        .param("prefix", "Authorization:")
+                        .param("cursor", "0")
+                        .param("count", "10")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records[0].category").value("Sa-Token 会话"));
         mockMvc.perform(get("/api/monitor/redis/key")
                         .param("key", "other-app:secret")
                         .header("Authorization", bearer(token)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("请求参数错误"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.key").value("other-app:secret"))
+                .andExpect(jsonPath("$.data.value").value("shared-cache-value"));
         mockMvc.perform(get("/api/monitor/redis/keys")
                         .param("prefix", "auth:")
                         .param("cursor", "0")
@@ -133,7 +158,7 @@ class RedisManagementControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.redisVersion").value("7.4.1"))
                 .andExpect(jsonPath("$.data.usedMemoryBytes").value(4096))
-                .andExpect(jsonPath("$.data.managedKeyCounts.auth:").value(2))
+                .andExpect(jsonPath("$.data.managedKeyCounts['全部 Redis 键']").value(5))
                 .andExpect(jsonPath("$.data.info").doesNotExist());
     }
 
@@ -194,16 +219,18 @@ class RedisManagementControllerTests {
         private final Map<String, RedisKeyMetadata> entries = new LinkedHashMap<>();
 
         private InMemoryRedisKeyspace() {
-            entries.put("auth:captcha:challenge-1", new RedisKeyMetadata("auth:captcha:challenge-1", "string", 120L, 24L));
-            entries.put("auth:login:failure:alice:127.0.0.1", new RedisKeyMetadata("auth:login:failure:alice:127.0.0.1", "string", 30L, 48L));
-            entries.put("satoken:login:1", new RedisKeyMetadata("satoken:login:1", "string", 1800L, 128L));
-            entries.put("other-app:secret", new RedisKeyMetadata("other-app:secret", "string", 3600L, 128L));
+            entries.put("auth:captcha:challenge-1", new RedisKeyMetadata("auth:captcha:challenge-1", "string", 120L, 24L, "1234", false));
+            entries.put("auth:login:failure:alice:127.0.0.1", new RedisKeyMetadata("auth:login:failure:alice:127.0.0.1", "string", 30L, 48L, "3", false));
+            entries.put("satoken:login:1", new RedisKeyMetadata("satoken:login:1", "string", 1800L, 128L, "token-session", false));
+            entries.put("other-app:secret", new RedisKeyMetadata("other-app:secret", "string", 3600L, 128L, "shared-cache-value", false));
+            entries.put("Authorization:login:session:1", new RedisKeyMetadata("Authorization:login:session:1", "string", 1800L, 256L, "session", false));
         }
 
         @Override
-        public RedisScanResult scan(String prefix, String cursor, int count) {
+        public RedisScanResult scan(String prefix, String keyword, String cursor, int count) {
             List<RedisKeyMetadata> matching = entries.values().stream()
-                    .filter(entry -> entry.key().startsWith(prefix))
+                    .filter(entry -> prefix == null || prefix.isBlank() || entry.key().startsWith(prefix))
+                    .filter(entry -> keyword == null || entry.key().toLowerCase(java.util.Locale.ROOT).contains(keyword))
                     .toList();
             int offset = Integer.parseInt(cursor);
             int end = Math.min(offset + count, matching.size());
@@ -223,7 +250,7 @@ class RedisManagementControllerTests {
 
         @Override
         public RedisOverview overview() {
-            return new RedisOverview("7.4.1", 123L, 4096L, 3L, Map.of("auth:", 2L, "satoken:", 1L));
+            return new RedisOverview("7.4.1", 123L, 4096L, 3L, Map.of("全部 Redis 键", 5L));
         }
     }
 }

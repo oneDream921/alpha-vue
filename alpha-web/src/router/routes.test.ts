@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { managementRoutesFor } from './index'
+import router, { managementRoutesFor } from './index'
 
 describe('managementRoutesFor', () => {
+    it('registers managed routes so direct links reach the auth guard', () => {
+        expect(router.hasRoute('redis')).toBe(true)
+    })
+
     it('returns only routes granted by the profile permissions', () => {
         const routes = managementRoutesFor([
             {

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Redis 受控运维接口
+ * Redis 运维接口
  */
 @Validated
 @Tag(name = "Redis 管理")
@@ -44,7 +44,7 @@ public class RedisManagementController {
     }
 
     /**
-     * 查询 Redis 受控概览
+     * 查询 Redis 概览
      */
     @Operation(summary = "查询 Redis 概览")
     @GetMapping("/overview")
@@ -54,20 +54,22 @@ public class RedisManagementController {
     }
 
     /**
-     * 使用游标查询受控 Redis 键
+     * 使用游标查询 Redis 键
      */
     @Operation(summary = "分页查询 Redis 键")
     @GetMapping("/keys")
-    public ApiResponse<RedisKeyPageVo> keys(@RequestParam @NotBlank @Size(max = 128) String prefix,
+    public ApiResponse<RedisKeyPageVo> keys(@RequestParam(defaultValue = "") @Size(max = 128) String prefix,
                                              @RequestParam(defaultValue = "0") @Pattern(regexp = "\\d+") String cursor,
                                              @RequestParam(defaultValue = "50") @Min(1) @Max(100) int count,
+                                             @RequestParam(required = false) @Size(max = 128) String keyword,
                                              HttpServletRequest request) {
         access.require("monitor:redis:list");
-        return ApiResponse.success(redisManagementService.page(new RedisKeyQuery(prefix, cursor, count)), traceId(request));
+        return ApiResponse.success(redisManagementService.page(new RedisKeyQuery(prefix, cursor, count, keyword)),
+                traceId(request));
     }
 
     /**
-     * 查询 Redis 键元数据，不返回值内容
+     * 查询 Redis 键元数据和值预览
      */
     @Operation(summary = "查询 Redis 键元数据")
     @GetMapping("/key")
@@ -78,7 +80,7 @@ public class RedisManagementController {
     }
 
     /**
-     * 删除单个受控 Redis 键
+     * 删除单个 Redis 键
      */
     @Operation(summary = "删除 Redis 键")
     @DeleteMapping("/key")

@@ -2,7 +2,6 @@ package io.github.onedream921.alphavue.modules.monitor.service;
 
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
-import io.github.onedream921.alphavue.modules.monitor.config.RedisManagementProperties;
 import io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
@@ -10,23 +9,25 @@ import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Redis 运维台业务服务
  */
 @Service
 public class RedisManagementService {
-    private final RedisKeyspace keyspace;
-    private final RedisManagementProperties properties;
+    private static final int MAX_SCAN_ROUNDS_PER_PAGE = 1_000;
 
-    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
+    private final RedisKeyspace keyspace;
+
+    public RedisManagementService(RedisKeyspace keyspace) {
         this.keyspace = keyspace;
-        this.properties = properties;
     }
 
     /**
-     * 查询受控 Redis 概览
+     * 查询 Redis 概览
      */
     public RedisOverviewVo overview() {
         RedisOverview overview = keyspace.overview();
@@ -35,20 +36,30 @@ public class RedisManagementService {
     }
 
     /**
-     * 使用 Redis SCAN 游标查询受控前缀的键元数据
+     * 使用 Redis SCAN 游标查询 Redis 键元数据
      */
     public RedisKeyPageVo page(RedisKeyQuery query) {
-        requireAllowedPrefix(query.prefix());
-        RedisScanResult result = keyspace.scan(query.prefix(), query.cursor(), query.count());
-        List<RedisKeyMetadataVo> records = result.records().stream().map(this::toMetadata).toList();
-        return new RedisKeyPageVo(records, result.nextCursor(), !"0".equals(result.nextCursor()));
+        String prefix = normalizedPrefix(query.prefix());
+        String keyword = normalizedKeyword(query.keyword());
+        String cursor = query.cursor();
+        List<RedisKeyMetadataVo> records = new ArrayList<>();
+        int scanRounds = 0;
+
+        do {
+            RedisScanResult result = keyspace.scan(prefix, keyword, cursor, query.count());
+            cursor = result.nextCursor();
+            result.records().forEach(metadata -> records.add(toMetadata(metadata)));
+            scanRounds++;
+        } while (records.size() < query.count() && !"0".equals(cursor) && scanRounds < MAX_SCAN_ROUNDS_PER_PAGE);
+
+        return new RedisKeyPageVo(records, cursor, !"0".equals(cursor));
     }
 
     /**
-     * 查询受控 Redis 键的元数据
+     * 查询 Redis 键的元数据
      */
     public RedisKeyMetadataVo metadata(String key) {
-        requireAllowedKey(key);
+        requireReadableKey(key);
         RedisKeyMetadata metadata = keyspace.metadata(key);
         if (metadata == null) {
             throw invalidRequest();
@@ -57,28 +68,21 @@ public class RedisManagementService {
     }
 
     /**
-     * 删除单个受控 Redis 键
+     * 删除单个 Redis 键
      */
     public boolean delete(String key) {
-        requireAllowedKey(key);
+        requireReadableKey(key);
         return keyspace.delete(key);
     }
 
     private RedisKeyMetadataVo toMetadata(RedisKeyMetadata metadata) {
-        requireAllowedKey(metadata.key());
+        requireReadableKey(metadata.key());
         return new RedisKeyMetadataVo(metadata.key(), category(metadata.key()), metadata.type(), metadata.ttlSeconds(),
-                metadata.sizeBytes(), true);
+                metadata.sizeBytes(), metadata.value(), metadata.valueTruncated());
     }
 
-    private void requireAllowedPrefix(String prefix) {
-        if (!properties.getPrefixes().contains(prefix)) {
-            throw invalidRequest();
-        }
-    }
-
-    private void requireAllowedKey(String key) {
-        if (key == null || properties.getPrefixes().stream().noneMatch(prefix -> key.startsWith(prefix)
-                && key.length() > prefix.length())) {
+    private void requireReadableKey(String key) {
+        if (key == null || key.isBlank()) {
             throw invalidRequest();
         }
     }
@@ -90,10 +94,30 @@ public class RedisManagementService {
         if (key.startsWith("auth:login:failure:")) {
             return "登录失败窗口";
         }
-        if (key.startsWith("satoken:")) {
+        if (key.startsWith("satoken:")
+                || key.contains(":login:session:")
+                || key.contains(":login:token:")
+                || key.contains(":login:last-active:")) {
             return "Sa-Token 会话";
         }
-        return "认证数据";
+        if (key.startsWith("spring:")) {
+            return "Spring 数据";
+        }
+        return "业务/缓存数据";
+    }
+
+    private static String normalizedPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return "";
+        }
+        return prefix.trim();
+    }
+
+    private static String normalizedKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        return keyword.trim().toLowerCase(Locale.ROOT);
     }
 
     private static BusinessException invalidRequest() {
@@ -102,7 +126,7 @@ public class RedisManagementService {
 }
 
 interface RedisKeyspace {
-    RedisScanResult scan(String prefix, String cursor, int count);
+    RedisScanResult scan(String prefix, String keyword, String cursor, int count);
 
     RedisKeyMetadata metadata(String key);
 
@@ -117,7 +141,7 @@ record RedisScanResult(List<RedisKeyMetadata> records, String nextCursor) {
     }
 }
 
-record RedisKeyMetadata(String key, String type, Long ttlSeconds, Long sizeBytes) {
+record RedisKeyMetadata(String key, String type, Long ttlSeconds, Long sizeBytes, String value, boolean valueTruncated) {
 }
 
 record RedisOverview(String redisVersion, Long uptimeSeconds, Long usedMemoryBytes, Long connectedClients,
@@ -134,7 +158,7 @@ record RedisOverview(String redisVersion, Long uptimeSeconds, Long usedMemoryByt
 @Profile("test")
 class TestRedisKeyspace implements RedisKeyspace {
     @Override
-    public RedisScanResult scan(String prefix, String cursor, int count) {
+    public RedisScanResult scan(String prefix, String keyword, String cursor, int count) {
         return new RedisScanResult(List.of(), "0");
     }
 

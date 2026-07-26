@@ -10,10 +10,20 @@ import { redisApi } from './redis'
 
 describe('redisApi', () => {
     it('uses the bounded cursor endpoint for a managed prefix', () => {
-        redisApi.keys({ prefix: 'auth:', cursor: '0', count: 50 })
+        redisApi.keys({
+            prefix: 'auth:',
+            cursor: '0',
+            count: 50,
+            keyword: 'login',
+        })
 
         expect(get).toHaveBeenCalledWith('/monitor/redis/keys', {
-            params: { prefix: 'auth:', cursor: '0', count: 50 },
+            params: {
+                prefix: 'auth:',
+                cursor: '0',
+                count: 50,
+                keyword: 'login',
+            },
         })
     })
 })

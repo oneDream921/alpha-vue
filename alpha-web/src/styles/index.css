@@ -215,6 +215,93 @@ body {
     width: min(100%, 360px);
 }
 
+.redis-query-bar {
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.redis-query-bar .redis-prefix-search {
+    width: min(100%, 360px);
+}
+
+.redis-query-bar .redis-keyword-search {
+    width: min(100%, 360px);
+}
+
+.redis-page-size-select {
+    width: min(100%, 180px);
+}
+
+.redis-select-popup {
+    min-width: 260px;
+    max-width: min(92vw, 560px);
+}
+
+.redis-select-popup .ant-select-item-option-content {
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+.redis-key-cell {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        'Liberation Mono', monospace;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.redis-key-tooltip {
+    max-width: min(80vw, 720px);
+}
+
+.redis-key-tooltip .ant-tooltip-inner {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        'Liberation Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-all;
+}
+
+.redis-value-cell {
+    display: inline-block;
+    max-width: min(100%, 170px);
+    overflow: hidden;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        'Liberation Mono', monospace;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.redis-value-preview {
+    max-height: min(45vh, 360px);
+    margin: 0 0 8px;
+    padding: 10px 12px;
+    overflow: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: #f8fafc;
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: 6px;
+}
+
+.redis-result-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    color: var(--alpha-muted);
+    font-size: 13px;
+}
+
 .log-exception-hint {
     margin: 0 0 12px;
     padding: 10px 12px;
@@ -643,6 +730,18 @@ body {
 
     .page-heading h1 {
         font-size: 23px;
+    }
+
+    .redis-query-bar .redis-prefix-search,
+    .redis-query-bar .redis-keyword-search,
+    .redis-page-size-select,
+    .redis-result-bar .ant-btn {
+        width: 100%;
+    }
+
+    .redis-result-bar {
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .avatar-editor {

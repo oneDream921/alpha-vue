@@ -97,6 +97,9 @@ export function managementRoutesFor(routes: readonly AppRoute[]) {
 export function ensureManagementRoutes(routes: readonly AppRoute[]) {
     clearManagementRoutes()
     managementRoutesFor(routes).forEach((route) => {
+        if (router.hasRoute(route.name as string)) {
+            return
+        }
         router.addRoute('app', route)
         activeManagementRouteNames.add(route.name as string)
     })
@@ -134,6 +137,7 @@ const router = createRouter({
                     name: 'profile',
                     component: () => import('@/views/profile/index.vue'),
                 },
+                ...managementRouteDefinitions,
             ],
         },
         {
