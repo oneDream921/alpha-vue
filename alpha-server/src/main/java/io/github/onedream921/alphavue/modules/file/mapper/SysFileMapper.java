@@ -4,15 +4,20 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import io.github.onedream921.alphavue.modules.file.entity.SysFile;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 
+/**
+ * 文件元数据数据访问 Mapper
+ */
 @Mapper
 public interface SysFileMapper extends BaseMapper<SysFile> {
 
-    @Update("UPDATE sys_file SET deleted = 1 WHERE id = #{id} AND deleted = 0")
+    /**
+     * 在文件仍未删除时标记为已删除
+     */
     int markDeletedIfActive(@Param("id") long id);
 
-    @Select("SELECT COUNT(*) FROM sys_file WHERE id = #{id} AND deleted = 0")
+    /**
+     * 统计指定文件元数据是否仍为未删除状态
+     */
     int countActiveById(@Param("id") long id);
 }

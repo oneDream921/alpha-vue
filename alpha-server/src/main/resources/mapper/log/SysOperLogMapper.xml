@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.onedream921.alphavue.modules.log.mapper.SysOperLogMapper">
+    <select id="selectPageByQuery" resultType="io.github.onedream921.alphavue.modules.log.entity.SysOperLog">
+        SELECT id, user_id, username, module, operation, business_type, method, request_uri, request_params,
+               response_code, status, ip_address, duration_ms, trace_id, exception_stack, handled,
+               handling_status, handled_by, handled_at, created_at
+        FROM sys_oper_log
+        <where>
+            <if test="query.status != null">AND status = #{query.status}</if>
+            <if test="query.handlingStatus != null">AND handling_status = #{query.handlingStatus}</if>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (username LIKE CONCAT('%', #{query.keyword}, '%')
+                     OR module LIKE CONCAT('%', #{query.keyword}, '%')
+                     OR operation LIKE CONCAT('%', #{query.keyword}, '%')
+                     OR request_uri LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id DESC
+    </select>
+    <update id="updateHandlingStatus">
+        UPDATE sys_oper_log
+        SET handling_status = #{handlingStatus},
+            handled = CASE WHEN #{handlingStatus} = 1 THEN 1 ELSE 0 END,
+            handled_by = CASE WHEN #{handlingStatus} = 0 THEN NULL ELSE #{handledBy} END,
+            handled_at = CASE WHEN #{handlingStatus} = 0 THEN NULL ELSE CURRENT_TIMESTAMP END
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+</mapper>

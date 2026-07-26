@@ -18,10 +18,10 @@ class ApiResponseTests {
 
     @Test
     void errorPreservesSuppliedTraceId() {
-        ApiResponse<Void> response = ApiResponse.error(400, "Invalid request", "trace-error");
+        ApiResponse<Void> response = ApiResponse.error(400, "请求参数错误", "trace-error");
 
         assertThat(response.code()).isEqualTo(400);
-        assertThat(response.message()).isEqualTo("Invalid request");
+        assertThat(response.message()).isEqualTo("请求参数错误");
         assertThat(response.data()).isNull();
         assertThat(response.traceId()).isEqualTo("trace-error");
     }

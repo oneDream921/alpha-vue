@@ -1,6 +1,11 @@
 package io.github.onedream921.alphavue.modules.file;
 
 import io.github.onedream921.alphavue.common.exception.BusinessException;
+import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
+import io.github.onedream921.alphavue.modules.file.service.FileService;
+import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
+import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
+import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.junit.jupiter.api.AfterEach;
@@ -27,15 +32,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Exercises the externally observable file-upload contract against the real local provider. */
+/** 使用真实本地存储实现验证外部可观察的文件上传契约。 */
 @SpringBootTest(properties = {
         "alpha.file.provider=local",
-        "alpha.file.allowed-extensions=txt,png",
-        "alpha.file.max-size-bytes=4",
+        "alpha.file.allowed-extensions=txt,png,webp",
+        "alpha.file.max-size-bytes=16",
         "alpha.file.local-root=target/file-service-tests",
         "alpha.file.local-public-url=/uploads"
 })
@@ -62,6 +68,9 @@ class FileServiceTests {
 
     @Autowired
     private FileStorageProperties fileStorageProperties;
+
+    @Autowired
+    private SysUserMapper userMapper;
 
     @AfterEach
     void cleanUp() throws IOException {
@@ -93,7 +102,7 @@ class FileServiceTests {
     @Test
     void rejectsAFileLargerThanTheConfiguredMaximum() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "payload.txt", MediaType.TEXT_PLAIN_VALUE,
-                new byte[] {1, 2, 3, 4, 5});
+                new byte[17]);
 
         mockMvc.perform(multipart("/api/files/upload").file(file).header("Authorization", bearer(loginAsAdmin())))
                 .andExpect(status().isBadRequest())
@@ -127,6 +136,32 @@ class FileServiceTests {
     }
 
     @Test
+    void storesAWebpImageWhenItsMimeTypeAndSignatureMatch() throws Exception {
+        byte[] webp = new byte[] {'R', 'I', 'F', 'F', 4, 0, 0, 0, 'W', 'E', 'B', 'P'};
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.webp", "image/webp", webp);
+
+        mockMvc.perform(multipart("/api/files/upload").file(file).header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.originalName").value("avatar.webp"))
+                .andExpect(jsonPath("$.data.contentType").value("image/webp"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT object_key FROM sys_file", String.class))
+                .endsWith(".webp");
+    }
+
+    @Test
+    void rejectsAWebpImageWithoutTheRiffWebpSignature() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.webp", "image/webp",
+                "not-a-webp".getBytes());
+
+        mockMvc.perform(multipart("/api/files/upload").file(file).header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_file", Integer.class)).isZero();
+    }
+
+    @Test
     void storesAnAllowedUploadLocallyAndPersistsItsUuidMetadata() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "receipt.txt", MediaType.TEXT_PLAIN_VALUE,
                 new byte[] {1, 2, 3, 4});
@@ -144,6 +179,10 @@ class FileServiceTests {
         assertThat(Files.readAllBytes(STORAGE_ROOT.resolve(key))).containsExactly(1, 2, 3, 4);
         assertThat(jdbcTemplate.queryForObject("SELECT public_url FROM sys_file WHERE id = ?", String.class, id))
                 .isEqualTo("/uploads/" + key);
+
+        mockMvc.perform(get("/api/files").header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records[0].uploaderName").value("Administrator"));
     }
 
     @Test
@@ -212,7 +251,8 @@ class FileServiceTests {
                 VALUES ('local', 'reconcile.txt', 'reconcile.txt', 4)
                 """);
         long id = jdbcTemplate.queryForObject("SELECT id FROM sys_file WHERE object_key = ?", Long.class, key);
-        FileService service = new FailedSoftDeleteFileService(fileStorageProperties, localStorageProvider, minioStorageProvider);
+        FileService service = new FailedSoftDeleteFileService(fileStorageProperties, localStorageProvider,
+                minioStorageProvider, userMapper);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", fileService.getBaseMapper());
 
         assertThatThrownBy(() -> service.delete(id))
@@ -243,8 +283,8 @@ class FileServiceTests {
 
     private static final class FailedSoftDeleteFileService extends FileService {
         private FailedSoftDeleteFileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
-                                            MinioStorageProvider minioStorageProvider) {
-            super(properties, localStorageProvider, minioStorageProvider);
+                                            MinioStorageProvider minioStorageProvider, SysUserMapper userMapper) {
+            super(properties, localStorageProvider, minioStorageProvider, userMapper);
         }
 
         @Override
@@ -268,6 +308,6 @@ class FileServiceTests {
 
     private static long jsonId(MvcResult result) throws Exception {
         return Long.parseLong(result.getResponse().getContentAsString()
-                .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*(\\d+).*", "$1"));
+                .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*\\\"?(\\d+)\\\"?.*", "$1"));
     }
 }

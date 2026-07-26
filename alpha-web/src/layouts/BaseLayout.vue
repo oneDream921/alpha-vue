@@ -1,6 +1,27 @@
 <script setup lang="ts">
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons-vue'
+import {
+    ApartmentOutlined,
+    DashboardOutlined,
+    FileTextOutlined,
+    FolderOpenOutlined,
+    LogoutOutlined,
+    MenuFoldOutlined,
+    MenuOutlined,
+    MenuUnfoldOutlined,
+    SafetyOutlined,
+    UserOutlined,
+} from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import { authApi } from '@/service/auth'
+import { clearManagementRoutes } from '@/router'
+import { authStore } from '@/stores/auth'
+import logoUrl from '@/assets/alpha-logo.svg'
+
+const router = useRouter()
+const route = useRoute()
 
 const viewportWidth = ref(
     typeof window === 'undefined' ? 1024 : window.innerWidth,
@@ -13,6 +34,80 @@ const isDesktop = computed(() => viewportWidth.value >= 1024)
 const sidebarCollapsed = computed(() =>
     isMobile.value ? true : desktopCollapsed.value,
 )
+const routeTitleByPath = computed(() => {
+    const routes = authStore.state.routes
+    const routeById = new Map(routes.map((item) => [String(item.id), item]))
+    return new Map(
+        routes
+            .filter((item) => item.menuType !== 'BUTTON' && item.title)
+            .map((item) => {
+                const path = item.path?.startsWith('/')
+                    ? item.path
+                    : `${routeById.get(String(item.parentId))?.path ?? ''}/${item.path ?? ''}`
+                return [path === '/home' ? '/' : path, item.title] as const
+            }),
+    )
+})
+const navigation = computed(() =>
+    [
+        { path: '/', title: '工作台', icon: DashboardOutlined },
+        {
+            path: '/system/users',
+            title: '用户管理',
+            icon: UserOutlined,
+            permission: 'system:user:list',
+        },
+        {
+            path: '/system/roles',
+            title: '角色管理',
+            icon: SafetyOutlined,
+            permission: 'system:role:list',
+        },
+        {
+            path: '/system/menus',
+            title: '菜单管理',
+            icon: MenuOutlined,
+            permission: 'system:menu:list',
+        },
+        {
+            path: '/system/depts',
+            title: '部门管理',
+            icon: ApartmentOutlined,
+            permission: 'system:dept:list',
+        },
+        {
+            path: '/files',
+            title: '文件管理',
+            icon: FolderOpenOutlined,
+            permission: 'file:list',
+        },
+        {
+            path: '/logs',
+            title: '审计日志',
+            icon: FileTextOutlined,
+            permission: 'log:operation:list',
+        },
+        { path: '/profile', title: '个人中心', icon: UserOutlined },
+    ]
+        .map((item) => ({
+            ...item,
+            title: routeTitleByPath.value.get(item.path) ?? item.title,
+        }))
+        .filter(
+            (item) =>
+                !item.permission || authStore.hasPermission(item.permission),
+        ),
+)
+const currentNavigation = computed(() =>
+    navigation.value.find((item) => item.path === route.path),
+)
+const displayName = computed(
+    () =>
+        authStore.state.profile?.nickname ||
+        authStore.state.profile?.username ||
+        '管理员',
+)
+const avatarText = computed(() => displayName.value.trim().slice(0, 1))
 
 function updateViewport() {
     viewportWidth.value = window.innerWidth
@@ -26,6 +121,17 @@ function updateViewport() {
 
 function closeMobileNavigation() {
     mobileDrawerOpen.value = false
+}
+
+async function logout() {
+    try {
+        await authApi.logout()
+    } catch {
+        message.warning('会话已在服务端失效')
+    }
+    authStore.clearAuth()
+    clearManagementRoutes()
+    await router.replace('/login')
 }
 
 onMounted(() => {
@@ -50,12 +156,32 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                 aria-label="主导航"
                 class="navigation-list"
             >
-                <RouterLink to="/" class="brand" aria-label="Alpha Vue 首页"
-                    >AV</RouterLink
+                <RouterLink
+                    to="/"
+                    class="brand"
+                    :class="{ 'brand-collapsed': sidebarCollapsed }"
+                    active-class=""
+                    aria-label="Alpha Vue 首页"
                 >
-                <RouterLink to="/" class="navigation-link">工作台</RouterLink>
-                <RouterLink to="/profile" class="navigation-link"
-                    >个人中心</RouterLink
+                    <img class="brand-mark" :src="logoUrl" alt="" />
+                    <span v-if="!sidebarCollapsed" class="brand-name"
+                        >Alpha Vue</span
+                    >
+                </RouterLink>
+                <RouterLink
+                    v-for="item in navigation"
+                    :key="item.path"
+                    :to="item.path"
+                    class="navigation-link"
+                    :class="{
+                        'navigation-link-active': route.path === item.path,
+                    }"
+                    active-class=""
+                    :title="sidebarCollapsed ? item.title : undefined"
+                    ><component :is="item.icon" /><span
+                        v-if="!sidebarCollapsed"
+                        >{{ item.title }}</span
+                    ></RouterLink
                 >
             </nav>
         </a-layout-sider>
@@ -73,16 +199,18 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                 class="mobile-navigation-list"
             >
                 <RouterLink
-                    to="/"
+                    v-for="item in navigation"
+                    :key="item.path"
+                    :to="item.path"
                     class="navigation-link"
+                    :class="{
+                        'navigation-link-active': route.path === item.path,
+                    }"
+                    active-class=""
                     @click="closeMobileNavigation"
-                    >工作台</RouterLink
-                >
-                <RouterLink
-                    to="/profile"
-                    class="navigation-link"
-                    @click="closeMobileNavigation"
-                    >个人中心</RouterLink
+                    ><component :is="item.icon" /><span>{{
+                        item.title
+                    }}</span></RouterLink
                 >
             </nav>
         </a-drawer>
@@ -109,7 +237,30 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                     <MenuUnfoldOutlined v-if="sidebarCollapsed" />
                     <MenuFoldOutlined v-else />
                 </a-button>
-                <span class="app-title">Alpha Vue</span>
+                <div class="header-context">
+                    <span class="header-product">Alpha Vue</span>
+                    <span class="header-separator">/</span>
+                    <strong>{{
+                        currentNavigation?.title || '管理控制台'
+                    }}</strong>
+                </div>
+                <span class="header-spacer" />
+                <div class="header-user-cluster">
+                    <a-avatar
+                        :size="30"
+                        :src="authStore.state.profile?.avatar"
+                        class="header-avatar"
+                        >{{ avatarText }}</a-avatar
+                    >
+                    <span class="header-user">{{ displayName }}</span>
+                </div>
+                <a-button
+                    type="text"
+                    aria-label="退出登录"
+                    title="退出登录"
+                    @click="logout"
+                    ><LogoutOutlined
+                /></a-button>
             </a-layout-header>
             <a-layout-content class="app-content">
                 <RouterView />

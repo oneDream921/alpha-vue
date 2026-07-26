@@ -1,0 +1,2 @@
+ALTER TABLE sys_oper_log
+    ADD COLUMN business_type VARCHAR(32) NOT NULL DEFAULT 'OTHER';

@@ -9,41 +9,61 @@ import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.system.dto.MenuRequests;
 import io.github.onedream921.alphavue.modules.system.entity.SysMenu;
 import io.github.onedream921.alphavue.modules.system.mapper.SysMenuMapper;
+import io.github.onedream921.alphavue.modules.system.vo.MenuVo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 菜单业务服务
+ */
 @Service
 public class MenuService extends ServiceImpl<SysMenuMapper, SysMenu> {
 
-    public PageResponse<SysMenu> page(int pageNumber, int pageSize) {
+    /**
+     * 按父级和排序号分页查询菜单
+     */
+    public PageResponse<MenuVo> page(int pageNumber, int pageSize) {
         Page<SysMenu> page = baseMapper.selectPage(new Page<>(pageNumber, pageSize),
                 new LambdaQueryWrapper<SysMenu>().orderByAsc(SysMenu::getParentId)
                         .orderByAsc(SysMenu::getSortOrder).orderByAsc(SysMenu::getId));
-        return new PageResponse<>(page.getRecords(), page.getTotal(), pageNumber, pageSize);
+        return new PageResponse<>(page.getRecords().stream().map(MenuVo::from).toList(),
+                page.getTotal(), pageNumber, pageSize);
     }
 
-    public SysMenu get(long id) {
-        return requireMenu(id);
+    /**
+     * 查询菜单详情，不存在时返回统一请求错误
+     */
+    public MenuVo get(long id) {
+        return MenuVo.from(requireMenu(id));
     }
 
+    /**
+     * 创建菜单并校验父菜单有效性
+     */
     @Transactional
-    public SysMenu create(MenuRequests.Save request) {
+    public MenuVo create(MenuRequests.Save request) {
         validateParent(request.parentId(), null);
         SysMenu menu = new SysMenu();
         copy(request, menu);
         save(menu);
-        return menu;
+        return MenuVo.from(menu);
     }
 
+    /**
+     * 更新菜单并阻止将自身设为父级
+     */
     @Transactional
-    public SysMenu update(long id, MenuRequests.Save request) {
+    public MenuVo update(long id, MenuRequests.Save request) {
         SysMenu menu = requireMenu(id);
         validateParent(request.parentId(), id);
         copy(request, menu);
         updateById(menu);
-        return menu;
+        return MenuVo.from(menu);
     }
 
+    /**
+     * 删除菜单，存在子菜单时拒绝删除
+     */
     @Transactional
     public void delete(long id) {
         requireMenu(id);

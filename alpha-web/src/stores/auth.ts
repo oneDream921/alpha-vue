@@ -1,19 +1,30 @@
-import { reactive, readonly } from 'vue'
+import { defineStore } from 'pinia'
+
+import { pinia } from './pinia'
 
 export interface UserProfile {
-    id: string
+    id: number
     username: string
     nickname?: string
+    avatar?: string
+    email?: string
+    phone?: string
+    deptId?: number
     roles: string[]
     permissions: string[]
+    mustChangePassword: boolean
 }
 
 export interface AppRoute {
-    path: string
-    name: string
+    id: number
+    parentId: number
     title: string
+    menuType: 'DIRECTORY' | 'MENU' | 'BUTTON'
+    path?: string
+    component?: string
+    permission?: string
     icon?: string
-    children?: AppRoute[]
+    sortOrder: number
 }
 
 interface AuthState {
@@ -25,12 +36,13 @@ interface AuthState {
 const storageKey = 'alpha-auth'
 
 function readState(): AuthState {
-    if (typeof window === 'undefined') {
+    const storage = localStorageOrNull()
+    if (!storage) {
         return { token: null, profile: null, routes: [] }
     }
 
     try {
-        const stored = window.localStorage.getItem(storageKey)
+        const stored = storage.getItem(storageKey)
         return stored
             ? (JSON.parse(stored) as AuthState)
             : { token: null, profile: null, routes: [] }
@@ -39,36 +51,57 @@ function readState(): AuthState {
     }
 }
 
-const state = reactive<AuthState>(readState())
+const useAuthStore = defineStore('auth', {
+    state: (): AuthState => readState(),
+})
+const store = useAuthStore(pinia)
 
 function persist() {
-    if (typeof window !== 'undefined') {
-        window.localStorage.setItem(storageKey, JSON.stringify(state))
+    const storage = localStorageOrNull()
+    if (storage) {
+        storage.setItem(storageKey, JSON.stringify(store.$state))
+    }
+}
+
+function localStorageOrNull(): Storage | null {
+    try {
+        return typeof window === 'undefined' ? null : window.localStorage
+    } catch {
+        return null
     }
 }
 
 export const authStore = {
-    state: readonly(state),
-    getToken: () => state.token,
+    get state() {
+        return store.$state
+    },
+    getToken: () => store.token,
     setToken(token: string) {
-        state.token = token
+        store.token = token
         persist()
     },
     setProfile(profile: UserProfile) {
-        state.profile = profile
+        store.profile = profile
         persist()
     },
     setRoutes(routes: AppRoute[]) {
-        state.routes = routes
+        store.routes = routes
         persist()
     },
+    setSession(token: string, profile: UserProfile, routes: AppRoute[]) {
+        store.$patch({ token, profile, routes })
+        persist()
+    },
+    hasPermission(permission: string) {
+        return (
+            store.profile?.permissions.some(
+                (item) => item === '*' || item === permission,
+            ) ?? false
+        )
+    },
     clearAuth() {
-        state.token = null
-        state.profile = null
-        state.routes = []
-        if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(storageKey)
-        }
+        localStorageOrNull()?.removeItem(storageKey)
+        store.$reset()
     },
 }
 

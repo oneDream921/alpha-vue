@@ -1,17 +1,22 @@
 package io.github.onedream921.alphavue.modules.system.controller;
 
+import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.MenuRequests;
-import io.github.onedream921.alphavue.modules.system.entity.SysMenu;
 import io.github.onedream921.alphavue.modules.system.service.MenuService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
+import io.github.onedream921.alphavue.modules.system.vo.MenuVo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +28,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 菜单管理接口
+ */
 @Validated
+@Tag(name = "菜单管理")
+@ApiSupport(order = 22, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/menus")
 public class MenuController {
@@ -35,38 +45,58 @@ public class MenuController {
         this.access = access;
     }
 
+    /**
+     * 分页查询菜单列表
+     */
+    @Operation(summary = "分页查询菜单")
     @GetMapping
-    public ApiResponse<PageResponse<SysMenu>> page(@RequestParam(defaultValue = "1") @Min(1) int page,
-                                                    @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
-                                                    HttpServletRequest request) {
+    public ApiResponse<PageResponse<MenuVo>> page(@RequestParam(defaultValue = "1") @Min(1) int page,
+                                                  @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+                                                  HttpServletRequest request) {
         access.require("system:menu:list");
         return ApiResponse.success(menuService.page(page, size), traceId(request));
     }
 
+    /**
+     * 查询单个菜单详情
+     */
+    @Operation(summary = "查询菜单详情")
     @GetMapping("/{id}")
-    public ApiResponse<SysMenu> get(@PathVariable long id, HttpServletRequest request) {
+    public ApiResponse<MenuVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:menu:list");
         return ApiResponse.success(menuService.get(id), traceId(request));
     }
 
+    /**
+     * 新增菜单
+     */
+    @Operation(summary = "创建菜单")
     @PostMapping
-    @OperationLog(module = "System", operation = "Create menu")
-    public ApiResponse<SysMenu> create(@Valid @RequestBody MenuRequests.Save body, HttpServletRequest request) {
+    @OperationLog(module = "System", operation = "Create menu", type = BusinessType.CREATE)
+    public ApiResponse<MenuVo> create(@Valid @RequestBody MenuRequests.Save body, HttpServletRequest request) {
         access.require("system:menu:create");
         return ApiResponse.success(menuService.create(body), traceId(request));
     }
 
+    /**
+     * 更新菜单基础信息
+     */
+    @Operation(summary = "更新菜单")
     @PutMapping("/{id}")
-    @OperationLog(module = "System", operation = "Update menu")
-    public ApiResponse<SysMenu> update(@PathVariable long id, @Valid @RequestBody MenuRequests.Save body,
-                                       HttpServletRequest request) {
+    @OperationLog(module = "System", operation = "Update menu", type = BusinessType.UPDATE)
+    public ApiResponse<MenuVo> update(@PathVariable @Positive long id, @Valid @RequestBody MenuRequests.Save body,
+                                      HttpServletRequest request) {
         access.require("system:menu:update");
         return ApiResponse.success(menuService.update(id, body), traceId(request));
     }
 
+    /**
+     * 删除没有子菜单的菜单
+     */
+    @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
-    @OperationLog(module = "System", operation = "Delete menu")
-    public ApiResponse<Void> delete(@PathVariable long id, HttpServletRequest request) {
+    @OperationLog(module = "System", operation = "Delete menu", type = BusinessType.DELETE)
+    public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:menu:delete");
         menuService.delete(id);
         return ApiResponse.success(null, traceId(request));

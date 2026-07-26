@@ -5,10 +5,15 @@ import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import org.springframework.stereotype.Service;
 
-/** Applies a deliberate all-system bypass only to the built-in super-administrator role. */
+/**
+ * 系统权限服务
+ */
 @Service
 public class SystemAccessService {
 
+    /**
+     * 校验当前会话具备指定权限，超级管理员角色直接放行
+     */
     public void require(String permission) {
         if (StpUtil.hasRole("SUPER_ADMIN") || StpUtil.hasPermission(permission)) {
             return;

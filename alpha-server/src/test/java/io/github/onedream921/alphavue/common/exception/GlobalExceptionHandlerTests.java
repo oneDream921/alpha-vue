@@ -22,7 +22,7 @@ class GlobalExceptionHandlerTests {
         ResponseEntity<ApiResponse<Void>> response = handler.handleBusinessException(exception, request);
 
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().message()).isEqualTo("Invalid request");
+        assertThat(response.getBody().message()).isEqualTo("请求参数错误");
         assertThat(response.getBody().traceId()).isEqualTo("trace-123");
     }
 
@@ -34,8 +34,18 @@ class GlobalExceptionHandlerTests {
                 new IllegalStateException("Database password leaked"), request);
 
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().message()).isEqualTo("Internal server error");
+        assertThat(response.getBody().message()).isEqualTo("服务器内部错误");
         assertThat(response.getBody().message()).doesNotContain("Database password");
+        assertThat(response.getBody().traceId()).isEqualTo("trace-123");
+    }
+
+    @Test
+    void oversizedUploadReturnsBadRequestWithoutExposingMultipartDetails() {
+        ResponseEntity<ApiResponse<Void>> response = handler.handleMaxUploadSizeExceeded(requestWithTraceId());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("请求参数错误");
         assertThat(response.getBody().traceId()).isEqualTo("trace-123");
     }
 

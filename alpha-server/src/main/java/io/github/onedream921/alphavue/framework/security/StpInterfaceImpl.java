@@ -1,53 +1,46 @@
 package io.github.onedream921.alphavue.framework.security;
 
 import cn.dev33.satoken.stp.StpInterface;
-import org.springframework.jdbc.core.JdbcTemplate;
+import io.github.onedream921.alphavue.modules.system.entity.SysUser;
+import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Resolves roles and menu permissions for Sa-Token from the relational schema. */
+/**
+ * Sa-Token 权限接口实现
+ */
 @Component
 public class StpInterfaceImpl implements StpInterface {
 
-    private final JdbcTemplate jdbcTemplate;
+    private static final String ADMIN_USERNAME = "admin";
 
-    public StpInterfaceImpl(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    private final SysUserMapper userMapper;
+
+    public StpInterfaceImpl(SysUserMapper userMapper) {
+        this.userMapper = userMapper;
     }
 
+    /**
+     * 查询 Sa-Token 权限列表，超级管理员返回通配权限
+     */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        return jdbcTemplate.queryForList("""
-                        SELECT DISTINCT m.permission
-                        FROM sys_menu m
-                        JOIN sys_role_menu rm ON rm.menu_id = m.id
-                        JOIN sys_role r ON r.id = rm.role_id
-                        JOIN sys_user_role ur ON ur.role_id = rm.role_id
-                        JOIN sys_user u ON u.id = ur.user_id
-                        WHERE ur.user_id = ?
-                          AND u.deleted = 0
-                          AND u.status = 1
-                          AND r.deleted = 0
-                          AND r.status = 1
-                          AND m.deleted = 0
-                          AND m.status = 1
-                          AND m.permission IS NOT NULL
-                        """, String.class, loginId);
+        SysUser user = userMapper.selectActiveById(Long.parseLong(loginId.toString()));
+        if (user != null && ADMIN_USERNAME.equals(user.getUsername())) {
+            return List.of("*");
+        }
+        if (getRoleList(loginId, loginType).contains("SUPER_ADMIN")) {
+            return List.of("*");
+        }
+        return userMapper.selectPermissionCodesByUserId(loginId);
     }
 
+    /**
+     * 查询 Sa-Token 角色列表
+     */
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        return jdbcTemplate.queryForList("""
-                        SELECT r.code
-                        FROM sys_role r
-                        JOIN sys_user_role ur ON ur.role_id = r.id
-                        JOIN sys_user u ON u.id = ur.user_id
-                        WHERE ur.user_id = ?
-                          AND u.deleted = 0
-                          AND u.status = 1
-                          AND r.deleted = 0
-                          AND r.status = 1
-                        """, String.class, loginId);
+        return userMapper.selectRoleCodesByUserId(loginId);
     }
 }

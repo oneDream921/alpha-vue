@@ -2,19 +2,28 @@ package io.github.onedream921.alphavue.framework.security;
 
 import cn.dev33.satoken.dao.SaTokenDao;
 import cn.dev33.satoken.dao.SaTokenDaoDefaultImpl;
+import cn.dev33.satoken.filter.SaTokenContextFilterForJakartaServlet;
+import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.interceptor.SaInterceptor;
-import io.github.onedream921.alphavue.modules.auth.AuthService;
+import io.github.onedream921.alphavue.modules.auth.service.AuthService;
+import io.github.onedream921.alphavue.modules.auth.service.CaptchaService;
+import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
+import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -23,15 +32,18 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-/** Sa-Token HTTP protection, Redis session storage, and test-safe login limits. */
+/**
+ * Sa-Token 安全配置
+ */
 @Configuration
 @EnableAsync
 public class SaTokenConfig implements WebMvcConfigurer {
 
     private static final int MAX_LOGIN_FAILURES = 5;
+    private static final int MAX_TOKEN_SEARCH_PAGE_SIZE = 100;
+    private static final int MAX_TOKEN_SEARCH_KEYS = 1_000;
     private static final Duration LOGIN_FAILURE_WINDOW = Duration.ofMinutes(15);
     private static final DefaultRedisScript<Long> RESERVE_LOGIN_ATTEMPT = new DefaultRedisScript<>("""
             local attempts = redis.call('GET', KEYS[1])
@@ -44,12 +56,28 @@ public class SaTokenConfig implements WebMvcConfigurer {
             end
             return 1
             """, Long.class);
-    private final JdbcTemplate jdbcTemplate;
+    private final SysUserMapper userMapper;
+    private final FileStorageProperties fileStorageProperties;
 
-    public SaTokenConfig(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public SaTokenConfig(SysUserMapper userMapper, FileStorageProperties fileStorageProperties) {
+        this.userMapper = userMapper;
+        this.fileStorageProperties = fileStorageProperties;
     }
 
+    /**
+     * Spring Boot 4 下显式注册 Sa-Token Jakarta Servlet 上下文过滤器
+     */
+    @Bean
+    FilterRegistrationBean<SaTokenContextFilterForJakartaServlet> saTokenContextFilter() {
+        FilterRegistrationBean<SaTokenContextFilterForJakartaServlet> registration =
+                new FilterRegistrationBean<>(new SaTokenContextFilterForJakartaServlet());
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    /**
+     * 注册 Sa-Token 登录校验拦截器和公开资源放行规则
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> {
@@ -59,7 +87,14 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/api/auth/login",
-                        "/actuator/health",
+                        "/api/auth/captcha",
+                        "/api/auth/test-token",
+                        "/actuator/health/**",
+                        "/v3/api-docs/**",
+                        "/doc.html",
+                        "/doc.html/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
                         "/",
                         "/index.html",
                         "/assets/**",
@@ -69,29 +104,29 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/**/*.png",
                         "/**/*.jpg",
                         "/**/*.svg",
-                        "/webjars/**");
+                        "/webjars/**")
+                .excludePathPatterns(fileStorageProperties.localPublicPathPattern());
     }
 
-    /** Invalidates a previously issued session as soon as its account is disabled or soft-deleted. */
+    /**
+     * 账号被停用或软删除后，立即使已签发的会话失效
+     */
     private void requireActiveAccount() {
         Object loginId = StpUtil.getLoginIdDefaultNull();
         if (loginId == null) {
             return;
         }
-        Integer activeAccounts = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sys_user WHERE id = ? AND deleted = 0 AND status = 1",
-                Integer.class, loginId);
-        if (activeAccounts == null || activeAccounts == 0) {
+        long userId = Long.parseLong(loginId.toString());
+        if (userMapper.countActiveById(userId) == 0) {
             StpUtil.logout();
             StpUtil.checkLogin();
         }
     }
 
     /**
-     * Production sessions are shared through Redis. The test profile deliberately
-     * leaves Sa-Token on its built-in in-memory DAO so tests run without Docker.
+     * 生产会话使用 Redis 共享；测试环境使用内存 DAO，避免依赖 Docker
      */
-    @Bean
+    @Bean("saTokenDao")
     @Profile("!test")
     SaTokenDao redisSaTokenDao(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -102,16 +137,92 @@ public class SaTokenConfig implements WebMvcConfigurer {
         return new RedisBackedSaTokenDao(template);
     }
 
+    /**
+     * 测试环境使用进程内会话 DAO，保证测试 HTTP 请求间可复用 Token
+     */
+    @Bean("saTokenDao")
+    @Profile("test")
+    SaTokenDao inMemorySaTokenDao() {
+        return new SaTokenDaoDefaultImpl();
+    }
+
+    /**
+     * 显式绑定测试 DAO 到 Sa-Token 全局管理器，保证嵌入式 HTTP 请求共享会话
+     */
+    @Bean
+    @Profile("test")
+    SmartInitializingSingleton bindTestSaTokenDao(SaTokenDao saTokenDao) {
+        return () -> SaManager.setSaTokenDao(saTokenDao);
+    }
+
+    /**
+     * 生产环境使用 Redis 保存登录失败次数
+     */
     @Bean
     @Profile("!test")
     AuthService.LoginFailureStore redisLoginFailureStore(StringRedisTemplate redisTemplate) {
         return new RedisLoginFailureStore(redisTemplate);
     }
 
+    /**
+     * 测试环境使用内存保存登录失败次数
+     */
     @Bean
     @Profile("test")
     AuthService.LoginFailureStore inMemoryLoginFailureStore() {
         return new InMemoryLoginFailureStore();
+    }
+
+    /**
+     * 生产环境使用 Redis 保存验证码
+     */
+    @Bean
+    @Profile("!test")
+    CaptchaService.CaptchaStore redisCaptchaStore(StringRedisTemplate redisTemplate) {
+        return new CaptchaService.CaptchaStore() {
+            /**
+             * 保存验证码到 Redis
+             */
+            @Override
+            public void put(String id, String code, Duration ttl) {
+                redisTemplate.opsForValue().set("auth:captcha:" + id, code, ttl);
+            }
+
+            /**
+             * 从 Redis 读取并删除验证码
+             */
+            @Override
+            public String consume(String id) {
+                return redisTemplate.opsForValue().getAndDelete("auth:captcha:" + id);
+            }
+        };
+    }
+
+    /**
+     * 测试环境使用内存保存验证码
+     */
+    @Bean
+    @Profile("test")
+    CaptchaService.CaptchaStore inMemoryCaptchaStore() {
+        return new CaptchaService.CaptchaStore() {
+            private final Map<String, String> values = new java.util.concurrent.ConcurrentHashMap<>();
+
+            /**
+             * 保存验证码到内存
+             */
+            @Override
+            public void put(String id, String code, Duration ttl) {
+                values.put(id, code);
+            }
+
+            /**
+             * 从内存读取并删除验证码
+             */
+            @Override
+            public String consume(String id) {
+                return values.remove(id);
+            }
+        };
     }
 
     private static final class RedisLoginFailureStore implements AuthService.LoginFailureStore {
@@ -121,6 +232,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
             this.redisTemplate = redisTemplate;
         }
 
+        /**
+         * 通过 Redis 原子脚本占用一次登录尝试
+         */
         @Override
         public boolean reserveAttempt(String username, String ipAddress) {
             Long reserved = redisTemplate.execute(
@@ -131,6 +245,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
             return Long.valueOf(1L).equals(reserved);
         }
 
+        /**
+         * 清除 Redis 中的登录失败记录
+         */
         @Override
         public void clear(String username, String ipAddress) {
             redisTemplate.delete(key(username, ipAddress));
@@ -140,6 +257,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
     private static final class InMemoryLoginFailureStore implements AuthService.LoginFailureStore {
         private final Map<String, FailureWindow> attempts = new java.util.HashMap<>();
 
+        /**
+         * 在内存窗口中占用一次登录尝试
+         */
         @Override
         public synchronized boolean reserveAttempt(String username, String ipAddress) {
             String key = key(username, ipAddress);
@@ -156,6 +276,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
             return true;
         }
 
+        /**
+         * 清除内存中的登录失败记录
+         */
         @Override
         public synchronized void clear(String username, String ipAddress) {
             attempts.remove(key(username, ipAddress));
@@ -176,17 +299,26 @@ public class SaTokenConfig implements WebMvcConfigurer {
             this.redisTemplate = redisTemplate;
         }
 
+        /**
+         * 从 Redis 读取 Sa-Token 对象
+         */
         @Override
         public Object getObject(String key) {
             return redisTemplate.opsForValue().get(key);
         }
 
+        /**
+         * 从 Redis 读取并转换 Sa-Token 对象类型
+         */
         @Override
         public <T> T getObject(String key, Class<T> cs) {
             Object value = getObject(key);
             return value == null ? null : cs.cast(value);
         }
 
+        /**
+         * 将 Sa-Token 对象写入 Redis
+         */
         @Override
         public void setObject(String key, Object value, long timeout) {
             if (timeout == SaTokenDao.NEVER_EXPIRE) {
@@ -196,6 +328,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
             redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(timeout));
         }
 
+        /**
+         * 在保留原过期时间的前提下更新 Sa-Token 对象
+         */
         @Override
         public void updateObject(String key, Object value) {
             Long timeout = redisTemplate.getExpire(key, TimeUnit.SECONDS);
@@ -209,17 +344,26 @@ public class SaTokenConfig implements WebMvcConfigurer {
             redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(timeout));
         }
 
+        /**
+         * 删除 Redis 中的 Sa-Token 对象
+         */
         @Override
         public void deleteObject(String key) {
             redisTemplate.delete(key);
         }
 
+        /**
+         * 查询 Redis 中 Sa-Token 对象的剩余有效期
+         */
         @Override
         public long getObjectTimeout(String key) {
             Long timeout = redisTemplate.getExpire(key, TimeUnit.SECONDS);
             return timeout == null ? SaTokenDao.NOT_VALUE_EXPIRE : timeout;
         }
 
+        /**
+         * 更新 Redis 中 Sa-Token 对象的剩余有效期
+         */
         @Override
         public void updateObjectTimeout(String key, long timeout) {
             if (timeout == SaTokenDao.NEVER_EXPIRE) {
@@ -229,16 +373,33 @@ public class SaTokenConfig implements WebMvcConfigurer {
             redisTemplate.expire(key, Duration.ofSeconds(timeout));
         }
 
+        /**
+         * 按 Sa-Token 前缀和关键字搜索 Redis 键
+         */
         @Override
         public List<String> searchData(String prefix, String keyword, int start, int size, boolean sortType) {
-            Set<String> keys = redisTemplate.keys(prefix + "*" + keyword + "*");
-            if (keys == null || keys.isEmpty() || size <= 0) {
+            if (size <= 0 || start >= MAX_TOKEN_SEARCH_KEYS) {
                 return List.of();
             }
-            List<String> values = new ArrayList<>(keys);
+            int safeStart = Math.max(start, 0);
+            int safeSize = Math.min(size, MAX_TOKEN_SEARCH_PAGE_SIZE);
+            int scanLimit = Math.min(MAX_TOKEN_SEARCH_KEYS, safeStart + safeSize);
+            List<String> values = new ArrayList<>(scanLimit);
+            String pattern = prefix + "*" + (keyword == null ? "" : keyword) + "*";
+            try (Cursor<String> cursor = redisTemplate.scan(ScanOptions.scanOptions()
+                    .match(pattern)
+                    .count(Math.min(scanLimit, MAX_TOKEN_SEARCH_PAGE_SIZE))
+                    .build())) {
+                while (cursor.hasNext() && values.size() < scanLimit) {
+                    values.add(cursor.next());
+                }
+            }
+            if (values.isEmpty()) {
+                return List.of();
+            }
             values.sort(String::compareTo);
-            int from = Math.min(Math.max(start, 0), values.size());
-            int to = Math.min(from + size, values.size());
+            int from = Math.min(safeStart, values.size());
+            int to = Math.min(from + safeSize, values.size());
             return List.copyOf(values.subList(from, to));
         }
     }

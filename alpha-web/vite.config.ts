@@ -17,10 +17,17 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
             },
+            '/uploads': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+            },
         },
     },
     test: {
         environment: 'jsdom',
+        environmentOptions: {
+            jsdom: { url: 'http://localhost/' },
+        },
         globals: true,
         setupFiles: './src/test/setup.ts',
     },

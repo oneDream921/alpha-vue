@@ -9,13 +9,16 @@
         "typecheck": "vue-tsc --noEmit",
         "test": "vitest run",
         "lint": "eslint .",
-        "format": "prettier --check ."
+        "format": "prettier --check .",
+        "format:check": "prettier --check ."
     },
     "dependencies": {
         "@ant-design/icons-vue": "^7.0.1",
         "ant-design-vue": "^4.2.6",
         "axios": "^1.10.0",
+        "pinia": "^3.0.4",
         "vue": "^3.5.18",
+        "vue-cropper": "1.1.4",
         "vue-router": "^4.5.1"
     },
     "devDependencies": {

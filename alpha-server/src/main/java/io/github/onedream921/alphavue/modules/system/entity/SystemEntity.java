@@ -1,5 +1,7 @@
 package io.github.onedream921.alphavue.modules.system.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
@@ -8,20 +10,22 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/** Shared persisted lifecycle fields used by the existing sys_* tables. */
+/**
+ * 系统基础实体
+ */
 @Getter
 @Setter
 public abstract class SystemEntity {
 
-    @TableId
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @TableLogic(value = "0", delval = "1")
+    @TableLogic
     private Integer deleted;
 
-    @TableField("created_at")
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
-    @TableField("updated_at")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }

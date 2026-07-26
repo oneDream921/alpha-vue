@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
+import { message } from 'ant-design-vue'
 
 import { authStore, type AuthStore } from '@/stores/auth'
 
@@ -26,8 +27,16 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
     client.interceptors.response.use(
         (response) => response,
         (error: unknown) => {
-            if (axios.isAxiosError(error) && error.response?.status === 401) {
-                store.clearAuth()
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 401) {
+                    store.clearAuth()
+                }
+                const errorMessage = error.response?.data?.message
+                message.error(
+                    typeof errorMessage === 'string' && errorMessage
+                        ? errorMessage
+                        : '请求失败，请确认后端服务已启动后重试',
+                )
             }
             return Promise.reject(error)
         },

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper">
+
+    <sql id="UserColumns">
+        id,
+        username,
+        password,
+        nickname,
+        avatar,
+        email,
+        phone,
+        dept_id,
+        status,
+        must_change_password,
+        last_login_at,
+        deleted,
+        created_at,
+        updated_at
+    </sql>
+
+    <select id="selectActiveByUsername" resultType="io.github.onedream921.alphavue.modules.system.entity.SysUser">
+        SELECT
+        <include refid="UserColumns"/>
+        FROM sys_user
+        WHERE username = #{username}
+          AND deleted = 0
+          AND status = 1
+    </select>
+
+    <select id="selectActiveById" resultType="io.github.onedream921.alphavue.modules.system.entity.SysUser">
+        SELECT
+        <include refid="UserColumns"/>
+        FROM sys_user
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+    </select>
+
+    <select id="selectActiveSummariesByIds" resultType="io.github.onedream921.alphavue.modules.system.vo.UserSummaryVo">
+        SELECT id, username, nickname
+        FROM sys_user
+        WHERE deleted = 0
+          AND status = 1
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="countActiveById" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_user
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+    </select>
+
+    <update id="updateActiveProfile">
+        UPDATE sys_user
+        SET nickname = #{nickname},
+            avatar = #{avatar},
+            email = #{email},
+            phone = #{phone},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+    </update>
+
+    <update id="updateActiveAvatar">
+        UPDATE sys_user
+        SET avatar = #{avatar},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+    </update>
+
+    <update id="updateActivePassword">
+        UPDATE sys_user
+        SET password = #{password},
+            must_change_password = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted = 0
+          AND status = 1
+    </update>
+
+    <select id="selectRoleCodesByUserId" resultType="string">
+        SELECT r.code
+        FROM sys_role r
+                 JOIN sys_user_role ur ON ur.role_id = r.id
+                 JOIN sys_user u ON u.id = ur.user_id
+        WHERE ur.user_id = #{userId}
+          AND u.deleted = 0
+          AND u.status = 1
+          AND r.deleted = 0
+          AND r.status = 1
+    </select>
+
+    <select id="selectPermissionCodesByUserId" resultType="string">
+        SELECT DISTINCT m.permission
+        FROM sys_menu m
+                 JOIN sys_role_menu rm ON rm.menu_id = m.id
+                 JOIN sys_role r ON r.id = rm.role_id
+                 JOIN sys_user_role ur ON ur.role_id = rm.role_id
+                 JOIN sys_user u ON u.id = ur.user_id
+        WHERE ur.user_id = #{userId}
+          AND u.deleted = 0
+          AND u.status = 1
+          AND r.deleted = 0
+          AND r.status = 1
+          AND m.deleted = 0
+          AND m.status = 1
+          AND m.permission IS NOT NULL
+    </select>
+
+    <select id="selectVisibleRoutesByUserId" resultType="io.github.onedream921.alphavue.modules.system.vo.RouteVo">
+        SELECT DISTINCT m.id,
+                        m.parent_id AS parentId,
+                        m.title,
+                        m.menu_type AS menuType,
+                        m.path,
+                        m.component,
+                        m.permission,
+                        m.icon,
+                        m.sort_order AS sortOrder
+        FROM sys_menu m
+                 JOIN sys_role_menu rm ON rm.menu_id = m.id
+                 JOIN sys_role r ON r.id = rm.role_id
+                 JOIN sys_user_role ur ON ur.role_id = rm.role_id
+                 JOIN sys_user u ON u.id = ur.user_id
+        WHERE ur.user_id = #{userId}
+          AND u.deleted = 0
+          AND u.status = 1
+          AND r.deleted = 0
+          AND r.status = 1
+          AND m.deleted = 0
+          AND m.status = 1
+          AND m.visible = 1
+        ORDER BY m.sort_order, m.id
+    </select>
+
+</mapper>

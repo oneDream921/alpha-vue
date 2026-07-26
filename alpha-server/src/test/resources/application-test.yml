@@ -18,3 +18,9 @@ sa-token:
   timeout: 28800
   active-timeout: 1800
   is-log: false
+
+alpha:
+  test-token:
+    user-id: 1
+    value: alpha-test-admin-token
+    timeout-seconds: 28800

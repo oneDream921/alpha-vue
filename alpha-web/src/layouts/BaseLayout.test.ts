@@ -1,6 +1,17 @@
 import Antd from 'ant-design-vue'
 import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('vue-router', () => ({
+    createRouter: () => ({
+        addRoute: vi.fn(),
+        beforeEach: vi.fn(),
+        removeRoute: vi.fn(),
+    }),
+    createWebHistory: vi.fn(),
+    useRoute: () => ({ path: '/' }),
+    useRouter: () => ({ replace: vi.fn() }),
+}))
 
 import BaseLayout from './BaseLayout.vue'
 

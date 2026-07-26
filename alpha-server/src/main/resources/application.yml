@@ -3,22 +3,58 @@ spring:
     name: alpha-server
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE_BYTES:10485760}
+      max-request-size: ${FILE_MAX_REQUEST_SIZE_BYTES:12582912}
   jackson:
     time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
 
 server:
   port: ${SERVER_PORT:8080}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+sa-token:
+  is-read-header: true
+  is-read-cookie: false
+  is-read-body: false
+  is-lasting-cookie: false
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: false
   swagger-ui:
-    path: /swagger-ui.html
+    enabled: false
+
+knife4j:
+  enable: false
 
 alpha:
   file:
     provider: ${FILE_STORAGE_PROVIDER:local}
-    allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:txt,pdf,png,jpg,jpeg,gif,doc,docx,xls,xlsx}
+    allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:txt,pdf,png,jpg,jpeg,gif,webp,doc,docx,xls,xlsx}
     max-size-bytes: ${FILE_MAX_SIZE_BYTES:10485760}
     local-root: ${FILE_LOCAL_ROOT:uploads}
     local-public-url: ${FILE_LOCAL_PUBLIC_URL:/uploads}

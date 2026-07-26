@@ -5,6 +5,8 @@ alpha-server/target/
 # Java
 target/
 *.log
+alpha-server/uploads/
+alpha-server/logs/
 
 # Node
 node_modules/

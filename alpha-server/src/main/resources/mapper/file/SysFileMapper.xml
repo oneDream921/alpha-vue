@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.onedream921.alphavue.modules.file.mapper.SysFileMapper">
+
+    <update id="markDeletedIfActive">
+        UPDATE sys_file
+        SET deleted = 1
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <select id="countActiveById" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_file
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+</mapper>

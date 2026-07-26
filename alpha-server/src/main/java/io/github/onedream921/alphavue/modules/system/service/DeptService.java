@@ -9,41 +9,61 @@ import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.system.dto.DeptRequests;
 import io.github.onedream921.alphavue.modules.system.entity.SysDept;
 import io.github.onedream921.alphavue.modules.system.mapper.SysDeptMapper;
+import io.github.onedream921.alphavue.modules.system.vo.DeptVo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 部门业务服务
+ */
 @Service
 public class DeptService extends ServiceImpl<SysDeptMapper, SysDept> {
 
-    public PageResponse<SysDept> page(int pageNumber, int pageSize) {
+    /**
+     * 按父级和排序号分页查询部门
+     */
+    public PageResponse<DeptVo> page(int pageNumber, int pageSize) {
         Page<SysDept> page = baseMapper.selectPage(new Page<>(pageNumber, pageSize),
                 new LambdaQueryWrapper<SysDept>().orderByAsc(SysDept::getParentId)
                         .orderByAsc(SysDept::getSortOrder).orderByAsc(SysDept::getId));
-        return new PageResponse<>(page.getRecords(), page.getTotal(), pageNumber, pageSize);
+        return new PageResponse<>(page.getRecords().stream().map(DeptVo::from).toList(),
+                page.getTotal(), pageNumber, pageSize);
     }
 
-    public SysDept get(long id) {
-        return requireDept(id);
+    /**
+     * 查询部门详情，不存在时返回统一请求错误
+     */
+    public DeptVo get(long id) {
+        return DeptVo.from(requireDept(id));
     }
 
+    /**
+     * 创建部门并校验父部门有效性
+     */
     @Transactional
-    public SysDept create(DeptRequests.Save request) {
+    public DeptVo create(DeptRequests.Save request) {
         validateParent(request.parentId(), null);
         SysDept dept = new SysDept();
         copy(request, dept);
         save(dept);
-        return dept;
+        return DeptVo.from(dept);
     }
 
+    /**
+     * 更新部门并阻止将自身设为父级
+     */
     @Transactional
-    public SysDept update(long id, DeptRequests.Save request) {
+    public DeptVo update(long id, DeptRequests.Save request) {
         SysDept dept = requireDept(id);
         validateParent(request.parentId(), id);
         copy(request, dept);
         updateById(dept);
-        return dept;
+        return DeptVo.from(dept);
     }
 
+    /**
+     * 删除部门，存在子部门时拒绝删除
+     */
     @Transactional
     public void delete(long id) {
         requireDept(id);

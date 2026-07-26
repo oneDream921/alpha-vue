@@ -1,0 +1,25 @@
+package io.github.onedream921.alphavue.modules.file.storage;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+/**
+ * 文件存储接口
+ */
+public interface StorageProvider {
+
+    /**
+     * 保存对象内容
+     */
+    void store(String key, InputStream input, String contentType) throws IOException;
+
+    /**
+     * 删除对象内容
+     */
+    void delete(String key) throws IOException;
+
+    /**
+     * 获取对象公开访问地址
+     */
+    String publicUrl(String key);
+}

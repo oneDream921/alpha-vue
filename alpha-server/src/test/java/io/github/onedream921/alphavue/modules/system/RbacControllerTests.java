@@ -82,6 +82,45 @@ class RbacControllerTests {
     }
 
     @Test
+    void treatsAdminAsBuiltInSuperUserAndRejectsRoleChanges() throws Exception {
+        long adminId = jdbcTemplate.queryForObject("SELECT id FROM sys_user WHERE username = 'admin'", Long.class);
+        jdbcTemplate.update("DELETE FROM sys_user_role WHERE user_id = ?", adminId);
+        long roleId = insertRole("RBAC_ADMIN_ROLE_CHANGE");
+        String adminToken = login("admin");
+
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.permissions[0]").value("*"));
+        mockMvc.perform(get("/api/system/users").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/system/users/{id}/roles", adminId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"roleIds\":[" + roleId + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        mockMvc.perform(put("/api/system/users/{id}", adminId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"Changed\",\"status\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        mockMvc.perform(put("/api/system/users/{id}/kickout", adminId)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+        mockMvc.perform(delete("/api/system/users/{id}", adminId)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_user_role WHERE user_id = ?", Integer.class, adminId))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT nickname FROM sys_user WHERE id = ?", String.class, adminId))
+                .isEqualTo("Administrator");
+    }
+
+    @Test
     void preissuedTokenLosesProtectedAccessWhenUserIsDisabledOrDeleted() throws Exception {
         long disabledUserId = insertUser("rbac-token-disabled");
         String disabledToken = login("rbac-token-disabled");
@@ -246,7 +285,7 @@ class RbacControllerTests {
 
     private static long jsonId(MvcResult result) throws Exception {
         return Long.parseLong(result.getResponse().getContentAsString()
-                .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*(\\d+).*", "$1"));
+                .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*\\\"?(\\d+)\\\"?.*", "$1"));
     }
 
     private void awaitOperations(String... operations) throws InterruptedException {

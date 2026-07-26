@@ -1,11 +1,16 @@
 :root {
-    --alpha-primary: #1677ff;
+    --alpha-primary: #2563eb;
+    --alpha-primary-strong: #1d4ed8;
+    --alpha-primary-soft: #eff6ff;
     --alpha-surface: #ffffff;
-    --alpha-canvas: #f5f7fa;
-    --alpha-text: #1f2937;
+    --alpha-canvas: #f2f4f7;
+    --alpha-text: #172033;
     --alpha-muted: #667085;
-    --alpha-border: #e4e7ec;
-    --alpha-sidebar: #111827;
-    --alpha-header-height: 56px;
-    --alpha-radius: 8px;
+    --alpha-border: #dfe3ea;
+    --alpha-border-soft: #edf0f4;
+    --alpha-sidebar: #ffffff;
+    --alpha-sidebar-hover: #eff6ff;
+    --alpha-header-height: 60px;
+    --alpha-radius: 6px;
+    --alpha-shadow: 0 1px 2px rgb(16 24 40 / 4%);
 }

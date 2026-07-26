@@ -1,0 +1,116 @@
+import { http, type ApiResponse } from './http'
+
+export interface PageResponse<T> {
+    records: T[]
+    total: number
+    page: number
+    size: number
+}
+
+export interface BaseEntity {
+    id: number
+    status: number
+    createdAt?: string
+}
+
+export interface User extends BaseEntity {
+    username: string
+    nickname: string
+    avatar?: string
+    email?: string
+    phone?: string
+    deptId?: number
+    mustChangePassword: number
+    roleIds: number[]
+}
+
+export interface Role extends BaseEntity {
+    name: string
+    code: string
+    sortOrder: number
+    remark?: string
+}
+
+export interface Menu extends BaseEntity {
+    parentId?: number
+    title: string
+    menuType: 'DIRECTORY' | 'MENU' | 'BUTTON'
+    path?: string
+    component?: string
+    permission?: string
+    icon?: string
+    sortOrder: number
+    visible: number
+}
+
+export interface Dept extends BaseEntity {
+    parentId?: number
+    name: string
+    sortOrder: number
+}
+
+type EntityName = 'users' | 'roles' | 'menus' | 'depts'
+
+function resource<T, Create, Update>(name: EntityName) {
+    return {
+        page: (page = 1, size = 10) =>
+            http.get<ApiResponse<PageResponse<T>>>(`/system/${name}`, {
+                params: { page, size },
+            }),
+        create: (payload: Create) =>
+            http.post<ApiResponse<T>>(`/system/${name}`, payload),
+        update: (id: number, payload: Update) =>
+            http.put<ApiResponse<T>>(`/system/${name}/${id}`, payload),
+        delete: (id: number) =>
+            http.delete<ApiResponse<null>>(`/system/${name}/${id}`),
+    }
+}
+
+export interface UserCreate {
+    username: string
+    password: string
+    nickname: string
+    avatar?: string
+    email?: string
+    phone?: string
+    deptId?: number
+}
+export interface UserUpdate {
+    nickname: string
+    avatar?: string
+    email?: string
+    phone?: string
+    deptId?: number
+    status: number
+}
+export interface RoleCreate {
+    name: string
+    code: string
+    sortOrder: number
+    status: number
+    remark?: string
+}
+export type RoleUpdate = Omit<RoleCreate, 'code'>
+export type MenuSave = Omit<Menu, 'id' | 'createdAt'>
+export type DeptSave = Omit<Dept, 'id' | 'createdAt'>
+
+export const userApi = {
+    ...resource<User, UserCreate, UserUpdate>('users'),
+    assignRoles: (id: number, roleIds: number[]) =>
+        http.put<ApiResponse<null>>(`/system/users/${id}/roles`, { roleIds }),
+    kickout: (id: number) =>
+        http.put<ApiResponse<null>>(`/system/users/${id}/kickout`),
+    resetPassword: (id: number, newPassword: string) =>
+        http.put<ApiResponse<null>>(`/system/users/${id}/password`, {
+            newPassword,
+        }),
+}
+export const roleApi = {
+    ...resource<Role, RoleCreate, RoleUpdate>('roles'),
+    assignMenus: (id: number, menuIds: number[]) =>
+        http.put<ApiResponse<null>>(`/system/roles/${id}/menus`, { menuIds }),
+    menuIds: (id: number) =>
+        http.get<ApiResponse<number[]>>(`/system/roles/${id}/menus`),
+}
+export const menuApi = resource<Menu, MenuSave, MenuSave>('menus')
+export const deptApi = resource<Dept, DeptSave, DeptSave>('depts')
