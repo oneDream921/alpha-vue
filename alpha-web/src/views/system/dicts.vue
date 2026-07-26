@@ -16,6 +16,7 @@ import {
     type DictTypeSave,
 } from '@/service/system'
 import {
+    dictionaryTypeRow,
     dictPageFromTableChange,
     itemPageForTypeSelection,
 } from './dicts.pagination'
@@ -139,6 +140,11 @@ async function selectType(type: DictType) {
     itemRows.value = []
     itemTotal.value = 0
     if (next.shouldLoad) await loadItems()
+}
+function typeRow(type: DictType) {
+    return dictionaryTypeRow(type, (selectedType) => {
+        void selectType(selectedType)
+    })
 }
 function changeTypePage(pagination: { current?: number; pageSize?: number }) {
     const next = dictPageFromTableChange(
@@ -302,8 +308,8 @@ onMounted(loadTypes)
                             total: typeTotal,
                             showSizeChanger: true,
                         }"
+                        :custom-row="typeRow"
                         @change="changeTypePage"
-                        @row-click="selectType"
                     >
                         <a-table-column
                             title="类型编码"
@@ -412,7 +418,7 @@ onMounted(loadTypes)
                 :model="typeForm"
                 :rules="typeRules"
                 layout="vertical"
-                ><a-form-item label="类型编码" name="typeCode" required
+                ><a-form-item label="类型编码" name="typeCode"
                     ><a-input
                         v-model:value="typeForm.typeCode"
                         :disabled="Boolean(editingTypeId)" /></a-form-item

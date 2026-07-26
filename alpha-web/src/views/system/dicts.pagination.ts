@@ -25,3 +25,9 @@ export function itemPageForTypeSelection(
         shouldLoad: selectedTypeId !== undefined,
     }
 }
+
+export function dictionaryTypeRow<T>(type: T, selectType: (type: T) => void) {
+    return {
+        onClick: () => selectType(type),
+    }
+}

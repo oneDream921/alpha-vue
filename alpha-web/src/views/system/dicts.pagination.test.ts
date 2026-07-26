@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+    dictionaryTypeRow,
     dictPageFromTableChange,
     itemPageForTypeSelection,
 } from './dicts.pagination'
@@ -20,5 +21,13 @@ describe('dictionary pagination helpers', () => {
             pageSize: 20,
             shouldLoad: false,
         })
+    })
+
+    it('selects a type when its table row is clicked', () => {
+        const selected: number[] = []
+
+        dictionaryTypeRow({ id: 7 }, (type) => selected.push(type.id)).onClick()
+
+        expect(selected).toEqual([7])
     })
 })
