@@ -36,6 +36,16 @@ describe('managementRoutesFor', () => {
                 sortOrder: 3,
             },
             {
+                id: 31,
+                parentId: 2,
+                title: '数据字典',
+                menuType: 'MENU',
+                path: 'dicts',
+                component: 'system/dicts',
+                permission: 'system:dict:list',
+                sortOrder: 4,
+            },
+            {
                 id: 99,
                 parentId: 0,
                 title: '未知组件',
@@ -49,6 +59,7 @@ describe('managementRoutesFor', () => {
         expect(routes.map((route) => route.name)).toEqual([
             'users',
             'configs',
+            'dicts',
             'files',
         ])
     })

@@ -44,6 +44,13 @@ const managementRouteDefinitions = [
         meta: { permission: 'system:config:list' },
     },
     {
+        path: 'system/dicts',
+        name: 'dicts',
+        componentId: 'system/dicts',
+        component: () => import('@/views/system/dicts.vue'),
+        meta: { permission: 'system:dict:list' },
+    },
+    {
         path: 'files',
         name: 'files',
         componentId: 'files/index',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     ApartmentOutlined,
+    BookOutlined,
     DashboardOutlined,
     FileTextOutlined,
     FolderOpenOutlined,
@@ -67,6 +68,12 @@ const navigation = computed(() =>
             title: '参数配置',
             icon: SettingOutlined,
             permission: 'system:config:list',
+        },
+        {
+            path: '/system/dicts',
+            title: '数据字典',
+            icon: BookOutlined,
+            permission: 'system:dict:list',
         },
         {
             path: '/files',

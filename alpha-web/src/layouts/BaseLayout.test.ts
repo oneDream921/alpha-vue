@@ -167,4 +167,43 @@ describe('BaseLayout', () => {
         })
         expect(withPermission.text()).toContain('参数配置')
     })
+
+    it('shows data dictionary only to users with its list permission', () => {
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['system:user:list'],
+            mustChangePassword: false,
+        })
+        const withoutPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withoutPermission.text()).not.toContain('数据字典')
+        withoutPermission.unmount()
+
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['system:dict:list'],
+            mustChangePassword: false,
+        })
+        const withPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withPermission.text()).toContain('数据字典')
+    })
 })
