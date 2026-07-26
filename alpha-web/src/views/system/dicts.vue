@@ -302,6 +302,7 @@ onMounted(loadTypes)
                         row-key="id"
                         :data-source="filteredTypeRows"
                         :loading="typeLoading"
+                        :scroll="{ x: 540 }"
                         :pagination="{
                             current: typePage,
                             pageSize: typePageSize,
@@ -317,7 +318,21 @@ onMounted(loadTypes)
                         /><a-table-column
                             title="类型名称"
                             data-index="typeName"
-                        />
+                        /><a-table-column
+                            title="状态"
+                            width="100"
+                            align="center"
+                            ><template #default="{ record }"
+                                ><a-badge
+                                    :status="
+                                        record.status === 1
+                                            ? 'success'
+                                            : 'default'
+                                    "
+                                    :text="
+                                        record.status === 1 ? '启用' : '停用'
+                                    " /></template
+                        ></a-table-column>
                         <a-table-column title="操作" width="130"
                             ><template #default="{ record }"
                                 ><a-space
@@ -366,6 +381,7 @@ onMounted(loadTypes)
                         row-key="id"
                         :data-source="itemRows"
                         :loading="itemLoading"
+                        :scroll="{ x: 820 }"
                         :pagination="{
                             current: itemPage,
                             pageSize: itemPageSize,
@@ -377,14 +393,45 @@ onMounted(loadTypes)
                         <a-table-column
                             title="标签"
                             data-index="label"
+                            width="160"
                         /><a-table-column
                             title="值"
                             data-index="value"
+                            width="200"
+                            ellipsis
                         /><a-table-column
                             title="排序"
                             data-index="sortOrder"
                             width="80"
-                        /><a-table-column title="操作" width="130"
+                            align="center"
+                        /><a-table-column
+                            title="状态"
+                            width="100"
+                            align="center"
+                            ><template #default="{ record }"
+                                ><a-badge
+                                    :status="
+                                        record.status === 1
+                                            ? 'success'
+                                            : 'default'
+                                    "
+                                    :text="
+                                        record.status === 1 ? '启用' : '停用'
+                                    " /></template></a-table-column
+                        ><a-table-column title="默认" width="100" align="center"
+                            ><template #default="{ record }"
+                                ><a-tag
+                                    :color="
+                                        record.isDefault === 1
+                                            ? 'blue'
+                                            : undefined
+                                    "
+                                    >{{
+                                        record.isDefault === 1 ? '是' : '否'
+                                    }}</a-tag
+                                ></template
+                            ></a-table-column
+                        ><a-table-column title="操作" width="140" align="center"
                             ><template #default="{ record }"
                                 ><a-space
                                     ><a-button
