@@ -57,7 +57,7 @@ class RedisManagementControllerTests {
     }
 
     @Test
-    void listsRedisKeysWithCursorAndValues() throws Exception {
+    void listsRedisKeysWithMaskedValuesByDefault() throws Exception {
         String token = login("admin");
 
         mockMvc.perform(get("/api/monitor/redis/keys")
@@ -69,8 +69,8 @@ class RedisManagementControllerTests {
                 .andExpect(jsonPath("$.data.records[0].category").value("验证码"))
                 .andExpect(jsonPath("$.data.records[0].type").value("string"))
                 .andExpect(jsonPath("$.data.records[0].ttlSeconds").value(120))
-                .andExpect(jsonPath("$.data.records[0].value").value("1234"))
-                .andExpect(jsonPath("$.data.records[0].valueTruncated").value(false))
+                .andExpect(jsonPath("$.data.records[0].value").value("[masked]"))
+                .andExpect(jsonPath("$.data.records[0].valueTruncated").value(true))
                 .andExpect(jsonPath("$.data.nextCursor").value("1"))
                 .andExpect(jsonPath("$.data.hasMore").value(true));
     }
@@ -103,7 +103,7 @@ class RedisManagementControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.records[0].key").value("other-app:secret"))
                 .andExpect(jsonPath("$.data.records[0].category").value("业务/缓存数据"))
-                .andExpect(jsonPath("$.data.records[0].value").value("shared-cache-value"));
+                .andExpect(jsonPath("$.data.records[0].value").value("[masked]"));
         mockMvc.perform(get("/api/monitor/redis/keys")
                         .param("prefix", "Authorization:")
                         .param("cursor", "0")
@@ -116,7 +116,7 @@ class RedisManagementControllerTests {
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.key").value("other-app:secret"))
-                .andExpect(jsonPath("$.data.value").value("shared-cache-value"));
+                .andExpect(jsonPath("$.data.value").value("[masked]"));
         mockMvc.perform(get("/api/monitor/redis/keys")
                         .param("prefix", "auth:")
                         .param("cursor", "0")

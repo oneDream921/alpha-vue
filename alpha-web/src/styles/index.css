@@ -247,7 +247,8 @@ body {
     display: block;
     max-width: 100%;
     overflow: hidden;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         'Liberation Mono', monospace;
     font-size: 12px;
     text-overflow: ellipsis;
@@ -259,7 +260,8 @@ body {
 }
 
 .redis-key-tooltip .ant-tooltip-inner {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         'Liberation Mono', monospace;
     font-size: 12px;
     line-height: 1.5;
@@ -271,7 +273,8 @@ body {
     display: inline-block;
     max-width: min(100%, 170px);
     overflow: hidden;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         'Liberation Mono', monospace;
     font-size: 12px;
     text-overflow: ellipsis;

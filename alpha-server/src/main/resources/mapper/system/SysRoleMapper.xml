@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.onedream921.alphavue.modules.system.mapper.SysRoleMapper">
+    <update id="softDeleteById">
+        UPDATE sys_role SET deleted = id, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>

@@ -89,8 +89,7 @@ services:
         mc mb --ignore-existing local/alpha-vue >/dev/null &&
         mc admin user add local "$$MINIO_ACCESS_KEY" "$$MINIO_SECRET_KEY" >/dev/null &&
         mc admin policy create local alpha-vue-rw /config/minio-policy.json >/dev/null &&
-        mc admin policy attach local alpha-vue-rw --user "$$MINIO_ACCESS_KEY" >/dev/null &&
-        mc anonymous set download local/alpha-vue >/dev/null
+        mc admin policy attach local alpha-vue-rw --user "$$MINIO_ACCESS_KEY" >/dev/null
 
 volumes:
   mysql-data:

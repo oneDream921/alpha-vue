@@ -20,6 +20,9 @@ sa-token:
   is-log: false
 
 alpha:
+  file:
+    access-token-secret: test-file-access-secret
+    access-token-ttl: 5m
   test-token:
     user-id: 1
     value: alpha-test-admin-token

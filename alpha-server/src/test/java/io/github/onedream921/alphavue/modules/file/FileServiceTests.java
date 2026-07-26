@@ -3,6 +3,7 @@ package io.github.onedream921.alphavue.modules.file;
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
 import io.github.onedream921.alphavue.modules.file.service.FileService;
+import io.github.onedream921.alphavue.modules.file.service.FileAccessTokenService;
 import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
@@ -68,6 +69,9 @@ class FileServiceTests {
 
     @Autowired
     private FileStorageProperties fileStorageProperties;
+
+    @Autowired
+    private FileAccessTokenService fileAccessTokenService;
 
     @Autowired
     private SysUserMapper userMapper;
@@ -186,6 +190,26 @@ class FileServiceTests {
     }
 
     @Test
+    void servesPrivateFilesThroughShortLivedSignedUrls() throws Exception {
+        MvcResult upload = mockMvc.perform(multipart("/api/files/upload")
+                        .file(new MockMultipartFile("file", "private.txt", MediaType.TEXT_PLAIN_VALUE,
+                                "private".getBytes()))
+                        .header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isOk())
+                .andReturn();
+        String accessUrl = upload.getResponse().getContentAsString()
+                .replaceFirst("(?s).*\\\"publicUrl\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1")
+                .replace("\\u0026", "&");
+
+        mockMvc.perform(get(accessUrl))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("private"));
+
+        mockMvc.perform(get("/api/files/1/content").param("expires", "1").param("signature", "invalid"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void keepsMetadataActiveWhenDeletingTheStoredObjectFails() throws Exception {
         Files.createDirectories(STORAGE_ROOT.resolve("blocked"));
         Files.writeString(STORAGE_ROOT.resolve("blocked/child.txt"), "not empty");
@@ -252,7 +276,7 @@ class FileServiceTests {
                 """);
         long id = jdbcTemplate.queryForObject("SELECT id FROM sys_file WHERE object_key = ?", Long.class, key);
         FileService service = new FailedSoftDeleteFileService(fileStorageProperties, localStorageProvider,
-                minioStorageProvider, userMapper);
+                minioStorageProvider, userMapper, fileAccessTokenService);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", fileService.getBaseMapper());
 
         assertThatThrownBy(() -> service.delete(id))
@@ -283,8 +307,9 @@ class FileServiceTests {
 
     private static final class FailedSoftDeleteFileService extends FileService {
         private FailedSoftDeleteFileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
-                                            MinioStorageProvider minioStorageProvider, SysUserMapper userMapper) {
-            super(properties, localStorageProvider, minioStorageProvider, userMapper);
+                                            MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
+                                            FileAccessTokenService fileAccessTokenService) {
+            super(properties, localStorageProvider, minioStorageProvider, userMapper, fileAccessTokenService);
         }
 
         @Override

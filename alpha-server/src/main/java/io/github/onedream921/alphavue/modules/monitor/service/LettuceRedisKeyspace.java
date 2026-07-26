@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.monitor.service;
 
-import cn.dev33.satoken.session.SaSession;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
@@ -8,7 +7,6 @@ import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnection;
-import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.stereotype.Component;
 
 import java.nio.ByteBuffer;
@@ -33,7 +31,6 @@ class LettuceRedisKeyspace implements RedisKeyspace {
     private static final int VALUE_MEMBER_LIMIT = 100;
     private static final int VALUE_CHAR_LIMIT = 16_384;
     private static final int HEX_BYTE_LIMIT = 8_192;
-    private static final JdkSerializationRedisSerializer JDK_SERIALIZER = new JdkSerializationRedisSerializer();
 
     private final RedisConnectionFactory connectionFactory;
 
@@ -84,7 +81,9 @@ class LettuceRedisKeyspace implements RedisKeyspace {
             if ("none".equals(type)) {
                 return null;
             }
-            RedisValuePreview value = value(commands, rawKey, type);
+            RedisValuePreview value = isSensitiveKey(key)
+                    ? new RedisValuePreview("[masked]", true)
+                    : value(commands, rawKey, type);
             return new RedisKeyMetadata(key, type, commands.ttl(rawKey).get(), commands.memoryUsage(rawKey).get(),
                     value.value(), value.truncated());
         } catch (Exception exception) {
@@ -135,10 +134,6 @@ class LettuceRedisKeyspace implements RedisKeyspace {
         if (value == null) {
             return new RedisValuePreview(null, false);
         }
-        Object object = deserializeJdk(value);
-        if (object != null) {
-            return preview(objectToText(object));
-        }
         String text = readableUtf8(value);
         if (text != null) {
             return preview(text);
@@ -146,31 +141,13 @@ class LettuceRedisKeyspace implements RedisKeyspace {
         return hexPreview(value);
     }
 
-    private static Object deserializeJdk(byte[] value) {
-        if (value.length < 4 || (value[0] & 0xff) != 0xac || (value[1] & 0xff) != 0xed) {
-            return null;
-        }
-        try {
-            return JDK_SERIALIZER.deserialize(value);
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private static String objectToText(Object value) {
-        if (value instanceof SaSession session) {
-            return "SaSession{"
-                    + "id=" + session.getId()
-                    + ", type=" + session.getType()
-                    + ", loginType=" + session.getLoginType()
-                    + ", loginId=" + session.getLoginId()
-                    + ", token=" + session.getToken()
-                    + ", createTime=" + session.getCreateTime()
-                    + ", terminalList=" + session.getTerminalList()
-                    + ", dataMap=" + session.getDataMap()
-                    + '}';
-        }
-        return String.valueOf(value);
+    private static boolean isSensitiveKey(String key) {
+        String normalized = key.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("auth:captcha:")
+                || normalized.contains("login:session:")
+                || normalized.contains("login:token:")
+                || normalized.startsWith("satoken:")
+                || normalized.matches(".*(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key).*" );
     }
 
     private static String readableUtf8(byte[] value) {

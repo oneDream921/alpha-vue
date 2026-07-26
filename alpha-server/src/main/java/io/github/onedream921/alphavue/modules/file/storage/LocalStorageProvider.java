@@ -58,6 +58,11 @@ public class LocalStorageProvider implements StorageProvider {
         Files.deleteIfExists(pathFor(key));
     }
 
+    @Override
+    public InputStream open(String key) throws IOException {
+        return Files.newInputStream(pathFor(key));
+    }
+
     /**
      * 返回本地对象的公开访问地址
      */

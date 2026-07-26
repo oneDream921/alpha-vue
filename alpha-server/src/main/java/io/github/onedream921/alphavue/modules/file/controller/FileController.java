@@ -16,6 +16,9 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -80,6 +83,21 @@ public class FileController {
         access.require("file:delete");
         fileService.delete(id);
         return ApiResponse.success(null, traceId(request));
+    }
+
+    /**
+     * 使用短期签名读取私有文件，不要求浏览器额外注入 Authorization 请求头。
+     */
+    @Operation(summary = "读取私有文件", hidden = true)
+    @GetMapping("/{id}/content")
+    public ResponseEntity<InputStreamResource> content(@PathVariable @Positive long id,
+                                                        @RequestParam long expires,
+                                                        @RequestParam String signature) {
+        FileService.FileContent content = fileService.openForAccess(id, expires, signature);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .body(new InputStreamResource(content.input()));
     }
 
     private static String traceId(HttpServletRequest request) {

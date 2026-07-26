@@ -38,6 +38,7 @@ class LocalFileHttpIntegrationTests {
         registry.add("alpha.file.provider", () -> "local");
         registry.add("alpha.file.local-root", uploadRoot::toString);
         registry.add("alpha.file.local-public-url", () -> "/uploads");
+        registry.add("alpha.file.public-access", () -> true);
     }
 
     @Test

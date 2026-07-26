@@ -6,7 +6,7 @@ Alpha Vue 是一个轻量、响应式的全栈管理基础框架。后端采用 
 
 ## 快速开始
 
-要求：Java 21、Maven 3.9+、Node 20+、pnpm 9+、Docker 与 Docker Compose。
+要求：Java 21、Node 20+、pnpm 9+、Docker 与 Docker Compose。后端使用仓库内置 Maven Wrapper，无需预先安装 Maven。
 
 ```bash
 cp deploy/.env.example deploy/.env
@@ -20,7 +20,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
 ```bash
 # 在 IDE Run Configuration 或当前终端安全地配置 deploy/.env 中所需变量；
 # 不要 source、打印或提交该文件。
-/Users/mac/Documents/my-develop-tool/maven/apache-maven-3.9.11/bin/mvn -f alpha-server/pom.xml spring-boot:run
+./mvnw -f alpha-server/pom.xml spring-boot:run
 ```
 
 启动前端（另一个终端）：
@@ -36,7 +36,7 @@ pnpm dev
 ## 验证
 
 ```bash
-/Users/mac/Documents/my-develop-tool/maven/apache-maven-3.9.11/bin/mvn -f alpha-server/pom.xml clean test package
+./mvnw -f alpha-server/pom.xml clean test package
 pnpm --dir alpha-web typecheck
 pnpm --dir alpha-web test
 pnpm --dir alpha-web lint

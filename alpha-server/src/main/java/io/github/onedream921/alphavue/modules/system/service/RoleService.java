@@ -93,7 +93,9 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
         if (SUPER_ADMIN.equals(role.getCode())) {
             throw invalidRequest();
         }
-        removeById(id);
+        if (baseMapper.softDeleteById(id) != 1) {
+            throw invalidRequest();
+        }
     }
 
     /**

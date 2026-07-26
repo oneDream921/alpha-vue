@@ -86,7 +86,8 @@ async function loadKeys(append = false) {
         exhausted.value = !page.hasMore
         rows.value = append ? [...rows.value, ...page.records] : page.records
     } catch {
-        queryError.value = 'Redis 键列表加载失败，请确认后端服务和 Redis 连接正常'
+        queryError.value =
+            'Redis 键列表加载失败，请确认后端服务和 Redis 连接正常'
         if (!append) {
             rows.value = []
         }

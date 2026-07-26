@@ -1,0 +1,32 @@
+package io.github.onedream921.alphavue.modules.monitor.service;
+
+import io.github.onedream921.alphavue.modules.monitor.config.RedisManagementProperties;
+import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class RedisManagementServiceTests {
+
+    @Test
+    void canShowNonSensitiveValuesWhenConfiguredButNeverShowsSessionTokens() {
+        RedisManagementProperties properties = new RedisManagementProperties();
+        properties.setMaskValues(false);
+        RedisManagementService service = new RedisManagementService(new RedisKeyspace() {
+            @Override public RedisScanResult scan(String prefix, String keyword, String cursor, int count) {
+                return new RedisScanResult(List.of(
+                        new RedisKeyMetadata("cache:welcome", "string", 1L, 1L, "hello", false),
+                        new RedisKeyMetadata("satoken:token", "string", 1L, 1L, "secret", false)), "0");
+            }
+            @Override public RedisKeyMetadata metadata(String key) { return null; }
+            @Override public boolean delete(String key) { return false; }
+            @Override public RedisOverview overview() { return new RedisOverview(null, null, null, null, Map.of()); }
+        }, properties);
+
+        List<RedisKeyMetadataVo> records = service.page(new io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery("", "0", 10, null)).records();
+        assertThat(records).extracting(RedisKeyMetadataVo::value).containsExactly("hello", "[masked]");
+    }
+}

@@ -78,8 +78,8 @@ class ConfigControllerTests {
         mockMvc.perform(delete("/api/system/configs/{id}", id).header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_config WHERE id = ?", Integer.class, id))
-                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_config WHERE id = ?", Long.class, id))
+                .isEqualTo(id);
         awaitRedactedAudit("Create configuration");
         assertThat(jdbcTemplate.queryForList("SELECT request_params FROM sys_oper_log WHERE module = 'System' "
                 + "AND operation LIKE '%configuration'", String.class)).doesNotContain(value, "updated-value");

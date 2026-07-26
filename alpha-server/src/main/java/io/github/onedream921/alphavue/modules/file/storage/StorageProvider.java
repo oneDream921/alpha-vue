@@ -19,6 +19,11 @@ public interface StorageProvider {
     void delete(String key) throws IOException;
 
     /**
+     * 打开对象内容用于受控下载。
+     */
+    InputStream open(String key) throws IOException;
+
+    /**
      * 获取对象公开访问地址
      */
     String publicUrl(String key);

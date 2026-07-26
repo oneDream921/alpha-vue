@@ -189,8 +189,8 @@ class RbacControllerTests {
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk());
 
-        assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_user WHERE id = ?", Integer.class, userId))
-                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_user WHERE id = ?", Long.class, userId))
+                .isEqualTo(userId);
         awaitOperations("Create user", "Delete user");
     }
 

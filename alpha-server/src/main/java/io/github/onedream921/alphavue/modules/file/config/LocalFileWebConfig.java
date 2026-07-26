@@ -24,6 +24,9 @@ public class LocalFileWebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        if (!properties.isPublicAccess()) {
+            return;
+        }
         registry.addResourceHandler(properties.localPublicPathPattern())
                 .addResourceLocations(properties.localResourceLocation())
                 .setCacheControl(CacheControl.maxAge(Duration.ofDays(1)).cachePublic());

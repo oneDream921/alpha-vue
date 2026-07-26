@@ -72,7 +72,7 @@ class ProfileAvatarControllerTests {
         mockMvc.perform(multipart("/api/auth/avatar").file(avatar).header("Authorization", bearer(login("profile-avatar-user", "avatar123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.avatar").value(org.hamcrest.Matchers.startsWith("/uploads/")));
+                .andExpect(jsonPath("$.data.avatar").value(org.hamcrest.Matchers.startsWith("/api/files/")));
     }
 
     @Test

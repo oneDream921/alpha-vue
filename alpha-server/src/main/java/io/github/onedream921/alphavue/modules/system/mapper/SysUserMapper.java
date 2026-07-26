@@ -37,6 +37,16 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     int countActiveById(@Param("id") Object id);
 
     /**
+     * 统计引用指定部门的未删除用户。
+     */
+    int countByDeptId(@Param("deptId") long deptId);
+
+    /**
+     * 以主键值作为逻辑删除标记，释放业务唯一键。
+     */
+    int softDeleteById(@Param("id") long id);
+
+    /**
      * 更新当前启用用户的个人资料
      */
     int updateActiveProfile(@Param("id") long id, @Param("nickname") String nickname, @Param("avatar") String avatar,

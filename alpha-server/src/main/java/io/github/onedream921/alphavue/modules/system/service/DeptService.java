@@ -9,6 +9,7 @@ import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.system.dto.DeptRequests;
 import io.github.onedream921.alphavue.modules.system.entity.SysDept;
 import io.github.onedream921.alphavue.modules.system.mapper.SysDeptMapper;
+import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import io.github.onedream921.alphavue.modules.system.vo.DeptVo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class DeptService extends ServiceImpl<SysDeptMapper, SysDept> {
+    private final SysUserMapper userMapper;
+
+    public DeptService(SysUserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     /**
      * 按父级和排序号分页查询部门
@@ -67,7 +73,8 @@ public class DeptService extends ServiceImpl<SysDeptMapper, SysDept> {
     @Transactional
     public void delete(long id) {
         requireDept(id);
-        if (baseMapper.selectCount(new LambdaQueryWrapper<SysDept>().eq(SysDept::getParentId, id)) > 0) {
+        if (baseMapper.selectCount(new LambdaQueryWrapper<SysDept>().eq(SysDept::getParentId, id)) > 0
+                || userMapper.countByDeptId(id) > 0) {
             throw invalidRequest();
         }
         removeById(id);

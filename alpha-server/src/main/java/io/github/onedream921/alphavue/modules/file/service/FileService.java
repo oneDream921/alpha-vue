@@ -34,11 +34,14 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     private final FileStorageProperties properties;
     private final Map<String, StorageProvider> providers;
     private final SysUserMapper userMapper;
+    private final FileAccessTokenService accessTokenService;
 
     public FileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
-                       MinioStorageProvider minioStorageProvider, SysUserMapper userMapper) {
+                       MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
+                       FileAccessTokenService accessTokenService) {
         this.properties = properties;
         this.userMapper = userMapper;
+        this.accessTokenService = accessTokenService;
         this.providers = Map.of(
                 LocalStorageProvider.NAME, localStorageProvider,
                 MinioStorageProvider.NAME, minioStorageProvider);
@@ -110,6 +113,33 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
                 .map(file -> view(file, uploaderNames.get(file.getUploaderId())))
                 .toList(),
                 page.getTotal(), pageNumber, pageSize);
+    }
+
+    /**
+     * 返回私有文件的短期访问地址。
+     */
+    public String accessUrl(long id) {
+        SysFile file = getById(id);
+        if (file == null) {
+            throw invalidRequest();
+        }
+        return accessUrl(file);
+    }
+
+    /**
+     * 校验访问签名后打开文件内容，调用方负责关闭流。
+     */
+    public FileContent openForAccess(long id, long expiresAt, String signature) {
+        SysFile file = getById(id);
+        if (file == null || !accessTokenService.isValid(id, expiresAt, signature)) {
+            throw invalidRequest();
+        }
+        try {
+            return new FileContent(providerFor(file.getStorageProvider()).open(file.getObjectKey()), file.getOriginalName(),
+                    file.getContentType());
+        } catch (IOException exception) {
+            throw storageFailure(exception);
+        }
     }
 
     /**
@@ -245,9 +275,13 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
         return user.nickname() == null || user.nickname().isBlank() ? user.username() : user.nickname();
     }
 
-    private static FileView view(SysFile file, String uploaderName) {
+    private FileView view(SysFile file, String uploaderName) {
         return new FileView(file.getId(), file.getStorageProvider(), file.getObjectKey(), file.getOriginalName(),
-                file.getContentType(), file.getSizeBytes(), file.getPublicUrl(), uploaderName, file.getCreatedAt());
+                file.getContentType(), file.getSizeBytes(), accessUrl(file), uploaderName, file.getCreatedAt());
+    }
+
+    private String accessUrl(SysFile file) {
+        return properties.isPublicAccess() ? file.getPublicUrl() : accessTokenService.accessUrl(file.getId());
     }
 
     /**
@@ -255,4 +289,6 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
      */
     public record FileView(Long id, String storageProvider, String objectKey, String originalName, String contentType,
                            Long sizeBytes, String publicUrl, String uploaderName, java.time.LocalDateTime createdAt) { }
+
+    public record FileContent(InputStream input, String originalName, String contentType) { }
 }

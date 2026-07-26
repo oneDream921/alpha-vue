@@ -2,6 +2,7 @@ package io.github.onedream921.alphavue.modules.file.storage;
 
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
 import io.minio.MinioClient;
+import io.minio.GetObjectArgs;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import org.springframework.stereotype.Component;
@@ -59,6 +60,15 @@ public class MinioStorageProvider implements StorageProvider {
             client().removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
         } catch (Exception exception) {
             throw new IOException("Unable to delete object from MinIO", exception);
+        }
+    }
+
+    @Override
+    public InputStream open(String key) throws IOException {
+        try {
+            return client().getObject(GetObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
+        } catch (Exception exception) {
+            throw new IOException("Unable to read object from MinIO", exception);
         }
     }
 

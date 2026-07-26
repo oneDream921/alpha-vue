@@ -1,0 +1,38 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Test and package backend
+        run: ./mvnw -f alpha-server/pom.xml test package
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: alpha-web/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        run: pnpm --dir alpha-web install --frozen-lockfile
+      - name: Check frontend quality
+        run: pnpm --dir alpha-web typecheck && pnpm --dir alpha-web test && pnpm --dir alpha-web lint && pnpm --dir alpha-web format:check && pnpm --dir alpha-web build

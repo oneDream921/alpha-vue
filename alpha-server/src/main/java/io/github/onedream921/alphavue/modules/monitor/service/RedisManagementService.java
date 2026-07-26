@@ -3,6 +3,7 @@ package io.github.onedream921.alphavue.modules.monitor.service;
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery;
+import io.github.onedream921.alphavue.modules.monitor.config.RedisManagementProperties;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
@@ -21,9 +22,11 @@ public class RedisManagementService {
     private static final int MAX_SCAN_ROUNDS_PER_PAGE = 1_000;
 
     private final RedisKeyspace keyspace;
+    private final RedisManagementProperties properties;
 
-    public RedisManagementService(RedisKeyspace keyspace) {
+    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
         this.keyspace = keyspace;
+        this.properties = properties;
     }
 
     /**
@@ -77,8 +80,9 @@ public class RedisManagementService {
 
     private RedisKeyMetadataVo toMetadata(RedisKeyMetadata metadata) {
         requireReadableKey(metadata.key());
+        boolean masked = properties.isMaskValues() || isSensitiveKey(metadata.key());
         return new RedisKeyMetadataVo(metadata.key(), category(metadata.key()), metadata.type(), metadata.ttlSeconds(),
-                metadata.sizeBytes(), metadata.value(), metadata.valueTruncated());
+                metadata.sizeBytes(), masked ? "[masked]" : metadata.value(), masked || metadata.valueTruncated());
     }
 
     private void requireReadableKey(String key) {
@@ -104,6 +108,15 @@ public class RedisManagementService {
             return "Spring 数据";
         }
         return "业务/缓存数据";
+    }
+
+    private static boolean isSensitiveKey(String key) {
+        String normalized = key.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("auth:captcha:")
+                || normalized.contains("login:session:")
+                || normalized.contains("login:token:")
+                || normalized.startsWith("satoken:")
+                || normalized.matches(".*(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key).*" );
     }
 
     private static String normalizedPrefix(String prefix) {

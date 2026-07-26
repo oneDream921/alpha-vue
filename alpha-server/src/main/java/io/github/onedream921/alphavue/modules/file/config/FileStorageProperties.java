@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -27,6 +28,9 @@ public class FileStorageProperties {
     private long maxSizeBytes = 10 * 1024 * 1024;
     private String localRoot = "uploads";
     private String localPublicUrl = "/uploads";
+    private boolean publicAccess;
+    private String accessTokenSecret;
+    private Duration accessTokenTtl = Duration.ofMinutes(5);
     private Minio minio = new Minio();
 
     /**
@@ -41,6 +45,10 @@ public class FileStorageProperties {
                 && (isBlank(minio.getAccessKey()) || isBlank(minio.getSecretKey()))) {
             throw new IllegalStateException("MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be configured when "
                     + "FILE_STORAGE_PROVIDER=minio");
+        }
+        if (!publicAccess && (isBlank(accessTokenSecret) || accessTokenTtl.isNegative() || accessTokenTtl.isZero())) {
+            throw new IllegalStateException("FILE_ACCESS_TOKEN_SECRET and a positive FILE_ACCESS_TOKEN_TTL are required "
+                    + "when FILE_PUBLIC_ACCESS=false");
         }
     }
 

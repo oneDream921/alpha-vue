@@ -103,7 +103,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/**/*.jpg",
                         "/**/*.svg",
                         "/webjars/**")
-                .excludePathPatterns(fileStorageProperties.localPublicPathPattern());
+                .excludePathPatterns(fileStorageProperties.localPublicPathPattern(), "/api/files/*/content");
     }
 
     /**

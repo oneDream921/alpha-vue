@@ -10,6 +10,7 @@ import io.github.onedream921.alphavue.modules.system.dto.UserRequests;
 import io.github.onedream921.alphavue.modules.system.entity.SysRole;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
 import io.github.onedream921.alphavue.modules.system.mapper.SysRoleMapper;
+import io.github.onedream921.alphavue.modules.system.mapper.SysDeptMapper;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserRoleMapper;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import io.github.onedream921.alphavue.modules.system.vo.UserVo;
@@ -30,10 +31,12 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
 
     private final SysRoleMapper roleMapper;
     private final SysUserRoleMapper userRoleMapper;
+    private final SysDeptMapper deptMapper;
 
-    public UserService(SysRoleMapper roleMapper, SysUserRoleMapper userRoleMapper) {
+    public UserService(SysRoleMapper roleMapper, SysUserRoleMapper userRoleMapper, SysDeptMapper deptMapper) {
         this.roleMapper = roleMapper;
         this.userRoleMapper = userRoleMapper;
+        this.deptMapper = deptMapper;
     }
 
     /**
@@ -68,6 +71,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
         if (baseMapper.selectCount(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, request.username())) > 0) {
             throw invalidRequest();
         }
+        requireEnabledDept(request.deptId());
         SysUser user = new SysUser();
         user.setUsername(request.username());
         user.setPassword(BCrypt.hashpw(request.password(), BCrypt.gensalt()));
@@ -89,6 +93,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     public UserVo update(long id, UserRequests.Update request) {
         SysUser user = requireUser(id);
         rejectAdminMutation(user);
+        requireEnabledDept(request.deptId());
         user.setNickname(request.nickname());
         user.setAvatar(request.avatar());
         user.setEmail(request.email());
@@ -107,7 +112,9 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     @Transactional
     public void delete(long id) {
         rejectAdminMutation(requireUser(id));
-        removeById(id);
+        if (baseMapper.softDeleteById(id) != 1) {
+            throw invalidRequest();
+        }
     }
 
     /**
@@ -165,5 +172,11 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
 
     private static BusinessException invalidRequest() {
         return new BusinessException(400, PublicErrorMessage.INVALID_REQUEST);
+    }
+
+    private void requireEnabledDept(Long deptId) {
+        if (deptId != null && deptMapper.countEnabledById(deptId) == 0) {
+            throw invalidRequest();
+        }
     }
 }

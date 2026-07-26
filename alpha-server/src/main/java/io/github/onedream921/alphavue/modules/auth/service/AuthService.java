@@ -73,7 +73,7 @@ public class AuthService {
         long userId = currentUserId();
         SysUser user = userMapper.selectActiveById(userId);
         return user == null ? null : new Profile(user.getId(), user.getUsername(), user.getNickname(),
-                user.getAvatar(), user.getEmail(), user.getPhone(), user.getDeptId(),
+                resolveAvatar(user.getAvatar()), user.getEmail(), user.getPhone(), user.getDeptId(),
                 Integer.valueOf(1).equals(user.getMustChangePassword()),
                 StpUtil.getRoleList(), StpUtil.getPermissionList());
     }
@@ -107,7 +107,7 @@ public class AuthService {
     public Profile uploadAvatar(MultipartFile avatarFile) {
         long userId = currentUserId();
         FileService.FileView uploaded = fileService.uploadAvatar(avatarFile, userId);
-        if (userMapper.updateActiveAvatar(userId, uploaded.publicUrl()) == 0) {
+        if (userMapper.updateActiveAvatar(userId, "file:" + uploaded.id()) == 0) {
             throw new BusinessException(400, PublicErrorMessage.INVALID_REQUEST);
         }
         return profile();
@@ -162,5 +162,16 @@ public class AuthService {
      */
     public record Profile(long id, String username, String nickname, String avatar, String email, String phone,
                           Long deptId, boolean mustChangePassword, List<String> roles, List<String> permissions) {
+    }
+
+    private String resolveAvatar(String avatar) {
+        if (avatar != null && avatar.startsWith("file:")) {
+            try {
+                return fileService.accessUrl(Long.parseLong(avatar.substring("file:".length())));
+            } catch (NumberFormatException exception) {
+                return null;
+            }
+        }
+        return avatar;
     }
 }
