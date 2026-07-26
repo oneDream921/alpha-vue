@@ -14,9 +14,11 @@ vi.mock('vue-router', () => ({
 }))
 
 import BaseLayout from './BaseLayout.vue'
+import { authStore } from '@/stores/auth'
 
 describe('BaseLayout', () => {
     afterEach(() => {
+        authStore.clearAuth()
         window.innerWidth = 1024
         window.dispatchEvent(new Event('resize'))
     })
@@ -88,5 +90,41 @@ describe('BaseLayout', () => {
 
         expect(sidebar.classes()).not.toContain('ant-layout-sider-collapsed')
         expect(wrapper.get('[aria-label="折叠侧栏"]')).toBeTruthy()
+    })
+
+    it('uses the fixed Chinese navigation labels instead of route-title fallbacks', () => {
+        authStore.setSession(
+            'test-token',
+            {
+                id: 1,
+                username: 'admin',
+                roles: ['SUPER_ADMIN'],
+                permissions: ['*'],
+                mustChangePassword: false,
+            },
+            [
+                {
+                    id: 3,
+                    parentId: 2,
+                    title: 'Users',
+                    menuType: 'MENU',
+                    path: 'users',
+                    sortOrder: 1,
+                },
+            ],
+        )
+
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        expect(wrapper.text()).toContain('用户管理')
+        expect(wrapper.text()).not.toContain('Users')
     })
 })

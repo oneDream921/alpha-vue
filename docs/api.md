@@ -25,4 +25,4 @@
 
 HTTP 状态与响应 `code` 一致：参数错误 400、未登录 401、无权限 403、登录锁定 429、未处理错误 500。响应头 `X-Trace-Id` 与响应体 `traceId` 可用于问题定位。
 
-开发环境启动后可访问 `/doc.html`（Knife4j）或 `/swagger-ui/index.html` 查看 OpenAPI 页面。生产环境默认关闭 OpenAPI 与 Knife4j；如需临时诊断，应通过受控的运维变更并由网关限制访问，而不是直接公开接口文档。
+开发环境启动后可访问 `/doc.html`（Knife4j）查看 OpenAPI 页面。生产环境默认关闭 OpenAPI 与 Knife4j；如需临时诊断，应通过受控的运维变更并由网关限制访问，而不是直接公开接口文档。

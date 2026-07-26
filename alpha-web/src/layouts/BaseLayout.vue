@@ -34,20 +34,6 @@ const isDesktop = computed(() => viewportWidth.value >= 1024)
 const sidebarCollapsed = computed(() =>
     isMobile.value ? true : desktopCollapsed.value,
 )
-const routeTitleByPath = computed(() => {
-    const routes = authStore.state.routes
-    const routeById = new Map(routes.map((item) => [String(item.id), item]))
-    return new Map(
-        routes
-            .filter((item) => item.menuType !== 'BUTTON' && item.title)
-            .map((item) => {
-                const path = item.path?.startsWith('/')
-                    ? item.path
-                    : `${routeById.get(String(item.parentId))?.path ?? ''}/${item.path ?? ''}`
-                return [path === '/home' ? '/' : path, item.title] as const
-            }),
-    )
-})
 const navigation = computed(() =>
     [
         { path: '/', title: '工作台', icon: DashboardOutlined },
@@ -88,15 +74,9 @@ const navigation = computed(() =>
             permission: 'log:operation:list',
         },
         { path: '/profile', title: '个人中心', icon: UserOutlined },
-    ]
-        .map((item) => ({
-            ...item,
-            title: routeTitleByPath.value.get(item.path) ?? item.title,
-        }))
-        .filter(
-            (item) =>
-                !item.permission || authStore.hasPermission(item.permission),
-        ),
+    ].filter(
+        (item) => !item.permission || authStore.hasPermission(item.permission),
+    ),
 )
 const currentNavigation = computed(() =>
     navigation.value.find((item) => item.path === route.path),
