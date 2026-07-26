@@ -1,6 +1,7 @@
 alpha-server/target/
 .idea/
 .worktrees/
+.superpowers/
 
 # Java
 target/
