@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -25,7 +26,7 @@ const password = reactive({
     newPassword: '',
     confirmPassword: '',
 })
-const profileRules = {
+const profileRules: Record<string, Rule[]> = {
     nickname: [
         { required: true, whitespace: true, message: '请输入昵称' },
         { max: 64, message: '昵称不能超过 64 个字符' },
@@ -36,7 +37,7 @@ const profileRules = {
     ],
     avatar: [{ max: 255, message: '头像地址不能超过 255 个字符' }],
 }
-const passwordRules = {
+const passwordRules: Record<string, Rule[]> = {
     currentPassword: [{ required: true, message: '请输入当前密码' }],
     newPassword: [
         { required: true, message: '请输入新密码' },

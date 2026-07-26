@@ -7,6 +7,7 @@ import {
     SafetyOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import { menuApi, roleApi, type Menu, type Role } from '@/service/system'
@@ -32,7 +33,7 @@ const emptyForm = () => ({
     remark: '',
 })
 const form = reactive(emptyForm())
-const rules = {
+const rules: Record<string, Rule[]> = {
     name: [
         { required: true, whitespace: true, message: '请输入角色名称' },
         { max: 64, message: '角色名称不能超过 64 个字符' },

@@ -6,6 +6,7 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
@@ -58,7 +59,7 @@ const emptyItemForm = (): DictItemSave => ({
 const typeForm = reactive<DictTypeSave>(emptyTypeForm())
 const itemForm = reactive<DictItemSave>(emptyItemForm())
 
-const typeRules = {
+const typeRules: Record<string, Rule[]> = {
     typeCode: [
         {
             validator: (_: unknown, value: string) => {
@@ -75,7 +76,7 @@ const typeRules = {
     ],
     remark: [{ max: 500, message: '备注不能超过 500 个字符' }],
 }
-const itemRules = {
+const itemRules: Record<string, Rule[]> = {
     label: [
         { required: true, whitespace: true, message: '请输入字典项标签' },
         { max: 64, message: '字典项标签不能超过 64 个字符' },

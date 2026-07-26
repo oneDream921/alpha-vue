@@ -10,6 +10,7 @@ import {
     SafetyOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import axios from 'axios'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
@@ -45,7 +46,7 @@ const viewportWidth = ref(
     typeof window === 'undefined' ? 1024 : window.innerWidth,
 )
 const showCompactActions = computed(() => viewportWidth.value < 768)
-const rules = {
+const rules: Record<string, Rule[]> = {
     username: [
         { required: true, message: '请输入账号' },
         { max: 64, message: '账号不能超过 64 个字符' },

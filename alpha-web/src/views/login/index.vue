@@ -125,7 +125,7 @@ onMounted(loadCaptcha)
                     <div class="captcha-row">
                         <a-input
                             v-model:value="form.captcha"
-                            maxlength="16"
+                            :maxlength="16"
                         /><a-button
                             class="captcha-button"
                             title="刷新验证码"

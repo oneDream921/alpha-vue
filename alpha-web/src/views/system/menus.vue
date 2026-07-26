@@ -6,6 +6,7 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import { authApi } from '@/service/auth'
@@ -33,7 +34,7 @@ const emptyForm = () => ({
     status: 1,
 })
 const form = reactive(emptyForm())
-const rules = {
+const rules: Record<string, Rule[]> = {
     title: [
         { required: true, whitespace: true, message: '请输入菜单名称' },
         { max: 64, message: '菜单名称不能超过 64 个字符' },
