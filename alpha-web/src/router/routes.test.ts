@@ -46,6 +46,16 @@ describe('managementRoutesFor', () => {
                 sortOrder: 4,
             },
             {
+                id: 35,
+                parentId: 0,
+                title: 'Redis 管理',
+                menuType: 'MENU',
+                path: '/monitor/redis',
+                component: 'monitor/redis',
+                permission: 'monitor:redis:list',
+                sortOrder: 5,
+            },
+            {
                 id: 99,
                 parentId: 0,
                 title: '未知组件',
@@ -60,6 +70,7 @@ describe('managementRoutesFor', () => {
             'users',
             'configs',
             'dicts',
+            'redis',
             'files',
         ])
     })

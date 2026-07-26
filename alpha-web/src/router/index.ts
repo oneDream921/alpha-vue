@@ -51,6 +51,13 @@ const managementRouteDefinitions = [
         meta: { permission: 'system:dict:list' },
     },
     {
+        path: 'monitor/redis',
+        name: 'redis',
+        componentId: 'monitor/redis',
+        component: () => import('@/views/monitor/redis.vue'),
+        meta: { permission: 'monitor:redis:list' },
+    },
+    {
         path: 'files',
         name: 'files',
         componentId: 'files/index',

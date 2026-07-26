@@ -14,6 +14,8 @@ HikariCP 默认开发池为最小 2、最大 10，生产池为最小 5、最大 
 
 Redis 使用 Lettuce 连接池。`REDIS_POOL_MAX_ACTIVE` 是单应用实例上限，`REDIS_POOL_MAX_WAIT` 默认 1 秒，避免连接耗尽时无限堆积请求；按 Redis 连接上限和副本数调整。Sa-Token 会话、验证码和登录失败窗口必须使用同一 Redis 集群/命名空间，并启用持久化与备份策略。
 
+启用 Redis 管理前，必须通过 `REDIS_MANAGEMENT_PREFIXES` 配置部署专用前缀；共享 Redis 实例不得依赖默认前缀。控制台只能使用前缀范围内的 `SCAN` 游标查询，严禁全库扫描或清空。删除会话/验证码键会立即使其失效，操作前必须完成二次确认。
+
 ## 观测与故障排查
 
 - 探针：`/actuator/health/liveness`、`/actuator/health/readiness`。

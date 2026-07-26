@@ -3,6 +3,7 @@ import {
     ApartmentOutlined,
     BookOutlined,
     DashboardOutlined,
+    DatabaseOutlined,
     FileTextOutlined,
     FolderOpenOutlined,
     LogoutOutlined,
@@ -74,6 +75,12 @@ const navigation = computed(() =>
             title: '数据字典',
             icon: BookOutlined,
             permission: 'system:dict:list',
+        },
+        {
+            path: '/monitor/redis',
+            title: 'Redis 管理',
+            icon: DatabaseOutlined,
+            permission: 'monitor:redis:list',
         },
         {
             path: '/files',
