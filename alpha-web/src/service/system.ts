@@ -49,7 +49,16 @@ export interface Dept extends BaseEntity {
     sortOrder: number
 }
 
-type EntityName = 'users' | 'roles' | 'menus' | 'depts'
+export interface Config {
+    id: number
+    configKey: string
+    configValue: string
+    description?: string
+    createdAt?: string
+    updatedAt?: string
+}
+
+type EntityName = 'users' | 'roles' | 'menus' | 'depts' | 'configs'
 
 function resource<T, Create, Update>(name: EntityName) {
     return {
@@ -93,6 +102,11 @@ export interface RoleCreate {
 export type RoleUpdate = Omit<RoleCreate, 'code'>
 export type MenuSave = Omit<Menu, 'id' | 'createdAt'>
 export type DeptSave = Omit<Dept, 'id' | 'createdAt'>
+export interface ConfigSave {
+    configKey: string
+    configValue: string
+    description?: string
+}
 
 export const userApi = {
     ...resource<User, UserCreate, UserUpdate>('users'),
@@ -114,3 +128,4 @@ export const roleApi = {
 }
 export const menuApi = resource<Menu, MenuSave, MenuSave>('menus')
 export const deptApi = resource<Dept, DeptSave, DeptSave>('depts')
+export const configApi = resource<Config, ConfigSave, ConfigSave>('configs')

@@ -26,6 +26,16 @@ describe('managementRoutesFor', () => {
                 sortOrder: 2,
             },
             {
+                id: 27,
+                parentId: 2,
+                title: '参数配置',
+                menuType: 'MENU',
+                path: 'configs',
+                component: 'system/configs',
+                permission: 'system:config:list',
+                sortOrder: 3,
+            },
+            {
                 id: 99,
                 parentId: 0,
                 title: '未知组件',
@@ -36,6 +46,10 @@ describe('managementRoutesFor', () => {
             },
         ])
 
-        expect(routes.map((route) => route.name)).toEqual(['users', 'files'])
+        expect(routes.map((route) => route.name)).toEqual([
+            'users',
+            'configs',
+            'files',
+        ])
     })
 })

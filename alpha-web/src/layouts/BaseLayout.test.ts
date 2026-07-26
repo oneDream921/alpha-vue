@@ -127,4 +127,44 @@ describe('BaseLayout', () => {
         expect(wrapper.text()).toContain('用户管理')
         expect(wrapper.text()).not.toContain('Users')
     })
+
+    it('shows parameter configuration only to users with its list permission', () => {
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['system:user:list'],
+            mustChangePassword: false,
+        })
+
+        const withoutPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withoutPermission.text()).not.toContain('参数配置')
+        withoutPermission.unmount()
+
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['system:config:list'],
+            mustChangePassword: false,
+        })
+        const withPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withPermission.text()).toContain('参数配置')
+    })
 })

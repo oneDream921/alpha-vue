@@ -11,6 +11,8 @@ import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 /**
  * OpenAPI 配置
  */
@@ -35,14 +37,7 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("Sa-Token")))
-                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
-                .addTagsItem(new Tag().name("认证").description("登录、验证码、个人资料与会话接口"))
-                .addTagsItem(new Tag().name("用户管理").description("用户 CRUD、角色分配与会话管理"))
-                .addTagsItem(new Tag().name("角色管理").description("角色 CRUD 与菜单权限分配"))
-                .addTagsItem(new Tag().name("菜单管理").description("菜单 CRUD"))
-                .addTagsItem(new Tag().name("部门管理").description("部门 CRUD 与组织树维护"))
-                .addTagsItem(new Tag().name("文件管理").description("文件上传、列表与删除"))
-                .addTagsItem(new Tag().name("日志查询").description("操作日志与登录日志查询"));
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
     }
 
     /**
@@ -53,6 +48,8 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("auth")
                 .pathsToMatch("/api/auth/**")
+                .addOpenApiCustomizer(openApi -> openApi.setTags(List.of(
+                        tag("认证", "登录、验证码、个人资料与会话接口"))))
                 .build();
     }
 
@@ -64,6 +61,12 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("system")
                 .pathsToMatch("/api/system/**")
+                .addOpenApiCustomizer(openApi -> openApi.setTags(List.of(
+                        tag("用户管理", "用户 CRUD、角色分配与会话管理"),
+                        tag("角色管理", "角色 CRUD 与菜单权限分配"),
+                        tag("菜单管理", "菜单 CRUD"),
+                        tag("部门管理", "部门 CRUD 与组织树维护"),
+                        tag("参数配置", "业务参数 CRUD，不自动应用到运行时配置"))))
                 .build();
     }
 
@@ -75,6 +78,8 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("file")
                 .pathsToMatch("/api/files/**")
+                .addOpenApiCustomizer(openApi -> openApi.setTags(List.of(
+                        tag("文件管理", "文件上传、列表与删除"))))
                 .build();
     }
 
@@ -86,6 +91,12 @@ public class OpenApiConfig {
         return GroupedOpenApi.builder()
                 .group("log")
                 .pathsToMatch("/api/logs/**")
+                .addOpenApiCustomizer(openApi -> openApi.setTags(List.of(
+                        tag("日志查询", "操作日志与登录日志查询"))))
                 .build();
+    }
+
+    private static Tag tag(String name, String description) {
+        return new Tag().name(name).description(description);
     }
 }
