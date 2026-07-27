@@ -21,7 +21,7 @@
 
 - 前端保持 Vue 3、严格 TypeScript、Ant Design Vue、Pinia、Vue Router、Axios、Vite 和 Tailwind CSS；页面不得直接调用 Axios，前端权限不替代后端授权。
 - 后端按 `common`、`framework`、`modules/<domain>` 分层；Controller、Service、Mapper、Entity、DTO、VO 各守职责。Controller 默认继承 `framework.web.BaseController` 复用统一响应与请求上下文，但不得把业务 CRUD、实体暴露或持久化逻辑放进控制层基类。
-- 数据库运行监控采用 Druid 与应用内 SQL 日志页；SQL 日志只保留占位符 SQL 摘要，不记录真实参数值，不提供页面执行 SQL。生产 Druid 默认关闭，临时开启必须有独立强密码和网络访问控制。
+- 数据库运行监控采用 Druid 与应用内 SQL 日志页；SQL 日志只保留占位符 SQL 摘要，不记录真实参数值，不提供页面执行 SQL。SQL 采集开关和 Mapper 排除列表只作为进程内运行时排查能力。生产 Druid 默认关闭，临时开启必须有独立强密码和网络访问控制。
 - Flyway 迁移只追加，不修改已运行版本。
 
 ## 验证入口
