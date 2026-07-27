@@ -20,7 +20,7 @@
 | 日志     | `GET /logs/operations`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |
 | Redis 管理 | `GET /monitor/redis/overview`、`GET /monitor/redis/keys`、`GET/DELETE /monitor/redis/key` |
 
-文件上传支持 `txt`、`pdf`、`doc/docx`、`xls/xlsx` 与 `png/jpg/jpeg/gif/webp`。本地存储返回 `/uploads/<uuid>.<ext>`，MinIO 返回配置的公开对象 URL；图片 URL 可直接用于预览和头像展示。
+文件上传支持 `txt`、`pdf`、`doc/docx`、`xls/xlsx` 与 `png/jpg/jpeg/gif/webp`。文件响应中的 `publicUrl` 表示当前可访问 URL：默认 `FILE_PUBLIC_ACCESS=false` 时返回短期 HMAC 签名的 `/api/files/{id}/content` 地址；仅显式启用公开访问时，本地存储返回 `/uploads/<uuid>.<ext>`，MinIO 返回配置的公开对象 URL。图片访问 URL 可直接用于预览和头像展示。
 
 个人头像上传只接受 `png/jpg/jpeg/gif/webp`，使用当前登录用户身份，不要求文件管理权限；上传成功后立即更新该用户头像。修改个人密码时，旧密码错误会返回“旧密码错误”，新旧密码相同会返回“新密码不能与旧密码相同”。
 

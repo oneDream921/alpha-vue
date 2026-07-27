@@ -17,7 +17,10 @@
 | `CAPTCHA_ENABLED`                       | dev 为 `false`，prod 为 `true` | 登录图形验证码                             |
 | `FILE_STORAGE_PROVIDER`                 | `local`                        | `local` 或 `minio`                         |
 | `FILE_LOCAL_ROOT`                       | `uploads`                      | 本地文件目录                               |
-| `FILE_LOCAL_PUBLIC_URL`                 | `/uploads`                     | 本地文件公开访问路径，必须是应用内绝对路径 |
+| `FILE_LOCAL_PUBLIC_URL`                 | `/uploads`                     | 启用公开访问时的本地 URL 前缀，必须是应用内绝对路径 |
+| `FILE_PUBLIC_ACCESS`                    | `false`                        | 是否直接公开存储对象；默认使用短期签名 URL |
+| `FILE_ACCESS_TOKEN_SECRET`              | 无                             | 私有文件短期访问签名密钥，默认模式必须配置 |
+| `FILE_ACCESS_TOKEN_TTL`                 | `5m`                           | 私有文件访问 URL 有效期                    |
 | `FILE_MAX_SIZE_BYTES`                   | `10485760`                     | 单文件最大字节数                           |
 | `FILE_MAX_REQUEST_SIZE_BYTES`           | `12582912`                     | multipart 单请求最大字节数                 |
 | `MINIO_ENDPOINT`                        | `http://localhost:9000`        | MinIO API                                  |
@@ -32,8 +35,8 @@
 
 ```bash
 # 后端测试与打包
-mvn -f alpha-server/pom.xml test
-mvn -f alpha-server/pom.xml package
+./mvnw -f alpha-server/pom.xml test
+./mvnw -f alpha-server/pom.xml package
 
 # 前端质量检查
 pnpm --dir alpha-web typecheck
@@ -47,10 +50,10 @@ Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后
 
 ## 存储切换
 
-本地模式只需设置 `FILE_STORAGE_PROVIDER=local`，后端会把 `FILE_LOCAL_ROOT` 以只读资源映射到 `FILE_LOCAL_PUBLIC_URL`。MinIO 模式设置 `FILE_STORAGE_PROVIDER=minio`、应用访问密钥、bucket 与可选公开 URL。上传校验在存储提供方之前执行，两种模式共享扩展名、MIME、图片签名和大小限制。
+本地模式设置 `FILE_STORAGE_PROVIDER=local`；默认私有访问不会注册 `FILE_LOCAL_PUBLIC_URL` 的静态资源映射，而是通过短期签名接口读取对象。MinIO 模式设置 `FILE_STORAGE_PROVIDER=minio`、应用访问密钥与 bucket，默认同样通过应用签名接口读取。只有明确设置 `FILE_PUBLIC_ACCESS=true` 时，才直接开放本地静态映射或使用 MinIO 公开 URL。上传校验在存储提供方之前执行，两种模式共享扩展名、MIME、图片签名和大小限制。
 
-Docker Compose 的一次性 `minio-init` 服务会为本地环境创建 bucket、独立应用用户和 bucket 级读写策略，并开放对象下载以支持预览。生产环境应由部署平台预建 bucket 和最小权限凭据，不以 root 凭据启动应用。
+Docker Compose 的一次性 `minio-init` 服务会为本地环境创建 bucket、独立应用用户和 bucket 级读写策略；对象通过应用生成的短期签名 URL 预览，不要求 bucket 匿名读取。生产环境应由部署平台预建 bucket 和最小权限凭据，不以 root 凭据启动应用。
 
-`deploy/smoke-test.sh` 会上传普通文本和真实 PNG，检查列表、图片公开访问与删除，然后清理测试记录。切换存储模式后应分别执行一次。
+`deploy/smoke-test.sh` 会上传普通文本和真实 PNG，检查列表、图片访问 URL 与删除，然后清理测试记录。涉及真实联调、部署配置或切换存储模式时执行；切换存储模式后应分别验证一次。
 
 运行参数、指标和发布顺序见 [运行与发布手册](operations.md)。
