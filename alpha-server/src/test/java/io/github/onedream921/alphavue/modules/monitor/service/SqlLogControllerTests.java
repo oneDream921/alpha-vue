@@ -1,6 +1,7 @@
 package io.github.onedream921.alphavue.modules.monitor.service;
 
 import io.github.onedream921.alphavue.framework.mybatis.SqlLogCapture;
+import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mindrot.jbcrypt.BCrypt;
@@ -13,11 +14,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Set;
+
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,12 +47,14 @@ class SqlLogControllerTests {
     @BeforeEach
     void removeFixtures() {
         sqlLogService.clear();
+        sqlLogService.updateSettings(new SqlLogSettingsRequest(true, Set.of()));
         jdbcTemplate.update("DELETE FROM sys_role_menu WHERE role_id IN (SELECT id FROM sys_role WHERE code = 'SQL_LIST_ONLY')");
         jdbcTemplate.update("DELETE FROM sys_user_role WHERE user_id IN (SELECT id FROM sys_user WHERE username = 'sql-list-only') "
                 + "OR role_id IN (SELECT id FROM sys_role WHERE code = 'SQL_LIST_ONLY')");
         jdbcTemplate.update("DELETE FROM sys_user WHERE username = 'sql-list-only'");
         jdbcTemplate.update("DELETE FROM sys_role WHERE code = 'SQL_LIST_ONLY'");
         jdbcTemplate.update("DELETE FROM sys_menu WHERE title = 'SQL list fixture'");
+        jdbcTemplate.update("DELETE FROM sys_menu WHERE title = 'SQL control fixture'");
     }
 
     @Test
@@ -91,6 +98,51 @@ class SqlLogControllerTests {
                         .header("Authorization", bearer(login("admin"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("SQL 日志已清空"));
+    }
+
+    @Test
+    void exposesAndControlsRuntimeCollectionSettings() throws Exception {
+        sqlLogService.record(new SqlLogCapture("UserMapper.selectPage", "SELECT", "sys_user",
+                "SELECT * FROM sys_user", 12, 1, "trace-user"));
+
+        mockMvc.perform(get("/api/monitor/sql/settings")
+                        .header("Authorization", bearer(login("admin"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.enabled").value(true))
+                .andExpect(jsonPath("$.data.statements[*].statementId").value(hasItem("UserMapper.selectPage")));
+
+        mockMvc.perform(put("/api/monitor/sql/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"excludedStatementIds\":[\"UserMapper.selectPage\"]}")
+                        .header("Authorization", bearer(login("admin"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.enabled").value(false))
+                .andExpect(jsonPath("$.data.excludedStatementIds[0]").value("UserMapper.selectPage"));
+
+        sqlLogService.clear();
+        sqlLogService.record(new SqlLogCapture("RoleMapper.selectPage", "SELECT", "sys_role",
+                "SELECT * FROM sys_role", 12, 1, "trace-role"));
+        mockMvc.perform(get("/api/monitor/sql/logs")
+                        .param("limit", "10")
+                        .header("Authorization", bearer(login("admin"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void requiresControlPermissionToUpdateSettings() throws Exception {
+        long userId = insertUser();
+        long roleId = insertRole();
+        long listMenuId = insertListMenu();
+        jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)", userId, roleId);
+        jdbcTemplate.update("INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)", roleId, listMenuId);
+
+        mockMvc.perform(put("/api/monitor/sql/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"excludedStatementIds\":[]}")
+                        .header("Authorization", bearer(login("sql-list-only"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
     }
 
     private long insertUser() {

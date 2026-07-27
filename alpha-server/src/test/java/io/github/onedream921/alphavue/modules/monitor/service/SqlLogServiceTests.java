@@ -3,7 +3,10 @@ package io.github.onedream921.alphavue.modules.monitor.service;
 import io.github.onedream921.alphavue.framework.mybatis.SqlLogCapture;
 import io.github.onedream921.alphavue.modules.monitor.config.SqlMonitorProperties;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogQuery;
+import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,5 +52,32 @@ class SqlLogServiceTests {
         assertThat(logs).hasSize(1);
         assertThat(logs.get(0).statementId()).isEqualTo("UserMapper.selectPage");
         assertThat(logs.get(0).slow()).isTrue();
+    }
+
+    @Test
+    void controlsCollectionWithoutLosingDiscoveredStatements() {
+        SqlMonitorProperties properties = new SqlMonitorProperties();
+        SqlLogService service = new SqlLogService(properties);
+
+        service.updateSettings(new SqlLogSettingsRequest(false, Set.of()));
+        service.record(new SqlLogCapture("UserMapper.selectPage", "SELECT", "sys_user",
+                "SELECT * FROM sys_user", 12, 1, "trace-user"));
+
+        assertThat(service.recent(new SqlLogQuery(10, null, null, false))).isEmpty();
+        assertThat(service.settings().statements())
+                .extracting("statementId")
+                .containsExactly("UserMapper.selectPage");
+
+        service.updateSettings(new SqlLogSettingsRequest(true, Set.of("UserMapper.selectPage")));
+        service.record(new SqlLogCapture("UserMapper.selectPage", "SELECT", "sys_user",
+                "SELECT * FROM sys_user", 12, 1, "trace-user"));
+
+        assertThat(service.recent(new SqlLogQuery(10, null, null, false))).isEmpty();
+
+        service.updateSettings(new SqlLogSettingsRequest(true, Set.of()));
+        service.record(new SqlLogCapture("UserMapper.selectPage", "SELECT", "sys_user",
+                "SELECT * FROM sys_user", 12, 1, "trace-user"));
+
+        assertThat(service.recent(new SqlLogQuery(10, null, null, false))).hasSize(1);
     }
 }

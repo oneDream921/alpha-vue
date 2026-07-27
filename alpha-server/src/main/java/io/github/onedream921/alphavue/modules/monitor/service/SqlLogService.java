@@ -4,16 +4,22 @@ import io.github.onedream921.alphavue.framework.mybatis.SqlLogCapture;
 import io.github.onedream921.alphavue.framework.mybatis.SqlLogRecorder;
 import io.github.onedream921.alphavue.modules.monitor.config.SqlMonitorProperties;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogQuery;
+import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
 import io.github.onedream921.alphavue.modules.monitor.vo.DruidInfoVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogEntryVo;
+import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogSettingsVo;
+import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogStatementVo;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 最近 SQL 日志服务。
@@ -22,6 +28,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SqlLogService implements SqlLogRecorder {
 
     private final ConcurrentLinkedDeque<SqlLogEntryVo> entries = new ConcurrentLinkedDeque<>();
+    private final Set<String> discoveredStatementIds = new ConcurrentSkipListSet<>();
+    private final Set<String> excludedStatementIds = new ConcurrentSkipListSet<>();
+    private final AtomicBoolean enabled = new AtomicBoolean(true);
     private final AtomicLong sequence = new AtomicLong();
     private final SqlMonitorProperties properties;
 
@@ -31,6 +40,10 @@ public class SqlLogService implements SqlLogRecorder {
 
     @Override
     public void record(SqlLogCapture capture) {
+        discoveredStatementIds.add(capture.statementId());
+        if (!enabled.get() || excludedStatementIds.contains(capture.statementId())) {
+            return;
+        }
         SqlLogEntryVo entry = new SqlLogEntryVo(
                 sequence.incrementAndGet(),
                 Instant.now(),
@@ -62,6 +75,23 @@ public class SqlLogService implements SqlLogRecorder {
         entries.clear();
     }
 
+    public SqlLogSettingsVo settings() {
+        List<SqlLogStatementVo> statements = discoveredStatementIds.stream()
+                .map(SqlLogService::statementVo)
+                .toList();
+        return new SqlLogSettingsVo(enabled.get(), statements, Set.copyOf(excludedStatementIds));
+    }
+
+    public SqlLogSettingsVo updateSettings(SqlLogSettingsRequest request) {
+        enabled.set(request.enabled());
+        excludedStatementIds.clear();
+        request.excludedStatementIds().stream()
+                .filter(statementId -> statementId != null && !statementId.isBlank())
+                .map(String::trim)
+                .forEach(excludedStatementIds::add);
+        return settings();
+    }
+
     public DruidInfoVo druidInfo() {
         return new DruidInfoVo(properties.isDruidEnabled(), properties.getDruidPath());
     }
@@ -89,5 +119,15 @@ public class SqlLogService implements SqlLogRecorder {
             return null;
         }
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static SqlLogStatementVo statementVo(String statementId) {
+        int separator = statementId.lastIndexOf('.');
+        if (separator < 0) {
+            return new SqlLogStatementVo(statementId, statementId, statementId);
+        }
+        return new SqlLogStatementVo(statementId,
+                statementId.substring(0, separator),
+                statementId.substring(separator + 1));
     }
 }

@@ -3,7 +3,10 @@ import {
     ClearOutlined,
     CopyOutlined,
     LinkOutlined,
+    PauseCircleOutlined,
     ReloadOutlined,
+    SettingOutlined,
+    PlayCircleOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
@@ -12,6 +15,8 @@ import {
     sqlMonitorApi,
     type DruidInfo,
     type SqlLogEntry,
+    type SqlLogSettings,
+    type SqlLogStatement,
 } from '@/service/sqlMonitor'
 
 const rows = ref<SqlLogEntry[]>([])
@@ -20,7 +25,14 @@ const loading = ref(false)
 const clearing = ref(false)
 const queryError = ref('')
 const sqlDetailOpen = ref(false)
+const mapperDrawerOpen = ref(false)
 const selectedSql = ref<SqlLogEntry>()
+const settings = ref<SqlLogSettings>({
+    enabled: true,
+    statements: [],
+    excludedStatementIds: [],
+})
+const settingsSaving = ref(false)
 const limit = ref(100)
 const sqlType = ref('ALL')
 const keyword = ref('')
@@ -36,9 +48,26 @@ const typeOptions = [
 ]
 
 const slowCount = computed(() => rows.value.filter((row) => row.slow).length)
+const enabledLabel = computed(() =>
+    settings.value.enabled ? '采集中' : '已暂停',
+)
+const enabledColor = computed(() =>
+    settings.value.enabled ? 'green' : 'orange',
+)
 const druidPath = computed(() => druid.value?.path || '/druid/index.html')
 const druidDisabled = computed(() => !druid.value?.enabled)
 const druidUrl = computed(() => resolveBackendUrl(druidPath.value))
+const excludedStatementIds = computed(
+    () => new Set(settings.value.excludedStatementIds),
+)
+const checkedStatementIds = computed(() =>
+    settings.value.statements
+        .map((statement) => statement.statementId)
+        .filter((statementId) => !excludedStatementIds.value.has(statementId)),
+)
+const mapperTreeData = computed(() =>
+    buildMapperTree(settings.value.statements),
+)
 
 function formatTime(value: string) {
     return new Intl.DateTimeFormat('zh-CN', {
@@ -50,6 +79,10 @@ function formatTime(value: string) {
 
 async function loadDruidInfo() {
     druid.value = (await sqlMonitorApi.druidUrl()).data.data
+}
+
+async function loadSettings() {
+    settings.value = (await sqlMonitorApi.settings()).data.data
 }
 
 async function loadLogs() {
@@ -74,7 +107,7 @@ async function loadLogs() {
 }
 
 async function refresh() {
-    await Promise.all([loadDruidInfo(), loadLogs()])
+    await Promise.all([loadDruidInfo(), loadSettings(), loadLogs()])
 }
 
 function openDruid() {
@@ -86,9 +119,10 @@ function resolveBackendUrl(path: string) {
         return path
     }
     const normalizedPath = path.startsWith('/') ? path : `/${path}`
-    const backendOrigin = import.meta.env.DEV
-        ? 'http://localhost:8080'
-        : window.location.origin
+    const backendOrigin =
+        window.location.port === '5173'
+            ? 'http://localhost:8080'
+            : window.location.origin
     return `${backendOrigin}${normalizedPath}`
 }
 
@@ -100,6 +134,35 @@ async function copySql(row: SqlLogEntry) {
 function openSqlDetail(row: SqlLogEntry) {
     selectedSql.value = row
     sqlDetailOpen.value = true
+}
+
+async function updateCollectionEnabled(enabled: boolean) {
+    await saveSettings(enabled, settings.value.excludedStatementIds)
+    message.success(enabled ? 'SQL 日志采集已开始' : 'SQL 日志采集已暂停')
+}
+
+async function updateCheckedStatements(checkedKeys: unknown) {
+    const keys = checkedKeyArray(checkedKeys)
+    const checked = new Set(keys.map(String))
+    const excluded = settings.value.statements
+        .map((statement) => statement.statementId)
+        .filter((statementId) => !checked.has(statementId))
+    await saveSettings(settings.value.enabled, excluded)
+    message.success('Mapper 采集范围已更新')
+}
+
+async function saveSettings(enabled: boolean, excludedStatementIds: string[]) {
+    settingsSaving.value = true
+    try {
+        settings.value = (
+            await sqlMonitorApi.updateSettings({
+                enabled,
+                excludedStatementIds,
+            })
+        ).data.data
+    } finally {
+        settingsSaving.value = false
+    }
 }
 
 function clearLogs() {
@@ -123,6 +186,43 @@ function clearLogs() {
 }
 
 onMounted(refresh)
+
+function buildMapperTree(statements: SqlLogStatement[]) {
+    const mapperGroups = new Map<string, SqlLogStatement[]>()
+    statements.forEach((statement) => {
+        const group = mapperGroups.get(statement.mapperName) || []
+        group.push(statement)
+        mapperGroups.set(statement.mapperName, group)
+    })
+    return [...mapperGroups.entries()].map(([mapperName, items]) => ({
+        title: shortMapperName(mapperName),
+        key: mapperName,
+        children: items.map((item) => ({
+            title: item.methodName,
+            key: item.statementId,
+        })),
+    }))
+}
+
+function shortMapperName(mapperName: string) {
+    const parts = mapperName.split('.')
+    return parts.slice(-2).join('.')
+}
+
+function checkedKeyArray(value: unknown) {
+    if (Array.isArray(value)) {
+        return value
+    }
+    if (
+        value &&
+        typeof value === 'object' &&
+        'checked' in value &&
+        Array.isArray(value.checked)
+    ) {
+        return value.checked
+    }
+    return []
+}
 </script>
 
 <template>
@@ -130,12 +230,30 @@ onMounted(refresh)
         <div class="page-heading">
             <div>
                 <h1>SQL 日志</h1>
-                <p>最近 {{ rows.length }} 条，慢 SQL {{ slowCount }} 条</p>
+                <p>
+                    最近 {{ rows.length }} 条，慢 SQL {{ slowCount }} 条
+                    <a-tag :color="enabledColor">{{ enabledLabel }}</a-tag>
+                </p>
             </div>
             <a-space wrap>
                 <a-button :disabled="druidDisabled" @click="openDruid">
                     <LinkOutlined />Druid
                 </a-button>
+                <a-button
+                    v-permission="'monitor:sql:control'"
+                    :loading="settingsSaving"
+                    @click="updateCollectionEnabled(!settings.enabled)"
+                >
+                    <PlayCircleOutlined v-if="!settings.enabled" />
+                    <PauseCircleOutlined v-else />{{
+                        settings.enabled ? '暂停采集' : '开始采集'
+                    }}
+                </a-button>
+                <a-button
+                    v-permission="'monitor:sql:control'"
+                    @click="mapperDrawerOpen = true"
+                    ><SettingOutlined />Mapper</a-button
+                >
                 <a-button @click="refresh"><ReloadOutlined />刷新</a-button>
                 <a-button
                     v-permission="'monitor:sql:clear'"
@@ -306,6 +424,26 @@ onMounted(refresh)
                 selectedSql.sql
             }}</pre>
         </a-modal>
+        <a-drawer
+            v-model:open="mapperDrawerOpen"
+            title="Mapper 采集范围"
+            placement="right"
+            :width="420"
+        >
+            <a-empty
+                v-if="mapperTreeData.length === 0"
+                description="暂无已发现 Mapper"
+            />
+            <a-spin v-else :spinning="settingsSaving">
+                <a-tree
+                    checkable
+                    default-expand-all
+                    :tree-data="mapperTreeData"
+                    :checked-keys="checkedStatementIds"
+                    @check="updateCheckedStatements"
+                />
+            </a-spin>
+        </a-drawer>
     </section>
 </template>
 
