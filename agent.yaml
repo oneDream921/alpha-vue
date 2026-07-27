@@ -1,0 +1,18 @@
+schema: 1
+platforms:
+  - codex
+  - claude
+  - cursor
+customization:
+  rules: .project-agent/rules
+  skills: .project-agent/skills
+  memory: docs/ai
+codex:
+  hooks:
+    # 仅对 Codex 本次编辑的文件执行；请按项目技术栈显式配置。
+    checks: []
+projects:
+  - name: alpha-vue
+    path: .
+    type: application
+    stack: vue3-spring-boot

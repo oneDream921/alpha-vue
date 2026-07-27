@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "frameworkVersion": "0.2.0",
+  "targets": {
+    "claude": [
+      ".claude/skills/afk-core-align-memory",
+      ".claude/skills/afk-core-debugging",
+      ".claude/skills/afk-core-java-code-review",
+      ".claude/skills/afk-core-planning",
+      ".claude/skills/afk-core-requirements-doc",
+      ".claude/skills/afk-core-requirements-explore",
+      ".claude/skills/afk-core-update-memory",
+      ".claude/skills/afk-project-alpha-vue-frontend",
+      "CLAUDE.md"
+    ],
+    "codex": [
+      ".agents/skills/afk-core-align-memory",
+      ".agents/skills/afk-core-debugging",
+      ".agents/skills/afk-core-java-code-review",
+      ".agents/skills/afk-core-planning",
+      ".agents/skills/afk-core-requirements-doc",
+      ".agents/skills/afk-core-requirements-explore",
+      ".agents/skills/afk-core-update-memory",
+      ".agents/skills/afk-project-alpha-vue-frontend",
+      ".codex/hooks.json",
+      ".codex/hooks/afk-check.mjs",
+      ".codex/hooks/afk-checks.json",
+      ".codex/hooks/afk-git-guard-shared.mjs",
+      ".codex/hooks/afk-git-guard.mjs",
+      ".codex/hooks/afk-notify.ps1",
+      ".codex/hooks/afk-notify.sh",
+      ".codex/hooks/assets/notify.mp3",
+      "AGENTS.md"
+    ],
+    "cursor": [
+      ".cursor/hooks.json",
+      ".cursor/hooks/afk-git-guard-shared.mjs",
+      ".cursor/hooks/afk-git-guard.mjs",
+      ".cursor/rules/afk-core.mdc",
+      ".cursor/rules/afk-project.mdc",
+      ".cursor/skills/afk-core-align-memory",
+      ".cursor/skills/afk-core-debugging",
+      ".cursor/skills/afk-core-java-code-review",
+      ".cursor/skills/afk-core-planning",
+      ".cursor/skills/afk-core-requirements-doc",
+      ".cursor/skills/afk-core-requirements-explore",
+      ".cursor/skills/afk-core-update-memory",
+      ".cursor/skills/afk-project-alpha-vue-frontend"
+    ]
+  }
+}

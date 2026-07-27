@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "type": "command",
+        "command": "sh -lc 'command -v git >/dev/null 2>&1 || exit 0; root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.cursor/hooks/afk-git-guard.mjs\"'",
+        "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$gitCommand = Get-Command git -ErrorAction SilentlyContinue; if (-not $gitCommand) { exit 0 }; $root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.cursor/hooks/afk-git-guard.mjs')\"",
+        "matcher": "\\bgit\\b",
+        "failClosed": true,
+        "timeout": 5
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alpha Vue 前端规范"
+  short_description: "按项目规范开发、评审和重构 Alpha Vue 前端"
+  default_prompt: "使用 $alpha-vue-frontend 按项目规范完成这项前端任务并验证结果。"
