@@ -18,6 +18,8 @@
 
 ## 前端
 
+详细规则见 [Alpha Vue 前端开发规范](frontend-conventions.md)。本节保留跨前后端评审时必须快速核对的核心约束。
+
 - 使用 TypeScript 严格模式；接口类型集中在 `service`，页面不直接调用 Axios。
 - 禁止使用 `any` 绕过类型检查；确需处理未知值时使用 `unknown` 并在边界收窄。
 - 认证状态只有一个来源；Token、profile、permissions 和 routes 必须整体写入或整体清空。
