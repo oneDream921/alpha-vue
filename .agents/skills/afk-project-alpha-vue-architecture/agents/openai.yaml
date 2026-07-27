@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alpha Vue 架构设计"
+  short_description: "按项目边界设计架构与技术决策"
+  default_prompt: "使用 $alpha-vue-architecture 为这项 Alpha Vue 架构决策给出轻量设计与取舍。"

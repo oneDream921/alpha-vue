@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alpha Vue API 设计"
+  short_description: "按现有契约设计前后端 REST 接口"
+  default_prompt: "使用 $alpha-vue-api-design 设计这项 Alpha Vue 接口变更，并核对前后端契约。"

@@ -10,6 +10,9 @@
       ".claude/skills/afk-core-requirements-doc",
       ".claude/skills/afk-core-requirements-explore",
       ".claude/skills/afk-core-update-memory",
+      ".claude/skills/afk-project-alpha-vue-api-design",
+      ".claude/skills/afk-project-alpha-vue-architecture",
+      ".claude/skills/afk-project-alpha-vue-backend",
       ".claude/skills/afk-project-alpha-vue-frontend",
       "CLAUDE.md"
     ],
@@ -21,6 +24,9 @@
       ".agents/skills/afk-core-requirements-doc",
       ".agents/skills/afk-core-requirements-explore",
       ".agents/skills/afk-core-update-memory",
+      ".agents/skills/afk-project-alpha-vue-api-design",
+      ".agents/skills/afk-project-alpha-vue-architecture",
+      ".agents/skills/afk-project-alpha-vue-backend",
       ".agents/skills/afk-project-alpha-vue-frontend",
       ".codex/hooks.json",
       ".codex/hooks/afk-check.mjs",
@@ -45,6 +51,9 @@
       ".cursor/skills/afk-core-requirements-doc",
       ".cursor/skills/afk-core-requirements-explore",
       ".cursor/skills/afk-core-update-memory",
+      ".cursor/skills/afk-project-alpha-vue-api-design",
+      ".cursor/skills/afk-project-alpha-vue-architecture",
+      ".cursor/skills/afk-project-alpha-vue-backend",
       ".cursor/skills/afk-project-alpha-vue-frontend"
     ]
   }

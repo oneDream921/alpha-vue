@@ -42,37 +42,15 @@ If a referenced rule conflicts with the user's explicit current request, surface
 4. Use explicit types for props, emits, template refs, API models, forms, and unknown errors. Do not use `any` as an escape hatch.
 5. Use Ant Design Vue for business controls and `@ant-design/icons-vue` for icons. Use project tokens and CSS/Tailwind for layout and responsive composition.
 6. Keep loading, success, empty, failure, confirmation, and cleanup behavior complete. Avoid duplicate request-layer and page-layer error messages.
-7. Add or update focused tests for changed contracts and risky state transitions.
+7. Add or update focused tests for changed contracts and risky state transitions. Assert observable behavior and error paths; mock external boundaries rather than internal behavior, and do not add production APIs only for tests.
 8. Leave unrelated refactors, dependency upgrades, metadata churn, and backend changes outside the task.
 
 ## Route By Change Type
 
-### Service
-
-- Organize APIs and their types by business domain.
-- Test HTTP method, path, query parameters, and request body.
-- Preserve `@/service/system` during the planned system-service split.
-
-### Views And Components
-
-- Keep route `index.vue` focused on layout and interaction orchestration.
-- Place page-only components and composables inside the page directory.
-- Promote code to global `components`, `composables`, or `utils` only after real cross-page reuse appears.
-- Split by independent forms, dialogs, tables, or workflows rather than line count alone.
-
-### State, Permissions, And Routes
-
-- Preserve atomic session write and clear behavior.
-- Keep permission codes consistent across route metadata, backend menu data, and `v-permission`.
-- Reject unknown backend component identifiers and clear dynamic routes between sessions.
-
-### UI And Styles
-
-- Keep administration screens compact, scannable, and task-focused.
-- Use stable table widths and horizontal scrolling.
-- Retain all actions below 768px, using drawers or menus where necessary.
-- Give icon-only controls accessible names and prevent text or controls from overlapping at widths down to 320px.
-- Prefer `--alpha-*` tokens and scoped page styles; avoid broad overrides of Ant Design Vue internals.
+- **Services**: organize contracts by domain, test method/path/parameters/body, and preserve stable barrel imports during migrations.
+- **Views and components**: keep route pages responsible for orchestration; place page-only code locally and promote it only after real cross-page reuse.
+- **State, permissions, and routes**: preserve atomic session changes, permission-code consistency, the component whitelist, and dynamic-route cleanup.
+- **UI and styles**: keep admin screens compact, all actions reachable below 768px, tables scrollable, icon controls accessible, and styles based on project tokens.
 
 ## Verify
 
