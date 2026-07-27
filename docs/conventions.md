@@ -4,6 +4,7 @@
 
 - 单体按领域分包：通用契约放 `common`，技术适配放 `framework`，业务放 `modules/<domain>`。每个领域按职责继续拆为 `controller`、`service`、`mapper`、`entity`、`dto`、`vo`；配置放 `config`，基础设施实现放专属子包（如 `storage`、`aspect`）。禁止将 Controller、Service、Mapper 直接并列放在领域根包。
 - Controller 只处理 HTTP、Jakarta Validation、权限和统一响应；事务与业务规则进入 Service；Mapper 只负责持久化。
+- Controller 默认继承 `framework.web.BaseController` 复用统一响应、traceId、客户端 IP 和当前登录用户 id 等请求上下文能力；不得在各 Controller 重复手写响应包装。基类保持轻量，不承载通用 CRUD、业务权限前缀、实体入参/出参或持久化逻辑。
 - 数据库实体以 `Sys` 开头并继承 `SystemEntity`；不得把密码字段返回为接口 DTO。
 - Entity 只表达持久化结构，不直接作为 Controller 入参或响应；新增、更新分别使用不可变 DTO record，并用 Jakarta Validation 声明边界。
 - 响应使用明确的 View record，不返回无关字段；DTO 与 View 放在所属领域，不建立跨领域的通用大对象。

@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.system.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.ConfigRequests;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 24, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/configs")
-public class ConfigController {
+public class ConfigController extends BaseController {
     private final ConfigService configService;
     private final SystemAccessService access;
 
@@ -54,7 +54,7 @@ public class ConfigController {
                                                     @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                     HttpServletRequest request) {
         access.require("system:config:list");
-        return ApiResponse.success(configService.page(page, size), traceId(request));
+        return success(configService.page(page, size), request);
     }
 
     /**
@@ -64,7 +64,7 @@ public class ConfigController {
     @GetMapping("/{id}")
     public ApiResponse<ConfigVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:config:list");
-        return ApiResponse.success(configService.get(id), traceId(request));
+        return success(configService.get(id), request);
     }
 
     /**
@@ -75,7 +75,7 @@ public class ConfigController {
     @OperationLog(module = "System", operation = "Create configuration", type = BusinessType.CREATE)
     public ApiResponse<ConfigVo> create(@Valid @RequestBody ConfigRequests.Save body, HttpServletRequest request) {
         access.require("system:config:create");
-        return ApiResponse.success(configService.create(body), traceId(request));
+        return success(configService.create(body), request);
     }
 
     /**
@@ -87,7 +87,7 @@ public class ConfigController {
     public ApiResponse<ConfigVo> update(@PathVariable @Positive long id, @Valid @RequestBody ConfigRequests.Save body,
                                         HttpServletRequest request) {
         access.require("system:config:update");
-        return ApiResponse.success(configService.update(id, body), traceId(request));
+        return success(configService.update(id, body), request);
     }
 
     /**
@@ -99,10 +99,6 @@ public class ConfigController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:config:delete");
         configService.delete(id);
-        return ApiResponse.success(null, traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(request);
     }
 }

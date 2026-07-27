@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.system.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.DeptRequests;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 23, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/depts")
-public class DeptController {
+public class DeptController extends BaseController {
     private final DeptService deptService;
     private final SystemAccessService access;
 
@@ -54,7 +54,7 @@ public class DeptController {
                                                   @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                   HttpServletRequest request) {
         access.require("system:dept:list");
-        return ApiResponse.success(deptService.page(page, size), traceId(request));
+        return success(deptService.page(page, size), request);
     }
 
     /**
@@ -64,7 +64,7 @@ public class DeptController {
     @GetMapping("/{id}")
     public ApiResponse<DeptVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dept:list");
-        return ApiResponse.success(deptService.get(id), traceId(request));
+        return success(deptService.get(id), request);
     }
 
     /**
@@ -75,7 +75,7 @@ public class DeptController {
     @OperationLog(module = "System", operation = "Create department", type = BusinessType.CREATE)
     public ApiResponse<DeptVo> create(@Valid @RequestBody DeptRequests.Save body, HttpServletRequest request) {
         access.require("system:dept:create");
-        return ApiResponse.success(deptService.create(body), traceId(request));
+        return success(deptService.create(body), request);
     }
 
     /**
@@ -87,7 +87,7 @@ public class DeptController {
     public ApiResponse<DeptVo> update(@PathVariable @Positive long id, @Valid @RequestBody DeptRequests.Save body,
                                       HttpServletRequest request) {
         access.require("system:dept:update");
-        return ApiResponse.success(deptService.update(id, body), traceId(request));
+        return success(deptService.update(id, body), request);
     }
 
     /**
@@ -99,10 +99,6 @@ public class DeptController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dept:delete");
         deptService.delete(id);
-        return ApiResponse.success(null, traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(request);
     }
 }

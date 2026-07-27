@@ -2,7 +2,7 @@ package io.github.onedream921.alphavue.modules.monitor.controller;
 
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery;
@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 40, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/monitor/redis")
-public class RedisManagementController {
+public class RedisManagementController extends BaseController {
     private final RedisManagementService redisManagementService;
     private final SystemAccessService access;
 
@@ -50,7 +50,7 @@ public class RedisManagementController {
     @GetMapping("/overview")
     public ApiResponse<RedisOverviewVo> overview(HttpServletRequest request) {
         access.require("monitor:redis:list");
-        return ApiResponse.success(redisManagementService.overview(), traceId(request));
+        return success(redisManagementService.overview(), request);
     }
 
     /**
@@ -64,8 +64,7 @@ public class RedisManagementController {
                                              @RequestParam(required = false) @Size(max = 128) String keyword,
                                              HttpServletRequest request) {
         access.require("monitor:redis:list");
-        return ApiResponse.success(redisManagementService.page(new RedisKeyQuery(prefix, cursor, count, keyword)),
-                traceId(request));
+        return success(redisManagementService.page(new RedisKeyQuery(prefix, cursor, count, keyword)), request);
     }
 
     /**
@@ -76,7 +75,7 @@ public class RedisManagementController {
     public ApiResponse<RedisKeyMetadataVo> key(@RequestParam @NotBlank @Size(max = 512) String key,
                                                 HttpServletRequest request) {
         access.require("monitor:redis:list");
-        return ApiResponse.success(redisManagementService.metadata(key), traceId(request));
+        return success(redisManagementService.metadata(key), request);
     }
 
     /**
@@ -90,10 +89,6 @@ public class RedisManagementController {
                                       HttpServletRequest request) {
         access.require("monitor:redis:delete");
         redisManagementService.delete(key);
-        return ApiResponse.success("Redis 键已删除", traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success("Redis 键已删除", request);
     }
 }

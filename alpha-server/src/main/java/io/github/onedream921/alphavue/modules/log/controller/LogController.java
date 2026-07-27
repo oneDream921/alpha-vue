@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.log.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 50, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/logs")
-public class LogController {
+public class LogController extends BaseController {
 
     private final LogQueryService logQueryService;
     private final SystemAccessService access;
@@ -55,8 +55,8 @@ public class LogController {
             @RequestParam(required = false) @jakarta.validation.constraints.Size(max = 128) String keyword,
             HttpServletRequest request) {
         access.require("log:operation:list");
-        return ApiResponse.success(logQueryService.operations(page, size,
-                new OperationLogQuery(keyword == null ? null : keyword.trim(), status, handlingStatus)), traceId(request));
+        return success(logQueryService.operations(page, size,
+                new OperationLogQuery(keyword == null ? null : keyword.trim(), status, handlingStatus)), request);
     }
 
     /**
@@ -69,7 +69,7 @@ public class LogController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             HttpServletRequest request) {
         access.require("log:login:list");
-        return ApiResponse.success(logQueryService.logins(page, size), traceId(request));
+        return success(logQueryService.logins(page, size), request);
     }
 
     /**
@@ -82,15 +82,11 @@ public class LogController {
                                          @RequestParam @Min(0) @Max(2) int handlingStatus,
                                          HttpServletRequest request) {
         access.require("log:operation:handle");
-        long operatorId = Long.parseLong(cn.dev33.satoken.stp.StpUtil.getLoginIdAsString());
+        long operatorId = loginUserId();
         if (!logQueryService.updateHandlingStatus(id, handlingStatus, operatorId)) {
             throw new io.github.onedream921.alphavue.common.exception.BusinessException(400,
                     io.github.onedream921.alphavue.common.exception.PublicErrorMessage.INVALID_REQUEST);
         }
-        return ApiResponse.success(null, traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(request);
     }
 }

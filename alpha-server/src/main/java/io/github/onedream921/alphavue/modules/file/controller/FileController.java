@@ -1,10 +1,9 @@
 package io.github.onedream921.alphavue.modules.file.controller;
 
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
-import cn.dev33.satoken.stp.StpUtil;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.file.service.FileService;
@@ -38,7 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 @ApiSupport(order = 40, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/files")
-public class FileController {
+public class FileController extends BaseController {
 
     private final FileService fileService;
     private final SystemAccessService access;
@@ -56,8 +55,8 @@ public class FileController {
     @OperationLog(module = "File", operation = "Upload file", type = BusinessType.CREATE)
     public ApiResponse<FileService.FileView> upload(@RequestPart("file") MultipartFile file, HttpServletRequest request) {
         access.require("file:upload");
-        long uploaderId = Long.parseLong(StpUtil.getLoginId().toString());
-        return ApiResponse.success(fileService.upload(file, uploaderId), traceId(request));
+        long uploaderId = loginUserId();
+        return success(fileService.upload(file, uploaderId), request);
     }
 
     /**
@@ -70,7 +69,7 @@ public class FileController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             HttpServletRequest request) {
         access.require("file:list");
-        return ApiResponse.success(fileService.page(page, size), traceId(request));
+        return success(fileService.page(page, size), request);
     }
 
     /**
@@ -82,7 +81,7 @@ public class FileController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("file:delete");
         fileService.delete(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -98,9 +97,5 @@ public class FileController {
                 .contentType(MediaType.parseMediaType(content.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(new InputStreamResource(content.input()));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
     }
 }

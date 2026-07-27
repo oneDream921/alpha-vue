@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.system.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.MenuRequests;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 22, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/menus")
-public class MenuController {
+public class MenuController extends BaseController {
     private final MenuService menuService;
     private final SystemAccessService access;
 
@@ -54,7 +54,7 @@ public class MenuController {
                                                   @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                   HttpServletRequest request) {
         access.require("system:menu:list");
-        return ApiResponse.success(menuService.page(page, size), traceId(request));
+        return success(menuService.page(page, size), request);
     }
 
     /**
@@ -64,7 +64,7 @@ public class MenuController {
     @GetMapping("/{id}")
     public ApiResponse<MenuVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:menu:list");
-        return ApiResponse.success(menuService.get(id), traceId(request));
+        return success(menuService.get(id), request);
     }
 
     /**
@@ -75,7 +75,7 @@ public class MenuController {
     @OperationLog(module = "System", operation = "Create menu", type = BusinessType.CREATE)
     public ApiResponse<MenuVo> create(@Valid @RequestBody MenuRequests.Save body, HttpServletRequest request) {
         access.require("system:menu:create");
-        return ApiResponse.success(menuService.create(body), traceId(request));
+        return success(menuService.create(body), request);
     }
 
     /**
@@ -87,7 +87,7 @@ public class MenuController {
     public ApiResponse<MenuVo> update(@PathVariable @Positive long id, @Valid @RequestBody MenuRequests.Save body,
                                       HttpServletRequest request) {
         access.require("system:menu:update");
-        return ApiResponse.success(menuService.update(id, body), traceId(request));
+        return success(menuService.update(id, body), request);
     }
 
     /**
@@ -99,10 +99,6 @@ public class MenuController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:menu:delete");
         menuService.delete(id);
-        return ApiResponse.success(null, traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(request);
     }
 }

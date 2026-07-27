@@ -24,7 +24,8 @@ Follow the existing Spring MVC, MyBatis-Plus, MySQL, Flyway, Sa-Token, and OpenA
 ## Preserve Architecture
 
 - Place shared contracts in `common`, technical adapters in `framework`, and business code in `modules/<domain>`.
-- Keep Controllers limited to HTTP, validation, permissions, and unified responses; keep business rules and transaction boundaries in Services; keep persistence in Mappers and XML.
+- Keep Controllers limited to HTTP, validation, permissions, and unified responses; inherit `framework.web.BaseController` for response wrapping, traceId, client IP, and current login user id instead of duplicating those helpers. Keep business rules and transaction boundaries in Services; keep persistence in Mappers and XML.
+- Keep controller base classes lightweight. Do not introduce generic CRUD controllers that expose entities, infer permission prefixes, or hide service-level authorization and transaction decisions.
 - Use immutable request DTO records and explicit `*Vo` responses. Never expose entities or sensitive fields as controller input or output.
 - Use project permission codes and backend authorization on every protected entry point. Frontend visibility never authorizes access.
 - Use `BusinessException`, the global exception handler, parameterized SLF4J logging, MDC trace IDs, and safe audit metadata.

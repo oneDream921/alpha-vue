@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.system.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.RoleRequests;
@@ -38,7 +38,7 @@ import java.util.List;
 @ApiSupport(order = 21, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/roles")
-public class RoleController {
+public class RoleController extends BaseController {
     private final RoleService roleService;
     private final SystemAccessService access;
 
@@ -56,7 +56,7 @@ public class RoleController {
                                                   @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                   HttpServletRequest request) {
         access.require("system:role:list");
-        return ApiResponse.success(roleService.page(page, size), traceId(request));
+        return success(roleService.page(page, size), request);
     }
 
     /**
@@ -66,7 +66,7 @@ public class RoleController {
     @GetMapping("/{id}")
     public ApiResponse<RoleVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:role:list");
-        return ApiResponse.success(roleService.get(id), traceId(request));
+        return success(roleService.get(id), request);
     }
 
     /**
@@ -77,7 +77,7 @@ public class RoleController {
     @OperationLog(module = "System", operation = "Create role", type = BusinessType.CREATE)
     public ApiResponse<RoleVo> create(@Valid @RequestBody RoleRequests.Create body, HttpServletRequest request) {
         access.require("system:role:create");
-        return ApiResponse.success(roleService.create(body), traceId(request));
+        return success(roleService.create(body), request);
     }
 
     /**
@@ -89,7 +89,7 @@ public class RoleController {
     public ApiResponse<RoleVo> update(@PathVariable @Positive long id, @Valid @RequestBody RoleRequests.Update body,
                                       HttpServletRequest request) {
         access.require("system:role:update");
-        return ApiResponse.success(roleService.update(id, body), traceId(request));
+        return success(roleService.update(id, body), request);
     }
 
     /**
@@ -101,7 +101,7 @@ public class RoleController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:role:delete");
         roleService.delete(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -114,7 +114,7 @@ public class RoleController {
                                           HttpServletRequest request) {
         access.require("system:role:assign");
         roleService.replaceMenus(id, body.menuIds());
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -124,10 +124,6 @@ public class RoleController {
     @GetMapping("/{id}/menus")
     public ApiResponse<List<Long>> menuIds(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:role:list");
-        return ApiResponse.success(roleService.menuIds(id), traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(roleService.menuIds(id), request);
     }
 }

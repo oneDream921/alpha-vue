@@ -4,7 +4,7 @@ import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 99, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/auth")
-public class TestTokenController {
+public class TestTokenController extends BaseController {
 
     private final long userId;
     private final String token;
@@ -48,7 +48,6 @@ public class TestTokenController {
                 .setToken(token)
                 .setTimeout(timeoutSeconds)
                 .setIsWriteHeader(false));
-        return ApiResponse.success(new LoginResponse(token, "Bearer", timeoutSeconds),
-                (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE));
+        return success(new LoginResponse(token, "Bearer", timeoutSeconds), request);
     }
 }

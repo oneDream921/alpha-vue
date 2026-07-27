@@ -3,7 +3,7 @@ package io.github.onedream921.alphavue.modules.system.controller;
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.DictRequests;
@@ -40,7 +40,7 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping("/api/system")
-public class DictController {
+public class DictController extends BaseController {
     private final DictService dictService;
     private final SystemAccessService access;
 
@@ -58,7 +58,7 @@ public class DictController {
                                                             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                             HttpServletRequest request) {
         access.require("system:dict:list");
-        return ApiResponse.success(dictService.pageTypes(page, size), traceId(request));
+        return success(dictService.pageTypes(page, size), request);
     }
 
     /**
@@ -68,7 +68,7 @@ public class DictController {
     @GetMapping("/dict-types/{id}")
     public ApiResponse<DictTypeVo> getType(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dict:list");
-        return ApiResponse.success(dictService.getType(id), traceId(request));
+        return success(dictService.getType(id), request);
     }
 
     /**
@@ -80,7 +80,7 @@ public class DictController {
     public ApiResponse<DictTypeVo> createType(@Valid @RequestBody DictRequests.TypeSave body,
                                               HttpServletRequest request) {
         access.require("system:dict:create");
-        return ApiResponse.success(dictService.createType(body), traceId(request));
+        return success(dictService.createType(body), request);
     }
 
     /**
@@ -93,7 +93,7 @@ public class DictController {
                                               @Valid @RequestBody DictRequests.TypeSave body,
                                               HttpServletRequest request) {
         access.require("system:dict:update");
-        return ApiResponse.success(dictService.updateType(id, body), traceId(request));
+        return success(dictService.updateType(id, body), request);
     }
 
     /**
@@ -105,7 +105,7 @@ public class DictController {
     public ApiResponse<Void> deleteType(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dict:delete");
         dictService.deleteType(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -118,7 +118,7 @@ public class DictController {
                                                            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
                                                            HttpServletRequest request) {
         access.require("system:dict:list");
-        return ApiResponse.success(dictService.pageItems(typeId, page, size), traceId(request));
+        return success(dictService.pageItems(typeId, page, size), request);
     }
 
     /**
@@ -131,7 +131,7 @@ public class DictController {
                                               @Valid @RequestBody DictRequests.ItemSave body,
                                               HttpServletRequest request) {
         access.require("system:dict:create");
-        return ApiResponse.success(dictService.createItem(typeId, body), traceId(request));
+        return success(dictService.createItem(typeId, body), request);
     }
 
     /**
@@ -144,7 +144,7 @@ public class DictController {
                                               @Valid @RequestBody DictRequests.ItemSave body,
                                               HttpServletRequest request) {
         access.require("system:dict:update");
-        return ApiResponse.success(dictService.updateItem(id, body), traceId(request));
+        return success(dictService.updateItem(id, body), request);
     }
 
     /**
@@ -156,7 +156,7 @@ public class DictController {
     public ApiResponse<Void> deleteItem(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dict:delete");
         dictService.deleteItem(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -166,10 +166,6 @@ public class DictController {
     @GetMapping("/dicts/{typeCode}/items")
     public ApiResponse<List<EnabledDictItemVo>> enabledItems(@PathVariable @jakarta.validation.constraints.Size(max = 64) String typeCode,
                                                               HttpServletRequest request) {
-        return ApiResponse.success(dictService.enabledItems(typeCode), traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(dictService.enabledItems(typeCode), request);
     }
 }

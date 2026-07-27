@@ -2,7 +2,7 @@ package io.github.onedream921.alphavue.modules.auth.controller;
 
 import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginRequest;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginResponse;
 import io.github.onedream921.alphavue.modules.auth.dto.ProfileRequests;
@@ -34,7 +34,7 @@ import java.util.List;
 @ApiSupport(order = 10, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+public class AuthController extends BaseController {
 
     private final AuthService authService;
 
@@ -48,7 +48,7 @@ public class AuthController {
     @Operation(summary = "账号登录", description = "校验验证码、账号和密码后签发登录令牌。")
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.login(request, clientIp(servletRequest)), traceId(servletRequest));
+        return success(authService.login(request, clientIp(servletRequest)), servletRequest);
     }
 
     /**
@@ -57,7 +57,7 @@ public class AuthController {
     @Operation(summary = "获取验证码")
     @GetMapping("/captcha")
     public ApiResponse<CaptchaService.CaptchaResponse> captcha(HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.captcha(), traceId(servletRequest));
+        return success(authService.captcha(), servletRequest);
     }
 
     /**
@@ -68,7 +68,7 @@ public class AuthController {
     @OperationLog(module = "Authentication", operation = "Logout", type = BusinessType.LOGOUT)
     public ApiResponse<Void> logout(HttpServletRequest servletRequest) {
         cn.dev33.satoken.stp.StpUtil.logout();
-        return ApiResponse.success(null, traceId(servletRequest));
+        return success(servletRequest);
     }
 
     /**
@@ -78,7 +78,7 @@ public class AuthController {
     @GetMapping("/profile")
     @OperationLog(module = "Authentication", operation = "Read profile")
     public ApiResponse<AuthService.Profile> profile(HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.profile(), traceId(servletRequest));
+        return success(authService.profile(), servletRequest);
     }
 
     /**
@@ -88,7 +88,7 @@ public class AuthController {
     @GetMapping("/routes")
     @OperationLog(module = "Authentication", operation = "Read routes")
     public ApiResponse<List<RouteVo>> routes(HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.routes(), traceId(servletRequest));
+        return success(authService.routes(), servletRequest);
     }
 
     /**
@@ -99,7 +99,7 @@ public class AuthController {
     @OperationLog(module = "Authentication", operation = "Update profile", type = BusinessType.UPDATE)
     public ApiResponse<AuthService.Profile> updateProfile(@Valid @RequestBody ProfileRequests.Update request,
                                                            HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.updateProfile(request), traceId(servletRequest));
+        return success(authService.updateProfile(request), servletRequest);
     }
 
     /**
@@ -110,7 +110,7 @@ public class AuthController {
     @OperationLog(module = "Authentication", operation = "Upload avatar", type = BusinessType.UPDATE)
     public ApiResponse<AuthService.Profile> uploadAvatar(@RequestPart("file") MultipartFile file,
                                                           HttpServletRequest servletRequest) {
-        return ApiResponse.success(authService.uploadAvatar(file), traceId(servletRequest));
+        return success(authService.uploadAvatar(file), servletRequest);
     }
 
     /**
@@ -122,14 +122,6 @@ public class AuthController {
     public ApiResponse<Void> changePassword(@Valid @RequestBody ProfileRequests.ChangePassword request,
                                             HttpServletRequest servletRequest) {
         authService.changePassword(request);
-        return ApiResponse.success(null, traceId(servletRequest));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
-    }
-
-    private static String clientIp(HttpServletRequest request) {
-        return request.getRemoteAddr();
+        return success(servletRequest);
     }
 }

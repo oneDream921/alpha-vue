@@ -4,7 +4,7 @@ import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import cn.dev33.satoken.stp.StpUtil;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
-import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.UserRequests;
@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ApiSupport(order = 20, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/users")
-public class UserController {
+public class UserController extends BaseController {
     private final UserService userService;
     private final SystemAccessService access;
 
@@ -56,7 +56,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             HttpServletRequest request) {
         access.require("system:user:list");
-        return ApiResponse.success(userService.page(page, size), traceId(request));
+        return success(userService.page(page, size), request);
     }
 
     /**
@@ -66,7 +66,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ApiResponse<UserVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:user:list");
-        return ApiResponse.success(userService.get(id), traceId(request));
+        return success(userService.get(id), request);
     }
 
     /**
@@ -78,7 +78,7 @@ public class UserController {
     public ApiResponse<UserVo> create(@Valid @RequestBody UserRequests.Create body,
                                       HttpServletRequest request) {
         access.require("system:user:create");
-        return ApiResponse.success(userService.create(body), traceId(request));
+        return success(userService.create(body), request);
     }
 
     /**
@@ -90,7 +90,7 @@ public class UserController {
     public ApiResponse<UserVo> update(@PathVariable @Positive long id, @Valid @RequestBody UserRequests.Update body,
                                       HttpServletRequest request) {
         access.require("system:user:update");
-        return ApiResponse.success(userService.update(id, body), traceId(request));
+        return success(userService.update(id, body), request);
     }
 
     /**
@@ -102,7 +102,7 @@ public class UserController {
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:user:delete");
         userService.delete(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -115,7 +115,7 @@ public class UserController {
                                           HttpServletRequest request) {
         access.require("system:role:assign");
         userService.replaceRoles(id, body.roleIds());
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -128,7 +128,7 @@ public class UserController {
         access.require("system:user:update");
         userService.assertMutable(id);
         StpUtil.kickout(id);
-        return ApiResponse.success(null, traceId(request));
+        return success(request);
     }
 
     /**
@@ -141,13 +141,9 @@ public class UserController {
                                            @Valid @RequestBody UserRequests.ResetPassword body,
                                            HttpServletRequest request) {
         access.require("system:user:reset-password");
-        long operatorId = Long.parseLong(StpUtil.getLoginIdAsString());
+        long operatorId = loginUserId();
         userService.resetPassword(id, operatorId, body.newPassword());
         StpUtil.kickout(id);
-        return ApiResponse.success(null, traceId(request));
-    }
-
-    private static String traceId(HttpServletRequest request) {
-        return (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
+        return success(request);
     }
 }
