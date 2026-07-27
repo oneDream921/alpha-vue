@@ -58,6 +58,13 @@ const managementRouteDefinitions = [
         meta: { permission: 'monitor:redis:list' },
     },
     {
+        path: 'monitor/sql',
+        name: 'sql-monitor',
+        componentId: 'monitor/sql',
+        component: () => import('@/views/monitor/sql.vue'),
+        meta: { permission: 'monitor:sql:list' },
+    },
+    {
         path: 'files',
         name: 'files',
         componentId: 'files/index',

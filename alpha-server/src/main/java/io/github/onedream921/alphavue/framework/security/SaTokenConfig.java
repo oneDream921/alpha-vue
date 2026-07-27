@@ -90,6 +90,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/api/auth/captcha",
                         "/api/auth/test-token",
                         "/actuator/health/**",
+                        "/druid/**",
                         "/v3/api-docs/**",
                         "/doc.html",
                         "/doc.html/**",

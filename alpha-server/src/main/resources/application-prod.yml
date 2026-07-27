@@ -1,19 +1,39 @@
 spring:
   datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
     url: ${MYSQL_URL}
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      pool-name: AlphaVueHikariPool
-      register-mbeans: true
-      minimum-idle: ${DB_POOL_MIN_IDLE:5}
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
-      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
-      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:5000}
-      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
-      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
-      keepalive-time: ${DB_POOL_KEEPALIVE_MS:30000}
+    druid:
+      initial-size: ${DB_POOL_MIN_IDLE:5}
+      min-idle: ${DB_POOL_MIN_IDLE:5}
+      max-active: ${DB_POOL_MAX_SIZE:20}
+      max-wait: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filters: ${DRUID_FILTERS:stat}
+      web-stat-filter:
+        enabled: ${DRUID_WEB_STAT_ENABLED:false}
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*"
+      stat-view-servlet:
+        enabled: ${DRUID_ENABLED:false}
+        url-pattern: /druid/*
+        login-username: ${DRUID_USERNAME:}
+        login-password: ${DRUID_PASSWORD:}
+        allow: ${DRUID_ALLOW:127.0.0.1}
+        reset-enable: false
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: ${SQL_SLOW_THRESHOLD_MS:1000}
+          merge-sql: true
+        wall:
+          enabled: ${DRUID_WALL_ENABLED:false}
   data:
     redis:
       host: ${REDIS_HOST}
@@ -31,6 +51,9 @@ spring:
           time-between-eviction-runs: ${REDIS_POOL_EVICTION_INTERVAL:30s}
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
+    url: ${MYSQL_URL}
+    user: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
     locations: classpath:db/migration
 
 sa-token:
@@ -47,6 +70,12 @@ alpha:
   auth:
     captcha-enabled: ${CAPTCHA_ENABLED:true}
     captcha-ttl: ${CAPTCHA_TTL:5m}
+  monitor:
+    sql:
+      max-entries: ${SQL_LOG_MAX_ENTRIES:200}
+      slow-threshold-ms: ${SQL_SLOW_THRESHOLD_MS:1000}
+      druid-enabled: ${DRUID_ENABLED:false}
+      druid-path: ${DRUID_PATH:/druid/index.html}
 
 springdoc:
   api-docs:

@@ -257,7 +257,7 @@ onMounted(refreshLogs)
                                 }}</a-tag
                             ></template
                         ></a-table-column
-                    ><a-table-column title="操作" width="150" align="center"
+                    ><a-table-column title="操作" width="260" align="center"
                         ><template #default="{ record }"
                             ><a-space v-if="requiresHandling(record)"
                                 ><a-button

@@ -4,6 +4,7 @@ import {
     BookOutlined,
     DashboardOutlined,
     DatabaseOutlined,
+    FileSearchOutlined,
     FileTextOutlined,
     FolderOpenOutlined,
     LogoutOutlined,
@@ -81,6 +82,12 @@ const navigation = computed(() =>
             title: 'Redis 管理',
             icon: DatabaseOutlined,
             permission: 'monitor:redis:list',
+        },
+        {
+            path: '/monitor/sql',
+            title: 'SQL 日志',
+            icon: FileSearchOutlined,
+            permission: 'monitor:sql:list',
         },
         {
             path: '/files',

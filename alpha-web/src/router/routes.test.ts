@@ -5,6 +5,7 @@ import router, { managementRoutesFor } from './index'
 describe('managementRoutesFor', () => {
     it('registers managed routes so direct links reach the auth guard', () => {
         expect(router.hasRoute('redis')).toBe(true)
+        expect(router.hasRoute('sql-monitor')).toBe(true)
     })
 
     it('returns only routes granted by the profile permissions', () => {
@@ -60,6 +61,16 @@ describe('managementRoutesFor', () => {
                 sortOrder: 5,
             },
             {
+                id: 37,
+                parentId: 0,
+                title: 'SQL 日志',
+                menuType: 'MENU',
+                path: '/monitor/sql',
+                component: 'monitor/sql',
+                permission: 'monitor:sql:list',
+                sortOrder: 6,
+            },
+            {
                 id: 99,
                 parentId: 0,
                 title: '未知组件',
@@ -75,6 +86,7 @@ describe('managementRoutesFor', () => {
             'configs',
             'dicts',
             'redis',
+            'sql-monitor',
             'files',
         ])
     })

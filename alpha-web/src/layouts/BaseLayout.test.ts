@@ -245,4 +245,43 @@ describe('BaseLayout', () => {
         })
         expect(withPermission.text()).toContain('Redis 管理')
     })
+
+    it('shows SQL logs only to users with its list permission', () => {
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['monitor:redis:list'],
+            mustChangePassword: false,
+        })
+        const withoutPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withoutPermission.text()).not.toContain('SQL 日志')
+        withoutPermission.unmount()
+
+        authStore.setProfile({
+            id: 2,
+            username: 'operator',
+            roles: [],
+            permissions: ['monitor:sql:list'],
+            mustChangePassword: false,
+        })
+        const withPermission = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        expect(withPermission.text()).toContain('SQL 日志')
+    })
 })
