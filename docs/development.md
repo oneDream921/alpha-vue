@@ -27,7 +27,13 @@
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | 无                             | MinIO 应用凭据，不使用 root 凭据           |
 | `SA_TOKEN_TIMEOUT`                      | `28800`                        | 普通会话秒数                               |
 | `SA_TOKEN_ACTIVE_TIMEOUT`               | `1800`                         | 无操作超时秒数                             |
-| `DB_POOL_MIN_IDLE` / `DB_POOL_MAX_SIZE` | dev: `2` / `10`，prod: `5` / `20` | HikariCP 最小空闲与最大连接数           |
+| `DB_POOL_MIN_IDLE` / `DB_POOL_MAX_SIZE` | dev: `2` / `10`，prod: `5` / `20` | Druid 最小空闲与最大连接数              |
+| `DRUID_ENABLED`                         | dev: `true`，prod: `false`        | 是否启用 Druid 监控 servlet             |
+| `DRUID_USERNAME` / `DRUID_PASSWORD`     | dev: `alpha` / `alpha-druid`      | Druid 监控登录账号；生产必须独立配置强密码 |
+| `DRUID_ALLOW`                           | `127.0.0.1`                       | Druid 监控 IP 白名单                    |
+| `DRUID_FILTERS` / `DRUID_WALL_ENABLED`  | `stat` / `false`                 | Druid 过滤器；需要 WallFilter 时显式开启 |
+| `SQL_LOG_MAX_ENTRIES`                   | `200`                            | SQL 日志页保留的进程内最近 SQL 摘要数量 |
+| `SQL_SLOW_THRESHOLD_MS`                 | dev: `500`，prod: `1000`          | 慢 SQL 判断阈值                         |
 | `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Lettuce 最大活动连接数                     |
 | `REDIS_POOL_MAX_WAIT`                   | `1s`                           | Redis 连接耗尽时最大等待时间               |
 
@@ -46,7 +52,9 @@ pnpm --dir alpha-web format:check
 pnpm --dir alpha-web build
 ```
 
-Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
+Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用 Druid 业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
+
+开发环境后端启动后可访问 `/druid/index.html` 查看 Druid 监控，默认账号来自 `DRUID_USERNAME` / `DRUID_PASSWORD`。管理端 `SQL 日志` 页面展示当前后端进程内最近 SQL 摘要；SQL 保留 `?` 占位符，不展示真实参数值。
 
 ## 存储切换
 

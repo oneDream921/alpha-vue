@@ -1,6 +1,6 @@
 ---
 name: alpha-vue-backend
-description: Implement, refactor, debug, or review Alpha Vue Spring Boot and Java code under alpha-server. Use for controllers, services, MyBatis-Plus and XML mappers, entities, DTOs, VOs, Sa-Token authorization, transactions, Flyway migrations, OpenAPI annotations, file or Redis infrastructure, backend tests, and backend module structure.
+description: Implement, refactor, debug, or review Alpha Vue Spring Boot and Java code under alpha-server. Use for controllers, services, MyBatis-Plus and XML mappers, entities, DTOs, VOs, Sa-Token authorization, transactions, Flyway migrations, OpenAPI annotations, file, Redis, Druid, SQL monitor infrastructure, backend tests, and backend module structure.
 ---
 
 # Alpha Vue Backend
@@ -29,6 +29,7 @@ Follow the existing Spring MVC, MyBatis-Plus, MySQL, Flyway, Sa-Token, and OpenA
 - Use immutable request DTO records and explicit `*Vo` responses. Never expose entities or sensitive fields as controller input or output.
 - Use project permission codes and backend authorization on every protected entry point. Frontend visibility never authorizes access.
 - Use `BusinessException`, the global exception handler, parameterized SLF4J logging, MDC trace IDs, and safe audit metadata.
+- Keep Druid and SQL monitor features operationally safe: Druid must be externalized and production-disabled by default; SQL logs may store only bounded, in-memory, placeholder SQL summaries and must not expose real parameters or arbitrary SQL execution.
 
 ## Implement Safely
 
@@ -36,7 +37,7 @@ Follow the existing Spring MVC, MyBatis-Plus, MySQL, Flyway, Sa-Token, and OpenA
 2. Validate untrusted inputs at the HTTP boundary and preserve the established API envelope and error behavior.
 3. Keep custom MyBatis SQL in `src/main/resources/mapper/<domain>/*.xml`; do not use MyBatis SQL annotations.
 4. Make Flyway changes append-only. Before changing mappings, raw SQL, destructive behavior, or persistent data semantics, explain the impact and obtain the required confirmation.
-5. Use explicit transaction boundaries for multi-step writes. Avoid unbounded reads, `KEYS` on Redis, N+1 persistence paths, sensitive logs, and broad updates or deletes without a filter.
+5. Use explicit transaction boundaries for multi-step writes. Avoid unbounded reads, `KEYS` on Redis, N+1 persistence paths, sensitive logs, SQL parameter logging, and broad updates or deletes without a filter.
 6. Keep configuration typed and externalized. Do not add JPA, WebFlux, Spring Security/JWT, or cloud infrastructure patterns that conflict with the existing stack without an approved architecture decision.
 7. Add focused tests for changed security, permissions, transactions, validation, mapper behavior, and public contracts. Assert behavior and failure paths; do not rely only on MockMvc for real HTTP authentication.
 
