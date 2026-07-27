@@ -2,6 +2,12 @@ import Antd from 'ant-design-vue'
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+const routeMock = vi.hoisted(() => ({
+    path: '/',
+    fullPath: '/',
+    meta: { title: '工作台' } as Record<string, unknown>,
+}))
+
 vi.mock('vue-router', () => ({
     createRouter: () => ({
         addRoute: vi.fn(),
@@ -9,7 +15,7 @@ vi.mock('vue-router', () => ({
         removeRoute: vi.fn(),
     }),
     createWebHistory: vi.fn(),
-    useRoute: () => ({ path: '/' }),
+    useRoute: () => routeMock,
     useRouter: () => ({ replace: vi.fn() }),
 }))
 
@@ -19,6 +25,9 @@ import { authStore } from '@/stores/auth'
 describe('BaseLayout', () => {
     afterEach(() => {
         authStore.clearAuth()
+        routeMock.path = '/'
+        routeMock.fullPath = '/'
+        routeMock.meta = { title: '工作台' }
         window.innerWidth = 1024
         window.dispatchEvent(new Event('resize'))
     })
@@ -126,6 +135,32 @@ describe('BaseLayout', () => {
 
         expect(wrapper.text()).toContain('用户管理')
         expect(wrapper.text()).not.toContain('Users')
+    })
+
+    it('renders visited breadcrumb entries with the current page as the last item', () => {
+        routeMock.path = '/system/users'
+        routeMock.fullPath = '/system/users'
+        routeMock.meta = {
+            title: '用户管理',
+        }
+
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        const breadcrumb = wrapper.get('.app-breadcrumb')
+        const currentItems = wrapper.findAll('.breadcrumb-current')
+
+        expect(breadcrumb.text()).toContain('工作台')
+        expect(breadcrumb.text()).toContain('用户管理')
+        expect(wrapper.get('.app-breadcrumb a').text()).toBe('工作台')
+        expect(currentItems[currentItems.length - 1].text()).toBe('用户管理')
     })
 
     it('shows parameter configuration only to users with its list permission', () => {

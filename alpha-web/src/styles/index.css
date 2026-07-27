@@ -141,20 +141,42 @@ body {
     background: var(--alpha-primary-soft) !important;
 }
 
-.header-context {
+.app-breadcrumb {
     display: flex;
-    gap: 8px;
     align-items: center;
     min-width: 0;
+    overflow: hidden;
     font-size: 14px;
+    white-space: nowrap;
 }
 
-.header-product,
-.header-separator {
+.app-breadcrumb a {
+    color: var(--alpha-muted);
+    text-decoration: none;
+}
+
+.app-breadcrumb a:hover {
+    color: var(--alpha-primary-strong);
+}
+
+.app-breadcrumb .ant-breadcrumb-link,
+.app-breadcrumb .ant-breadcrumb-separator {
+    display: inline-flex;
+    align-items: center;
+}
+
+.app-breadcrumb .ant-breadcrumb-link {
+    max-width: min(36vw, 220px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-breadcrumb .ant-breadcrumb-separator {
     color: var(--alpha-muted);
 }
 
-.header-context strong {
+.breadcrumb-current {
     overflow: hidden;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -718,13 +740,8 @@ body {
         display: none;
     }
 
-    .header-context {
-        gap: 0;
-    }
-
-    .header-product,
-    .header-separator {
-        display: none;
+    .app-breadcrumb .ant-breadcrumb-link {
+        max-width: min(42vw, 180px);
     }
 
     .page-section > .ant-tabs {

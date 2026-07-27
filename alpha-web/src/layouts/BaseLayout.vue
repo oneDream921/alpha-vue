@@ -23,6 +23,7 @@ import { authApi } from '@/service/auth'
 import { clearManagementRoutes } from '@/router'
 import { authStore } from '@/stores/auth'
 import logoUrl from '@/assets/alpha-logo.svg'
+import AppBreadcrumb from './AppBreadcrumb.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -105,9 +106,6 @@ const navigation = computed(() =>
     ].filter(
         (item) => !item.permission || authStore.hasPermission(item.permission),
     ),
-)
-const currentNavigation = computed(() =>
-    navigation.value.find((item) => item.path === route.path),
 )
 const displayName = computed(
     () =>
@@ -245,13 +243,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                     <MenuUnfoldOutlined v-if="sidebarCollapsed" />
                     <MenuFoldOutlined v-else />
                 </a-button>
-                <div class="header-context">
-                    <span class="header-product">Alpha Vue</span>
-                    <span class="header-separator">/</span>
-                    <strong>{{
-                        currentNavigation?.title || '管理控制台'
-                    }}</strong>
-                </div>
+                <AppBreadcrumb />
                 <span class="header-spacer" />
                 <div class="header-user-cluster">
                     <a-avatar
