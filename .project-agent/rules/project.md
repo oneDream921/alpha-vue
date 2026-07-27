@@ -14,12 +14,13 @@
 - 涉及系统边界、模块划分、技术选型、重大非功能需求或架构评审时，使用 `alpha-vue-architecture` Skill；只有用户明确要求时才落盘 ADR 或设计文档。
 - 新增或变更前后端 API 契约时，使用 `alpha-vue-api-design` Skill，并以 `docs/api.md`、`docs/security.md` 和现有实现为准。
 - 实现、重构、调试或评审 `alpha-server` 的 Spring Boot / Java 代码时，使用 `alpha-vue-backend` Skill；它不替代 `java-code-review` 的风险审查。
+- 启动或重启本地项目时，使用 `alpha-vue-local-start` Skill。
 - API、安全、开发和发布任务分别读取 `docs/api.md`、`docs/security.md`、`docs/development.md` 和 `docs/operations.md`。
 
 ## 工程约束
 
 - 前端保持 Vue 3、严格 TypeScript、Ant Design Vue、Pinia、Vue Router、Axios、Vite 和 Tailwind CSS；页面不得直接调用 Axios，前端权限不替代后端授权。
-- 后端按 `common`、`framework`、`modules/<domain>` 分层；Controller、Service、Mapper、Entity、DTO、VO 各守职责。
+- 后端按 `common`、`framework`、`modules/<domain>` 分层；Controller、Service、Mapper、Entity、DTO、VO 各守职责。Controller 默认继承 `framework.web.BaseController` 复用统一响应与请求上下文，但不得把业务 CRUD、实体暴露或持久化逻辑放进控制层基类。
 - Flyway 迁移只追加，不修改已运行版本。
 
 ## 验证入口
