@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 菜单管理接口
  */
@@ -55,6 +57,16 @@ public class MenuController extends BaseController {
                                                   HttpServletRequest request) {
         access.require("system:menu:list");
         return success(menuService.page(page, size), request);
+    }
+
+    /**
+     * 查询角色可分配菜单
+     */
+    @Operation(summary = "查询角色可分配菜单")
+    @GetMapping("/assignable")
+    public ApiResponse<List<MenuVo>> assignable(HttpServletRequest request) {
+        access.require("system:role:assign");
+        return success(menuService.assignableMenus(), request);
     }
 
     /**

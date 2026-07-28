@@ -168,7 +168,10 @@ export const roleApi = {
     menuIds: (id: number) =>
         http.get<ApiResponse<number[]>>(`/system/roles/${id}/menus`),
 }
-export const menuApi = resource<Menu, MenuSave, MenuSave>('menus')
+export const menuApi = {
+    ...resource<Menu, MenuSave, MenuSave>('menus'),
+    assignable: () => http.get<ApiResponse<Menu[]>>('/system/menus/assignable'),
+}
 export const deptApi = resource<Dept, DeptSave, DeptSave>('depts')
 export const configApi = resource<Config, ConfigSave, ConfigSave>('configs')
 export const dictApi = {

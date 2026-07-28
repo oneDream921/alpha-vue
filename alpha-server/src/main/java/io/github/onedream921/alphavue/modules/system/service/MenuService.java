@@ -13,6 +13,8 @@ import io.github.onedream921.alphavue.modules.system.vo.MenuVo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 菜单业务服务
  */
@@ -28,6 +30,16 @@ public class MenuService extends ServiceImpl<SysMenuMapper, SysMenu> {
                         .orderByAsc(SysMenu::getSortOrder).orderByAsc(SysMenu::getId));
         return new PageResponse<>(page.getRecords().stream().map(MenuVo::from).toList(),
                 page.getTotal(), pageNumber, pageSize);
+    }
+
+    /**
+     * 查询角色可分配的启用菜单
+     */
+    public List<MenuVo> assignableMenus() {
+        return list(new LambdaQueryWrapper<SysMenu>().eq(SysMenu::getStatus, 1)
+                .eq(SysMenu::getDeleted, 0).orderByAsc(SysMenu::getParentId)
+                .orderByAsc(SysMenu::getSortOrder).orderByAsc(SysMenu::getId))
+                .stream().map(MenuVo::from).toList();
     }
 
     /**

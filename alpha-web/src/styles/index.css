@@ -533,6 +533,35 @@ body {
     border: 1px solid var(--alpha-border-soft);
     border-radius: var(--alpha-radius);
 }
+.permission-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--alpha-muted);
+    font-size: 13px;
+}
+.role-permission-tree {
+    max-height: min(50vh, 420px);
+    padding: 8px 12px;
+    overflow: auto;
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+}
+.role-permission-tree .ant-tree-treenode {
+    align-items: center;
+    min-height: 32px;
+}
+.role-permission-tree .ant-tree-checkbox {
+    align-self: center;
+    margin-top: 0;
+}
+.role-permission-tree .ant-tree-node-content-wrapper {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+}
 .table-actions {
     display: flex;
     flex-wrap: wrap;

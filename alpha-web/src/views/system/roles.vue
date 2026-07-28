@@ -10,7 +10,12 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import { menuApi, roleApi, type Menu, type Role } from '@/service/system'
+import {
+    buildRolePermissionTree,
+    collectRolePermissionKeys,
+} from './roles.permissions'
 
 const rows = ref<Role[]>([])
 const menus = ref<Menu[]>([])
@@ -24,7 +29,8 @@ const permissionOpen = ref(false)
 const editingId = ref<number>()
 const formRef = ref()
 const assigningRole = ref<Role>()
-const selectedMenuIds = ref<number[]>([])
+const selectedMenuIds = ref<Array<number | string>>([])
+const expandedMenuIds = ref<number[]>([])
 const emptyForm = () => ({
     name: '',
     code: '',
@@ -59,6 +65,10 @@ const filteredRows = computed(() => {
           )
         : rows.value
 })
+const permissionTreeData = computed(() => buildRolePermissionTree(menus.value))
+const allPermissionIds = computed(() =>
+    collectRolePermissionKeys(permissionTreeData.value),
+)
 
 async function load() {
     loading.value = true
@@ -74,9 +84,6 @@ function changePage(pagination: { current?: number; pageSize?: number }) {
     page.value = pagination.current ?? 1
     size.value = pagination.pageSize ?? 10
     void load()
-}
-async function loadMenus() {
-    menus.value = (await menuApi.page(1, 100)).data.data.records
 }
 function openCreate() {
     editingId.value = undefined
@@ -124,17 +131,42 @@ function remove(row: Role) {
 }
 async function openPermissions(row: Role) {
     assigningRole.value = row
-    selectedMenuIds.value = (await roleApi.menuIds(row.id)).data.data
+    const [assignableMenus, menuIds] = await Promise.all([
+        menuApi.assignable(),
+        roleApi.menuIds(row.id),
+    ])
+    menus.value = assignableMenus.data.data
+    selectedMenuIds.value = menuIds.data.data
+    expandedMenuIds.value = allPermissionIds.value
     permissionOpen.value = true
+}
+function selectAllPermissions() {
+    selectedMenuIds.value = [...allPermissionIds.value]
+}
+function clearPermissions() {
+    selectedMenuIds.value = []
+}
+function togglePermissionFromTitle(
+    _selectedKeys: unknown,
+    info: { node?: { key?: number | string }; selected?: boolean },
+) {
+    const key = info.node?.key
+    if (key === undefined) return
+    selectedMenuIds.value = info.selected
+        ? [...selectedMenuIds.value, key]
+        : selectedMenuIds.value.filter((id) => id !== key)
 }
 async function savePermissions() {
     if (!assigningRole.value) return
-    await roleApi.assignMenus(assigningRole.value.id, selectedMenuIds.value)
+    const menuIds = selectedMenuIds.value
+        .map((id) => Number(id))
+        .filter(Number.isSafeInteger)
+    await roleApi.assignMenus(assigningRole.value.id, menuIds)
     message.success('权限已更新')
     permissionOpen.value = false
 }
 onMounted(async () => {
-    await Promise.all([load(), loadMenus()])
+    await load()
 })
 </script>
 
@@ -205,33 +237,30 @@ onMounted(async () => {
                     text || '-'
                 }}</template></a-table-column
             >
-            <a-table-column title="操作" width="168" align="center"
+            <a-table-column title="操作" width="88" align="center"
                 ><template #default="{ record }"
-                    ><a-space>
-                        <a-button
+                    ><TableActionMenu aria-label="角色操作">
+                        <a-menu-item
+                            key="edit"
                             v-permission="'system:role:update'"
-                            type="link"
-                            size="small"
                             @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-button
+                            ><EditOutlined />编辑</a-menu-item
                         >
-                        <a-button
+                        <a-menu-item
+                            key="permissions"
                             v-permission="'system:role:assign'"
-                            type="link"
-                            size="small"
                             @click="openPermissions(record)"
-                            ><SafetyOutlined />权限</a-button
+                            ><SafetyOutlined />权限</a-menu-item
                         >
-                        <a-button
+                        <a-menu-item
                             v-if="record.code !== 'SUPER_ADMIN'"
+                            key="delete"
                             v-permission="'system:role:delete'"
-                            type="link"
                             danger
-                            size="small"
                             @click="remove(record)"
-                            ><DeleteOutlined />删除</a-button
+                            ><DeleteOutlined />删除</a-menu-item
                         >
-                    </a-space></template
+                    </TableActionMenu></template
                 ></a-table-column
             >
         </a-table>
@@ -274,23 +303,62 @@ onMounted(async () => {
         ></a-modal>
         <a-modal
             v-model:open="permissionOpen"
-            title="分配菜单与按钮权限"
+            :title="`分配菜单与按钮权限${assigningRole ? ` · ${assigningRole.name}` : ''}`"
             ok-text="保存"
             cancel-text="取消"
+            width="720px"
+            class="role-permission-modal"
             @ok="savePermissions"
-            ><a-checkbox-group
-                v-model:value="selectedMenuIds"
-                class="assignment-list"
-                ><a-checkbox
-                    v-for="item in menus"
-                    :key="item.id"
-                    :value="item.id"
-                    >{{ item.title
-                    }}<span v-if="item.permission" class="permission-code">{{
-                        item.permission
-                    }}</span></a-checkbox
-                ></a-checkbox-group
-            ></a-modal
+            ><div class="permission-toolbar">
+                <span>已选择 {{ selectedMenuIds.length }} 项</span>
+                <a-space size="small" wrap>
+                    <a-button
+                        type="link"
+                        size="small"
+                        @click="selectAllPermissions"
+                        >全选</a-button
+                    >
+                    <a-button type="link" size="small" @click="clearPermissions"
+                        >清空</a-button
+                    >
+                    <a-button
+                        type="link"
+                        size="small"
+                        @click="expandedMenuIds = allPermissionIds"
+                        >展开全部</a-button
+                    >
+                    <a-button
+                        type="link"
+                        size="small"
+                        @click="expandedMenuIds = []"
+                        >收起全部</a-button
+                    >
+                </a-space>
+            </div>
+            <a-tree
+                v-model:checked-keys="selectedMenuIds"
+                class="role-permission-tree"
+                checkable
+                :expanded-keys="expandedMenuIds"
+                :tree-data="permissionTreeData"
+                @expand="(keys) => (expandedMenuIds = keys as number[])"
+                @select="togglePermissionFromTitle"
+            >
+                <template #title="{ title, dataRef }">
+                    {{ title }}
+                    <a-tag
+                        class="ml-2"
+                        :color="
+                            dataRef.menuType === 'BUTTON' ? 'orange' : 'blue'
+                        "
+                    >
+                        {{ dataRef.menuType === 'BUTTON' ? '按钮' : '菜单' }}
+                    </a-tag>
+                    <span v-if="dataRef.permission" class="permission-code">{{
+                        dataRef.permission
+                    }}</span>
+                </template>
+            </a-tree></a-modal
         >
     </section>
 </template>
