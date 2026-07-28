@@ -1,22 +1,15 @@
 <script setup lang="ts">
 import {
-    ApartmentOutlined,
-    BookOutlined,
-    DashboardOutlined,
-    DatabaseOutlined,
-    FileSearchOutlined,
-    FileTextOutlined,
-    FolderOpenOutlined,
+    CloseOutlined,
+    DownOutlined,
     LogoutOutlined,
     MenuFoldOutlined,
-    MenuOutlined,
     MenuUnfoldOutlined,
-    SafetyOutlined,
-    SettingOutlined,
-    UserOutlined,
+    RightOutlined,
+    SearchOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { authApi } from '@/service/auth'
@@ -24,15 +17,38 @@ import { clearManagementRoutes } from '@/router'
 import { authStore } from '@/stores/auth'
 import logoUrl from '@/assets/alpha-logo.svg'
 import AppBreadcrumb from './AppBreadcrumb.vue'
+import {
+    buildNavigation,
+    closeTabAt,
+    closeTabsExcept,
+    closeTabsLeftOf,
+    flattenNavigationLeaves,
+    tabTitleForPath,
+    type OpenTab,
+} from './navigation'
 
 const router = useRouter()
 const route = useRoute()
+
+interface MenuClickEvent {
+    key: string | number
+}
+
+interface MenuSearchOption {
+    label: string
+    value: string
+}
+
+type MenuSearchValue = string | number | { value: string | number }
 
 const viewportWidth = ref(
     typeof window === 'undefined' ? 1024 : window.innerWidth,
 )
 const mobileDrawerOpen = ref(false)
 const desktopCollapsed = ref(viewportWidth.value < 1024)
+const openTabs = ref<OpenTab[]>([])
+const menuSearchValue = ref<string>()
+const expandedNavigationGroups = ref<string[]>([])
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -40,72 +56,19 @@ const sidebarCollapsed = computed(() =>
     isMobile.value ? true : desktopCollapsed.value,
 )
 const navigation = computed(() =>
-    [
-        { path: '/', title: '工作台', icon: DashboardOutlined },
-        {
-            path: '/system/users',
-            title: '用户管理',
-            icon: UserOutlined,
-            permission: 'system:user:list',
-        },
-        {
-            path: '/system/roles',
-            title: '角色管理',
-            icon: SafetyOutlined,
-            permission: 'system:role:list',
-        },
-        {
-            path: '/system/menus',
-            title: '菜单管理',
-            icon: MenuOutlined,
-            permission: 'system:menu:list',
-        },
-        {
-            path: '/system/depts',
-            title: '部门管理',
-            icon: ApartmentOutlined,
-            permission: 'system:dept:list',
-        },
-        {
-            path: '/system/configs',
-            title: '参数配置',
-            icon: SettingOutlined,
-            permission: 'system:config:list',
-        },
-        {
-            path: '/system/dicts',
-            title: '数据字典',
-            icon: BookOutlined,
-            permission: 'system:dict:list',
-        },
-        {
-            path: '/monitor/redis',
-            title: 'Redis 管理',
-            icon: DatabaseOutlined,
-            permission: 'monitor:redis:list',
-        },
-        {
-            path: '/monitor/sql',
-            title: 'SQL 日志',
-            icon: FileSearchOutlined,
-            permission: 'monitor:sql:list',
-        },
-        {
-            path: '/files',
-            title: '文件管理',
-            icon: FolderOpenOutlined,
-            permission: 'file:list',
-        },
-        {
-            path: '/logs',
-            title: '审计日志',
-            icon: FileTextOutlined,
-            permission: 'log:operation:list',
-        },
-        { path: '/profile', title: '个人中心', icon: UserOutlined },
-    ].filter(
-        (item) => !item.permission || authStore.hasPermission(item.permission),
-    ),
+    buildNavigation(authStore.state.routes, authStore.hasPermission),
+)
+const navigationLeaves = computed(() =>
+    flattenNavigationLeaves(navigation.value),
+)
+const visibleNavigation = computed(() =>
+    sidebarCollapsed.value ? navigationLeaves.value : navigation.value,
+)
+const menuSearchOptions = computed<MenuSearchOption[]>(() =>
+    navigationLeaves.value.map((item) => ({
+        label: item.title,
+        value: item.path,
+    })),
 )
 const displayName = computed(
     () =>
@@ -129,6 +92,124 @@ function closeMobileNavigation() {
     mobileDrawerOpen.value = false
 }
 
+function isActivePath(path: string) {
+    return route.path === path
+}
+
+function isActiveTab(path: string) {
+    return route.fullPath === path
+}
+
+function isNavigationGroupExpanded(key: string) {
+    return expandedNavigationGroups.value.includes(key)
+}
+
+function toggleNavigationGroup(key: string) {
+    expandedNavigationGroups.value = isNavigationGroupExpanded(key)
+        ? expandedNavigationGroups.value.filter((item) => item !== key)
+        : [...expandedNavigationGroups.value, key]
+}
+
+function hasActiveChild(children: readonly { path?: string }[] | undefined) {
+    return children?.some((child) => child.path && isActivePath(child.path))
+}
+
+function addCurrentTab() {
+    if (route.meta.requiresAuth === false || route.name === 'login') {
+        return
+    }
+
+    const title =
+        typeof route.meta.title === 'string' ? route.meta.title : '未命名页面'
+    const tab: OpenTab = {
+        path: route.fullPath,
+        title: tabTitleForPath(route.path, navigation.value, title),
+    }
+    const existingIndex = openTabs.value.findIndex(
+        (item) => item.path === tab.path,
+    )
+
+    if (existingIndex >= 0) {
+        openTabs.value.splice(existingIndex, 1, tab)
+        return
+    }
+
+    openTabs.value.push(tab)
+}
+
+function replacementAfterClose(
+    beforeClose: readonly OpenTab[],
+    remaining: readonly OpenTab[],
+    targetPath: string,
+) {
+    const targetIndex = beforeClose.findIndex((tab) => tab.path === targetPath)
+    return remaining[Math.min(targetIndex, remaining.length - 1)]?.path ?? '/'
+}
+
+async function closeTab(targetPath: string) {
+    const beforeClose = [...openTabs.value]
+    const remaining = closeTabAt(beforeClose, targetPath)
+    openTabs.value = remaining
+
+    if (isActiveTab(targetPath)) {
+        await router.replace(
+            replacementAfterClose(beforeClose, remaining, targetPath),
+        )
+    }
+}
+
+async function closeLeftTabs(targetPath: string) {
+    const activePath = route.fullPath
+    const beforeClose = [...openTabs.value]
+    const remaining = closeTabsLeftOf(beforeClose, targetPath)
+    openTabs.value = remaining
+
+    if (!remaining.some((tab) => tab.path === activePath)) {
+        await router.replace(targetPath)
+    }
+}
+
+async function closeOtherTabs(targetPath: string) {
+    openTabs.value = closeTabsExcept(openTabs.value, targetPath)
+
+    if (!isActiveTab(targetPath)) {
+        await router.replace(targetPath)
+    }
+}
+
+async function closeAllTabs() {
+    openTabs.value = []
+
+    if (route.fullPath !== '/') {
+        await router.replace('/')
+    }
+}
+
+async function handleTabContextClick(tabPath: string, event: MenuClickEvent) {
+    if (event.key === 'close-left') {
+        await closeLeftTabs(tabPath)
+        return
+    }
+    if (event.key === 'close-other') {
+        await closeOtherTabs(tabPath)
+        return
+    }
+    if (event.key === 'close-all') {
+        await closeAllTabs()
+    }
+}
+
+function filterMenuSearchOption(input: string, option?: MenuSearchOption) {
+    return option?.label.toLowerCase().includes(input.toLowerCase()) ?? false
+}
+
+async function handleMenuSearch(value: MenuSearchValue) {
+    const path = typeof value === 'object' ? String(value.value) : String(value)
+    await router.push(path)
+    menuSearchValue.value = undefined
+    closeMobileNavigation()
+}
+
 async function logout() {
     try {
         await authApi.logout()
@@ -146,6 +227,12 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
+
+watch(
+    () => [route.fullPath, route.path, route.meta.title, navigation.value],
+    addCurrentTab,
+    { immediate: true },
+)
 </script>
 
 <template>
@@ -174,21 +261,70 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                         >Alpha Vue</span
                     >
                 </RouterLink>
-                <RouterLink
-                    v-for="item in navigation"
-                    :key="item.path"
-                    :to="item.path"
-                    class="navigation-link"
-                    :class="{
-                        'navigation-link-active': route.path === item.path,
-                    }"
-                    active-class=""
-                    :title="sidebarCollapsed ? item.title : undefined"
-                    ><component :is="item.icon" /><span
-                        v-if="!sidebarCollapsed"
-                        >{{ item.title }}</span
-                    ></RouterLink
-                >
+                <template v-for="item in visibleNavigation" :key="item.key">
+                    <div
+                        v-if="item.children && !sidebarCollapsed"
+                        class="navigation-group"
+                    >
+                        <button
+                            type="button"
+                            class="navigation-group-title"
+                            :class="{
+                                'navigation-group-title-active': hasActiveChild(
+                                    item.children,
+                                ),
+                            }"
+                            :aria-expanded="isNavigationGroupExpanded(item.key)"
+                            :aria-label="
+                                isNavigationGroupExpanded(item.key)
+                                    ? `收起${item.title}`
+                                    : `展开${item.title}`
+                            "
+                            @click="toggleNavigationGroup(item.key)"
+                        >
+                            <component :is="item.icon" />
+                            <span>{{ item.title }}</span>
+                            <DownOutlined
+                                v-if="isNavigationGroupExpanded(item.key)"
+                                class="navigation-group-chevron"
+                            />
+                            <RightOutlined
+                                v-else
+                                class="navigation-group-chevron"
+                            />
+                        </button>
+                        <template v-if="isNavigationGroupExpanded(item.key)">
+                            <RouterLink
+                                v-for="child in item.children"
+                                :key="child.key"
+                                :to="child.path ?? '/'"
+                                class="navigation-link navigation-child-link"
+                                :class="{
+                                    'navigation-link-active':
+                                        child.path && isActivePath(child.path),
+                                }"
+                                active-class=""
+                                ><component :is="child.icon" /><span>{{
+                                    child.title
+                                }}</span></RouterLink
+                            >
+                        </template>
+                    </div>
+                    <RouterLink
+                        v-else-if="item.path"
+                        :to="item.path"
+                        class="navigation-link"
+                        :class="{
+                            'navigation-link-active': isActivePath(item.path),
+                        }"
+                        active-class=""
+                        :title="sidebarCollapsed ? item.title : undefined"
+                        ><component :is="item.icon" /><span
+                            v-if="!sidebarCollapsed"
+                            >{{ item.title }}</span
+                        ></RouterLink
+                    >
+                </template>
             </nav>
         </a-layout-sider>
 
@@ -204,20 +340,67 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                 aria-label="移动主导航"
                 class="mobile-navigation-list"
             >
-                <RouterLink
-                    v-for="item in navigation"
-                    :key="item.path"
-                    :to="item.path"
-                    class="navigation-link"
-                    :class="{
-                        'navigation-link-active': route.path === item.path,
-                    }"
-                    active-class=""
-                    @click="closeMobileNavigation"
-                    ><component :is="item.icon" /><span>{{
-                        item.title
-                    }}</span></RouterLink
-                >
+                <template v-for="item in navigation" :key="item.key">
+                    <div v-if="item.children" class="navigation-group">
+                        <button
+                            type="button"
+                            class="navigation-group-title"
+                            :class="{
+                                'navigation-group-title-active': hasActiveChild(
+                                    item.children,
+                                ),
+                            }"
+                            :aria-expanded="isNavigationGroupExpanded(item.key)"
+                            :aria-label="
+                                isNavigationGroupExpanded(item.key)
+                                    ? `收起${item.title}`
+                                    : `展开${item.title}`
+                            "
+                            @click="toggleNavigationGroup(item.key)"
+                        >
+                            <component :is="item.icon" />
+                            <span>{{ item.title }}</span>
+                            <DownOutlined
+                                v-if="isNavigationGroupExpanded(item.key)"
+                                class="navigation-group-chevron"
+                            />
+                            <RightOutlined
+                                v-else
+                                class="navigation-group-chevron"
+                            />
+                        </button>
+                        <template v-if="isNavigationGroupExpanded(item.key)">
+                            <RouterLink
+                                v-for="child in item.children"
+                                :key="child.key"
+                                :to="child.path ?? '/'"
+                                class="navigation-link navigation-child-link"
+                                :class="{
+                                    'navigation-link-active':
+                                        child.path && isActivePath(child.path),
+                                }"
+                                active-class=""
+                                @click="closeMobileNavigation"
+                                ><component :is="child.icon" /><span>{{
+                                    child.title
+                                }}</span></RouterLink
+                            >
+                        </template>
+                    </div>
+                    <RouterLink
+                        v-else-if="item.path"
+                        :to="item.path"
+                        class="navigation-link"
+                        :class="{
+                            'navigation-link-active': isActivePath(item.path),
+                        }"
+                        active-class=""
+                        @click="closeMobileNavigation"
+                        ><component :is="item.icon" /><span>{{
+                            item.title
+                        }}</span></RouterLink
+                    >
+                </template>
             </nav>
         </a-drawer>
 
@@ -245,6 +428,19 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                 </a-button>
                 <AppBreadcrumb />
                 <span class="header-spacer" />
+                <a-select
+                    v-model:value="menuSearchValue"
+                    class="header-menu-search"
+                    show-search
+                    allow-clear
+                    placeholder="搜索菜单"
+                    option-filter-prop="label"
+                    :filter-option="filterMenuSearchOption"
+                    :options="menuSearchOptions"
+                    @select="handleMenuSearch"
+                >
+                    <template #suffixIcon><SearchOutlined /></template>
+                </a-select>
                 <div class="header-user-cluster">
                     <a-avatar
                         :size="30"
@@ -262,6 +458,47 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
                     ><LogoutOutlined
                 /></a-button>
             </a-layout-header>
+            <div class="page-tabs" aria-label="已打开页面">
+                <a-dropdown
+                    v-for="tab in openTabs"
+                    :key="tab.path"
+                    :trigger="['contextmenu']"
+                >
+                    <div
+                        class="page-tab"
+                        :class="{ 'page-tab-active': isActiveTab(tab.path) }"
+                    >
+                        <RouterLink
+                            :to="tab.path"
+                            class="page-tab-link"
+                            active-class=""
+                            >{{ tab.title }}</RouterLink
+                        >
+                        <a-button
+                            type="text"
+                            class="page-tab-close"
+                            :aria-label="`关闭${tab.title}`"
+                            :title="`关闭${tab.title}`"
+                            @click.prevent.stop="closeTab(tab.path)"
+                            ><CloseOutlined
+                        /></a-button>
+                    </div>
+                    <template #overlay>
+                        <a-menu
+                            @click="
+                                (event) =>
+                                    handleTabContextClick(tab.path, event)
+                            "
+                        >
+                            <a-menu-item key="close-left">关闭左侧</a-menu-item>
+                            <a-menu-item key="close-other"
+                                >关闭其他</a-menu-item
+                            >
+                            <a-menu-item key="close-all">关闭全部</a-menu-item>
+                        </a-menu>
+                    </template>
+                </a-dropdown>
+            </div>
             <a-layout-content class="app-content">
                 <RouterView />
             </a-layout-content>

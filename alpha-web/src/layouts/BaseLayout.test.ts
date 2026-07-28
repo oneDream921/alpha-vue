@@ -101,6 +101,75 @@ describe('BaseLayout', () => {
         expect(wrapper.get('[aria-label="折叠侧栏"]')).toBeTruthy()
     })
 
+    it('keeps grouped navigation collapsed by default and toggles child menus', async () => {
+        authStore.setSession(
+            'test-token',
+            {
+                id: 1,
+                username: 'admin',
+                roles: ['SUPER_ADMIN'],
+                permissions: ['*'],
+                mustChangePassword: false,
+            },
+            [
+                {
+                    id: 2,
+                    parentId: 0,
+                    title: '系统管理',
+                    menuType: 'MENU',
+                    path: '/system',
+                    component: 'Layout',
+                    icon: 'SettingOutlined',
+                    sortOrder: 2,
+                },
+                {
+                    id: 3,
+                    parentId: 2,
+                    title: 'Users',
+                    menuType: 'MENU',
+                    path: 'users',
+                    component: 'system/users',
+                    permission: 'system:user:list',
+                    icon: 'UserOutlined',
+                    sortOrder: 1,
+                },
+                {
+                    id: 4,
+                    parentId: 2,
+                    title: '角色管理',
+                    menuType: 'MENU',
+                    path: 'roles',
+                    component: 'system/roles',
+                    permission: 'system:role:list',
+                    icon: 'SafetyOutlined',
+                    sortOrder: 2,
+                },
+            ],
+        )
+
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        expect(wrapper.text()).toContain('系统管理')
+        expect(wrapper.text()).not.toContain('用户管理')
+
+        await wrapper.get('[aria-label="展开系统管理"]').trigger('click')
+
+        expect(wrapper.text()).toContain('用户管理')
+        expect(wrapper.text()).toContain('角色管理')
+
+        await wrapper.get('[aria-label="收起系统管理"]').trigger('click')
+
+        expect(wrapper.text()).not.toContain('用户管理')
+    })
+
     it('uses the fixed Chinese navigation labels instead of route-title fallbacks', () => {
         authStore.setSession(
             'test-token',
