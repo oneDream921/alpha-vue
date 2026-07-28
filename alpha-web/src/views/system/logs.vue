@@ -175,8 +175,10 @@ onMounted(refreshLogs)
                 ></a-form-item
             >
             <a-form-item
-                ><a-button type="primary" @click="search">搜索</a-button
-                ><a-button @click="resetQuery">重置</a-button></a-form-item
+                ><a-space :size="8"
+                    ><a-button type="primary" @click="search">搜索</a-button
+                    ><a-button @click="resetQuery">重置</a-button></a-space
+                ></a-form-item
             >
         </a-form>
         <a-tabs>
@@ -194,7 +196,7 @@ onMounted(refreshLogs)
                         pageSize: size,
                         total: operationTotal,
                     }"
-                    :scroll="{ x: 1200 }"
+                    :scroll="{ x: 1280 }"
                     @change="changeOperationPage"
                 >
                     <a-table-column
@@ -211,7 +213,7 @@ onMounted(refreshLogs)
                     /><a-table-column
                         title="操作"
                         data-index="operation"
-                        width="170"
+                        width="220"
                     /><a-table-column
                         title="请求"
                         data-index="requestUri"
@@ -291,7 +293,7 @@ onMounted(refreshLogs)
                     ><a-table-column
                         title="耗时"
                         data-index="durationMs"
-                        width="90"
+                        width="120"
                         align="center"
                         ><template #default="{ text }"
                             >{{ text ?? '-' }} ms</template
@@ -373,24 +375,27 @@ onMounted(refreshLogs)
                             ></template
                         ></a-table-column
                     >
-                    <a-table-column title="操作" width="88" align="center"
+                    <a-table-column title="操作" width="220" align="center"
                         ><template #default="{ record }"
-                            ><TableActionMenu aria-label="异常日志处理"
-                                ><a-menu-item
-                                    key="detail"
+                            ><a-space :size="8"
+                                ><a-button
+                                    type="link"
+                                    size="small"
                                     @click="openDetail(record)"
-                                    ><FileSearchOutlined />详情</a-menu-item
-                                ><a-menu-item
-                                    key="handled"
+                                    ><FileSearchOutlined />详情</a-button
+                                ><a-button
                                     v-permission="'log:operation:handle'"
+                                    type="link"
+                                    size="small"
                                     @click="updateHandlingStatus(record, 1)"
-                                    >已处理</a-menu-item
-                                ><a-menu-item
-                                    key="ignored"
+                                    >已处理</a-button
+                                ><a-button
                                     v-permission="'log:operation:handle'"
+                                    type="link"
+                                    size="small"
                                     @click="updateHandlingStatus(record, 2)"
-                                    >已忽略</a-menu-item
-                                ></TableActionMenu
+                                    >已忽略</a-button
+                                ></a-space
                             ></template
                         ></a-table-column
                     >

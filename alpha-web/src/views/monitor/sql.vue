@@ -309,7 +309,7 @@ function checkedKeyArray(value: unknown) {
                 :data-source="rows"
                 :loading="loading"
                 :pagination="false"
-                :scroll="{ x: 1470 }"
+                :scroll="{ x: 1540 }"
             >
                 <a-table-column title="时间" data-index="createdAt" width="110">
                     <template #default="{ text }">{{
@@ -338,7 +338,7 @@ function checkedKeyArray(value: unknown) {
                 <a-table-column
                     title="结果"
                     data-index="resultSize"
-                    :width="150"
+                    :width="220"
                 >
                     <template #default="{ text }">{{ text ?? '-' }}</template>
                 </a-table-column>
