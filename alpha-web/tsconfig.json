@@ -23,6 +23,6 @@
         "src/**/*.ts",
         "src/**/*.vue",
         "vite.config.ts",
-        "tailwind.config.ts"
+        "uno.config.ts"
     ]
 }

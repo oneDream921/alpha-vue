@@ -9,7 +9,7 @@
 本规范用于保持 Alpha Vue 前端在持续扩展时仍具备清晰边界、稳定交互和可验证性。规则按以下优先级执行：
 
 1. 正确性、安全性和可访问性优先于代码复用。
-2. 沿用项目已采用的 Vue 3、TypeScript、Ant Design Vue、Pinia、Vue Router、Axios、Vite 和 Tailwind CSS，不因通用模板切换技术栈。
+2. 沿用项目已采用的 Vue 3、TypeScript、Ant Design Vue、Pinia、Vue Router、Axios、Vite 和 UnoCSS，不因通用模板切换技术栈。
 3. 按业务领域组织代码，按职责划分层次；先识别真实复用，再提取抽象。
 4. 重构不得改变接口契约、权限语义和用户可见行为，除非任务明确要求。
 5. 目录按需要创建，不预建空目录，不为追求形式统一拆分小文件。
@@ -21,7 +21,7 @@
 | 框架 | Vue 3 Composition API、`<script setup lang="ts">`         |
 | 类型 | TypeScript 严格模式，禁止使用 `any` 绕过检查              |
 | UI   | Ant Design Vue 负责表格、表单、弹窗、抽屉、上传等业务控件 |
-| 样式 | Tailwind CSS、CSS Variables 和少量局部 CSS                |
+| 样式 | UnoCSS、CSS Variables 和少量局部 CSS                      |
 | 状态 | Pinia，仅保存跨页面或跨会话状态                           |
 | 路由 | Vue Router，受控组件白名单与后端菜单共同决定业务路由      |
 | 请求 | Axios，只能由 `service` 层直接使用                        |
@@ -179,7 +179,8 @@ alpha-web/src/
 
 - 颜色、圆角、阴影、画布和尺寸优先使用 `styles/tokens.css` 中的 `--alpha-*` 令牌。
 - Ant Design Vue 管理业务控件视觉；不要用全局 CSS 大范围覆盖其内部实现类。
-- Tailwind/CSS 用于布局、间距和响应式组合，不重复造按钮、输入框、表格和弹窗。
+- UnoCSS/CSS 用于布局、间距和响应式组合，不重复造按钮、输入框、表格和弹窗。UnoCSS 的 reset 保持关闭，Ant Design Vue reset 是唯一的组件全局 reset。
+- UnoCSS 快捷类只用于跨页面稳定复用的布局组合；业务语义仍使用清晰的 CSS 类名或组件。
 - 页面区块不嵌套装饰卡片；管理页面保持紧凑、易扫描，卡片仅用于真正独立的重复内容。
 - 页面特有选择器放在组件 `scoped` 样式；两个以上页面稳定复用后再上移全局样式。
 - 圆角默认不超过设计令牌 `--alpha-radius`，避免无业务意义的渐变和装饰图形。

@@ -1,6 +1,8 @@
 # Alpha Vue
 
-Alpha Vue 是一个轻量、响应式的全栈管理基础框架。后端采用 Java 21、Spring Boot 4、MyBatis-Plus、Sa-Token、Redis、MySQL 和 Flyway；前端采用 Vue 3、Vite、TypeScript、Ant Design Vue、Pinia/Vue 状态模式、Vue Router 和 Tailwind CSS。
+Alpha Vue 是一个轻量、响应式的全栈管理基础框架。后端采用 Java 21、Spring Boot 4、MyBatis-Plus、Sa-Token、Redis、MySQL 和 Flyway；前端采用 Vue 3、Vite、TypeScript、Ant Design Vue、Pinia/Vue 状态模式、Vue Router 和 UnoCSS。
+
+Ant Design Vue 负责表格、表单、弹窗、抽屉和上传等业务控件；UnoCSS 配合 `--alpha-*` 设计令牌负责布局、间距和响应式组合。项目保留语义化 CSS，且不启用 UnoCSS reset，以避免覆盖 Ant Design Vue 的组件基线。
 
 已包含账号登录、可选图形验证码、Bearer Token 会话、RBAC、用户/角色/菜单/部门管理、本地或 MinIO 文件存储、普通文件与图片上传预览、登录与操作审计、traceId、响应式管理端及 403/404 页面。管理列表支持手动刷新，并在新增、编辑、删除和上传后自动重新加载。
 

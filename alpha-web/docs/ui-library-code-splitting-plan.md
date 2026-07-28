@@ -80,11 +80,12 @@ Recommended Vite configuration:
 ```ts
 import Components from 'unplugin-vue-components/vite'
 import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers'
+import UnoCSS from 'unocss/vite'
 
 export default defineConfig({
     plugins: [
         vue(),
-        tailwindcss(),
+        UnoCSS(),
         Components({
             dts: 'src/components.d.ts',
             resolvers: [AntDesignVueResolver({ importStyle: false })],
@@ -108,7 +109,7 @@ export default defineConfig({
 
 `importStyle: false` is required for this repository's current CSS strategy:
 `reset.css` is imported once in `main.ts` and visual styling is supplied by the
-application/Tailwind styles. Change it only after deliberately adopting
+application/UnoCSS styles. Change it only after deliberately adopting
 component CSS imports and measuring the resulting CSS chunks.
 
 ## Delivery sequence
