@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { authApi } from '@/service/auth'
@@ -40,6 +41,9 @@ interface MenuSearchOption {
 }
 
 type MenuSearchValue = string | number | { value: string | number }
+type ScrollableContent = { scrollLeft: number; scrollTop: number }
+type LayoutContentRef =
+    ScrollableContent | (ComponentPublicInstance & { $el?: ScrollableContent })
 
 const viewportWidth = ref(
     typeof window === 'undefined' ? 1024 : window.innerWidth,
@@ -49,6 +53,7 @@ const desktopCollapsed = ref(viewportWidth.value < 1024)
 const openTabs = ref<OpenTab[]>([])
 const menuSearchValue = ref<string>()
 const expandedNavigationGroups = ref<string[]>([])
+const appContentRef = ref<LayoutContentRef | null>(null)
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -210,6 +215,17 @@ async function handleMenuSearch(value: MenuSearchValue) {
     closeMobileNavigation()
 }
 
+function resetContentScroll() {
+    const target = appContentRef.value
+    const element =
+        target && 'scrollTop' in target && 'scrollLeft' in target
+            ? target
+            : target?.$el
+    if (!element) return
+    element.scrollLeft = 0
+    element.scrollTop = 0
+}
+
 async function logout() {
     try {
         await authApi.logout()
@@ -233,6 +249,8 @@ watch(
     addCurrentTab,
     { immediate: true },
 )
+
+watch(() => route.fullPath, resetContentScroll)
 </script>
 
 <template>
@@ -499,7 +517,7 @@ watch(
                     </template>
                 </a-dropdown>
             </div>
-            <a-layout-content class="app-content">
+            <a-layout-content ref="appContentRef" class="app-content">
                 <RouterView />
             </a-layout-content>
         </a-layout>
