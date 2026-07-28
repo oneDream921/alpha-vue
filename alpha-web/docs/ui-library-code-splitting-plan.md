@@ -9,13 +9,13 @@ their route chunks, plus stable chunks for the framework runtime.
 
 ## Baseline (2026-07-26)
 
-| Item | Current value | Evidence |
-| --- | ---: | --- |
-| Largest JavaScript asset | 1.6 MB raw | `dist/assets/index-BVqn_1z6.js` |
-| Largest JavaScript asset (gzip) | 498,507 B | `gzip -c dist/assets/index-BVqn_1z6.js` |
-| Next-largest JavaScript asset (gzip) | 11,811 B | current application entry |
-| UI usage | 418 `<a-*>` tags, 30 component types | `src/**/*.vue` |
-| Primary cause | whole-library registration | `src/main.ts`: `app.use(Antd)` |
+| Item                                 |                        Current value | Evidence                                |
+| ------------------------------------ | -----------------------------------: | --------------------------------------- |
+| Largest JavaScript asset             |                           1.6 MB raw | `dist/assets/index-BVqn_1z6.js`         |
+| Largest JavaScript asset (gzip)      |                            498,507 B | `gzip -c dist/assets/index-BVqn_1z6.js` |
+| Next-largest JavaScript asset (gzip) |                             11,811 B | current application entry               |
+| UI usage                             | 418 `<a-*>` tags, 30 component types | `src/**/*.vue`                          |
+| Primary cause                        |           whole-library registration | `src/main.ts`: `app.use(Antd)`          |
 
 The lazy routes are already split. However, `main.ts` imports the root
 `ant-design-vue` entry and registers every component, so Rollup must retain the
@@ -97,7 +97,8 @@ export default defineConfig({
                     if (!id.includes('node_modules')) return
                     if (id.includes('vue-router')) return 'router-vendor'
                     if (id.includes('pinia')) return 'state-vendor'
-                    if (id.includes('/node_modules/.pnpm/vue@')) return 'vue-vendor'
+                    if (id.includes('/node_modules/.pnpm/vue@'))
+                        return 'vue-vendor'
                 },
             },
         },
@@ -124,13 +125,13 @@ component CSS imports and measuring the resulting CSS chunks.
 
 ## Acceptance criteria
 
-| Check | Target |
-| --- | --- |
-| Application entry JavaScript | `< 150 kB` gzip |
-| Largest JavaScript chunk | `< 150 kB` gzip |
-| UI behavior | no unknown custom-element warnings; all listed smoke flows work |
-| Chunk topology | `vue-vendor`, router/state chunks are stable; Ant Design Vue follows route ownership |
-| Cache behavior | a UI-only dependency update does not change unrelated route chunk hashes unnecessarily |
+| Check                        | Target                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| Application entry JavaScript | `< 150 kB` gzip                                                                        |
+| Largest JavaScript chunk     | `< 150 kB` gzip                                                                        |
+| UI behavior                  | no unknown custom-element warnings; all listed smoke flows work                        |
+| Chunk topology               | `vue-vendor`, router/state chunks are stable; Ant Design Vue follows route ownership   |
+| Cache behavior               | a UI-only dependency update does not change unrelated route chunk hashes unnecessarily |
 
 The first Phase 2 build achieved a 120.91 kB gzip largest chunk and a 30.33 kB
 gzip Vue runtime chunk. The original `498.49 kB` gzip entry is eliminated. Keep
@@ -152,14 +153,14 @@ report generation in the default production build.
 
 ## Risks and guardrails
 
-| Risk | Guardrail |
-| --- | --- |
-| A component is not resolved after removing `.use(Antd)` | Generate `src/components.d.ts`; type check and smoke-test every route |
-| `message` / `Modal` behavior changes | Keep direct named imports and test error/login/logout flows |
-| CSS duplication or missing styles | Keep one reset import; evaluate component CSS separately |
-| An Ant Design Vue/icon circular chunk is introduced | Keep those packages out of `manualChunks`; use route-aware automatic chunks |
-| Chunk count harms HTTP/1 clients | Keep framework vendor groups coarse; production is expected to use HTTP/2 or HTTP/3 |
-| A route pulls a heavy feature into the shell | Inspect the visualizer and enforce gzip budgets in CI after the first measured target build |
+| Risk                                                    | Guardrail                                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| A component is not resolved after removing `.use(Antd)` | Generate `src/components.d.ts`; type check and smoke-test every route                       |
+| `message` / `Modal` behavior changes                    | Keep direct named imports and test error/login/logout flows                                 |
+| CSS duplication or missing styles                       | Keep one reset import; evaluate component CSS separately                                    |
+| An Ant Design Vue/icon circular chunk is introduced     | Keep those packages out of `manualChunks`; use route-aware automatic chunks                 |
+| Chunk count harms HTTP/1 clients                        | Keep framework vendor groups coarse; production is expected to use HTTP/2 or HTTP/3         |
+| A route pulls a heavy feature into the shell            | Inspect the visualizer and enforce gzip budgets in CI after the first measured target build |
 
 ## Rollback
 

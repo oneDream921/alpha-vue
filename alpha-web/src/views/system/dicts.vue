@@ -353,13 +353,9 @@ onMounted(loadTypes)
                                             size="small"
                                             aria-label="删除"
                                             @click.stop="removeType(record)"
-                                            ><DeleteOutlined /></a-button></a-tooltip
-                                    ></a-space
-                                ></template
-                            ></a-table-column
-                        >
-                    </a-table>
-                </a-card></a-col
+                                            ><DeleteOutlined /></a-button></a-tooltip></a-space></template
+                        ></a-table-column>
+                    </a-table> </a-card></a-col
             ><a-col :xs="24" :lg="14"
                 ><a-card
                     :title="
@@ -455,15 +451,10 @@ onMounted(loadTypes)
                                             size="small"
                                             aria-label="删除"
                                             @click="removeItem(record)"
-                                            ><DeleteOutlined /></a-button></a-tooltip
-                                    ></a-space
-                                ></template
-                            ></a-table-column
-                        >
-                    </a-table>
-                </a-card></a-col
-            ></a-row
-        >
+                                            ><DeleteOutlined /></a-button></a-tooltip></a-space></template
+                        ></a-table-column>
+                    </a-table> </a-card></a-col
+        ></a-row>
         <a-modal
             v-model:open="typeEditorOpen"
             :title="editingTypeId ? '编辑字典类型' : '新增字典类型'"

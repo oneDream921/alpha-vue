@@ -260,8 +260,8 @@ onMounted(load)
                                 children: 'children',
                             }"
                             allow-clear
-                            @update:value="setParentId"
-                            tree-default-expand-all /></a-form-item
+                            tree-default-expand-all
+                            @update:value="setParentId" /></a-form-item
                     ><a-form-item label="排序" name="sortOrder"
                         ><a-input-number
                             v-model:value="form.sortOrder"
