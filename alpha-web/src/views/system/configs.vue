@@ -8,7 +8,6 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 
-import TableActionMenu from '@/components/TableActionMenu.vue'
 import { configApi, type Config } from '@/service/system'
 import { configPageFromTableChange } from './configs.pagination'
 import { validateConfigKey } from './configs.validation'
@@ -98,7 +97,7 @@ async function submitForm() {
     }
     if (editingId.value) await configApi.update(editingId.value, payload)
     else await configApi.create(payload)
-    message.success('保存成功；参数不会自动生效')
+    message.success('保存成功；业务参数缓存已失效')
     editorOpen.value = false
     await load()
 }
@@ -134,60 +133,97 @@ onMounted(load)
                 <h1>参数配置</h1>
                 <p>仅维护业务参数；基础设施配置仍由环境变量管理</p>
             </div>
-            <a-space wrap>
-                <a-button @click="load"><ReloadOutlined />刷新</a-button>
+            <a-space wrap class="page-heading-actions">
                 <a-button
                     v-permission="'system:config:create'"
                     type="primary"
                     @click="openCreate"
                     ><PlusOutlined />新增参数配置</a-button
                 >
+                <a-button @click="load"><ReloadOutlined />刷新</a-button>
             </a-space>
         </div>
-        <div class="query-bar">
-            <a-input-search
-                v-model:value="keyword"
-                allow-clear
-                placeholder="搜索配置键或说明"
-            />
-            <a-button @click="keyword = ''">重置</a-button>
-        </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredRows"
-            :loading="loading"
-            :scroll="{ x: 900 }"
-            :pagination="{
-                current: page,
-                pageSize,
-                total,
-                showSizeChanger: true,
-                showTotal: (count: number) => `共 ${count} 条`,
-            }"
-            @change="changePage"
-        >
-            <a-table-column title="配置键" data-index="configKey" width="240" />
-            <a-table-column title="配置值" data-index="configValue" ellipsis />
-            <a-table-column title="说明" data-index="description" width="220" />
-            <a-table-column title="操作" width="88" align="center"
-                ><template #default="{ record }"
-                    ><TableActionMenu aria-label="配置操作"
-                        ><a-menu-item
-                            key="edit"
-                            v-permission="'system:config:update'"
-                            @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-menu-item
-                        ><a-menu-item
-                            key="delete"
-                            v-permission="'system:config:delete'"
-                            danger
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        ></TableActionMenu
-                    ></template
-                ></a-table-column
+        <a-collapse ghost class="config-search-panel">
+            <a-collapse-panel key="filters" header="搜索">
+                <div class="query-bar config-query-bar">
+                    <a-input-search
+                        v-model:value="keyword"
+                        allow-clear
+                        placeholder="搜索配置键或说明"
+                    />
+                    <a-button @click="keyword = ''">重置</a-button>
+                </div>
+            </a-collapse-panel>
+        </a-collapse>
+        <section class="config-table-workspace">
+            <div class="workspace-toolbar">
+                <h2>参数配置列表</h2>
+                <a-space wrap>
+                    <a-button @click="load"
+                        ><ReloadOutlined />刷新缓存</a-button
+                    >
+                    <a-button
+                        v-permission="'system:config:create'"
+                        type="primary"
+                        @click="openCreate"
+                        ><PlusOutlined />新增</a-button
+                    >
+                    <a-button disabled><DeleteOutlined />批量删除</a-button>
+                    <a-button @click="load"><ReloadOutlined />刷新</a-button>
+                </a-space>
+            </div>
+            <a-table
+                row-key="id"
+                :data-source="filteredRows"
+                :loading="loading"
+                :scroll="{ x: 900 }"
+                :pagination="{
+                    current: page,
+                    pageSize,
+                    total,
+                    showSizeChanger: true,
+                    showTotal: (count: number) => `共 ${count} 条`,
+                }"
+                @change="changePage"
             >
-        </a-table>
+                <a-table-column
+                    title="配置键"
+                    data-index="configKey"
+                    width="240"
+                />
+                <a-table-column
+                    title="配置值"
+                    data-index="configValue"
+                    ellipsis
+                />
+                <a-table-column
+                    title="说明"
+                    data-index="description"
+                    width="220"
+                />
+                <a-table-column title="操作" width="112" align="center"
+                    ><template #default="{ record }"
+                        ><a-space :size="4">
+                            <a-button
+                                v-permission="'system:config:update'"
+                                type="text"
+                                size="small"
+                                title="编辑参数"
+                                @click="openEdit(record)"
+                                ><EditOutlined
+                            /></a-button>
+                            <a-button
+                                v-permission="'system:config:delete'"
+                                type="text"
+                                danger
+                                size="small"
+                                title="删除参数"
+                                @click="remove(record)"
+                                ><DeleteOutlined
+                            /></a-button> </a-space></template
+                ></a-table-column>
+            </a-table>
+        </section>
         <a-modal
             v-model:open="editorOpen"
             :title="editingId ? '编辑参数配置' : '新增参数配置'"
@@ -214,7 +250,57 @@ onMounted(load)
                 ><a-alert
                     type="info"
                     show-icon
-                    message="保存后不会自动生效；密钥、密码、令牌及基础设施配置键不允许保存。" /></a-form
+                    message="保存后业务读取缓存会立即失效并在下次读取时回填；密钥、密码、令牌及基础设施配置键不允许保存。" /></a-form
         ></a-modal>
     </section>
 </template>
+
+<style scoped>
+.config-query-bar {
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--alpha-surface);
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+}
+
+:deep(.ant-table-wrapper) {
+    border: 0;
+}
+
+.config-search-panel,
+.config-table-workspace {
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: var(--alpha-surface);
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+}
+
+.config-search-panel :deep(.ant-collapse-content-box) {
+    padding: 0 16px 16px !important;
+}
+
+.workspace-toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--alpha-border-soft);
+}
+
+.workspace-toolbar h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+@media (max-width: 767px) {
+    .workspace-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-block: 14px;
+    }
+}
+</style>

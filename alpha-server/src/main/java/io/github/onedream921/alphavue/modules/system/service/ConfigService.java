@@ -10,6 +10,8 @@ import io.github.onedream921.alphavue.modules.system.mapper.SysConfigMapper;
 import io.github.onedream921.alphavue.modules.system.vo.ConfigVo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Locale;
 import java.util.Set;
@@ -25,9 +27,11 @@ public class ConfigService {
             "(^|[._-])(password|passwd|secret|token|credential|key|private[-_]?key|api[-_]?key|access[-_]?key)([._-]|$)";
 
     private final SysConfigMapper configMapper;
+    private final ConfigCacheStore configCacheStore;
 
-    public ConfigService(SysConfigMapper configMapper) {
+    public ConfigService(SysConfigMapper configMapper, ConfigCacheStore configCacheStore) {
         this.configMapper = configMapper;
+        this.configCacheStore = configCacheStore;
     }
 
     /**
@@ -58,6 +62,7 @@ public class ConfigService {
         SysConfig config = new SysConfig();
         copy(request, config, configKey);
         configMapper.insertConfig(config);
+        evictCache(configKey);
         return ConfigVo.from(config);
     }
 
@@ -67,6 +72,7 @@ public class ConfigService {
     @Transactional
     public ConfigVo update(long id, ConfigRequests.Save request) {
         SysConfig config = requireConfig(id);
+        String previousKey = config.getConfigKey();
         String configKey = validateConfigKey(request.configKey());
         SysConfig existing = configMapper.selectActiveByConfigKey(configKey);
         if (existing != null && !existing.getId().equals(id)) {
@@ -76,6 +82,8 @@ public class ConfigService {
         if (configMapper.updateConfig(config) != 1) {
             throw invalidRequest();
         }
+        evictCache(previousKey);
+        if (!previousKey.equals(configKey)) evictCache(configKey);
         return ConfigVo.from(config);
     }
 
@@ -84,10 +92,32 @@ public class ConfigService {
      */
     @Transactional
     public void delete(long id) {
-        requireConfig(id);
+        SysConfig config = requireConfig(id);
         if (configMapper.softDeleteById(id) != 1) {
             throw invalidRequest();
         }
+        evictCache(config.getConfigKey());
+    }
+
+    /**
+     * 按键读取业务参数，并优先使用缓存。
+     */
+    public String value(String configKey) {
+        String normalizedKey = configKey.trim();
+        String cached = configCacheStore.get(normalizedKey);
+        if (cached != null) return cached;
+        SysConfig config = configMapper.selectActiveByConfigKey(normalizedKey);
+        if (config == null) return null;
+        configCacheStore.put(normalizedKey, config.getConfigValue());
+        return config.getConfigValue();
+    }
+
+    private void evictCache(String configKey) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { configCacheStore.evict(configKey); }
+            });
+        } else configCacheStore.evict(configKey);
     }
 
     private SysConfig requireConfig(long id) {
