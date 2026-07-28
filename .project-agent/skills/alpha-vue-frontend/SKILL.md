@@ -1,6 +1,6 @@
 ---
 name: alpha-vue-frontend
-description: Apply Alpha Vue's repository-specific frontend architecture, coding, UI, permission, responsive, testing, and delivery conventions. Use when planning, implementing, reviewing, debugging, or refactoring files under alpha-web, especially Vue components and pages, TypeScript services, Pinia stores, Vue Router routes and guards, permission controls, Ant Design Vue UI, Tailwind/CSS styles, Vitest tests, or frontend directory structure.
+description: Apply Alpha Vue's repository-specific frontend architecture, coding, UI, permission, responsive, testing, and delivery conventions. Use when planning, implementing, reviewing, debugging, or refactoring files under alpha-web, especially Vue components and pages, TypeScript services, Pinia stores, Vue Router routes and guards, permission controls, Ant Design Vue UI, UnoCSS/CSS styles, Vitest tests, or frontend directory structure.
 ---
 
 # Alpha Vue Frontend
@@ -26,7 +26,7 @@ If a referenced rule conflicts with the user's explicit current request, surface
 
 ## Preserve Core Architecture
 
-- Keep Vue 3 Composition API, strict TypeScript, Ant Design Vue, Pinia, Vue Router, Axios, Vite, and Tailwind CSS.
+- Keep Vue 3 Composition API, strict TypeScript, Ant Design Vue, Pinia, Vue Router, Axios, Vite, and UnoCSS.
 - Do not introduce Element Plus or a second overlapping UI library.
 - Keep direct Axios usage inside `src/service`; keep UI messages and loading state outside service modules.
 - Keep authentication state atomic and route components constrained by the frontend whitelist plus backend menu and permission data.
@@ -40,7 +40,7 @@ If a referenced rule conflicts with the user's explicit current request, surface
 2. Define the ownership boundary before extracting code. Keep route pages responsible for workflow orchestration.
 3. Preserve public import paths during migrations through typed barrel exports when required.
 4. Use explicit types for props, emits, template refs, API models, forms, and unknown errors. Do not use `any` as an escape hatch.
-5. Use Ant Design Vue for business controls and `@ant-design/icons-vue` for icons. Use project tokens and CSS/Tailwind for layout and responsive composition.
+5. Use Ant Design Vue for business controls and `@ant-design/icons-vue` for icons. Use project tokens and UnoCSS/CSS for layout and responsive composition. Keep the UnoCSS reset disabled and only add shortcuts for stable cross-page layout patterns.
 6. Keep loading, success, empty, failure, confirmation, and cleanup behavior complete. Avoid duplicate request-layer and page-layer error messages.
 7. Add or update focused tests for changed contracts and risky state transitions. Assert observable behavior and error paths; mock external boundaries rather than internal behavior, and do not add production APIs only for tests.
 8. Leave unrelated refactors, dependency upgrades, metadata churn, and backend changes outside the task.
