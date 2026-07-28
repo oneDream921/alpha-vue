@@ -1,4 +1,4 @@
-import Antd from 'ant-design-vue'
+import Antd, { Modal } from 'ant-design-vue'
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -119,6 +119,32 @@ describe('BaseLayout', () => {
 
         expect(wrapper.find('.header-menu-search').exists()).toBe(true)
         expect(wrapper.find('[aria-label="展开菜单搜索"]').exists()).toBe(false)
+    })
+
+    it('asks for confirmation before logging out', async () => {
+        const confirm = vi.spyOn(Modal, 'confirm').mockImplementation(() => {
+            return undefined as never
+        })
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        await wrapper.get('[aria-label="退出登录"]').trigger('click')
+
+        expect(confirm).toHaveBeenCalledWith(
+            expect.objectContaining({
+                title: '确认退出登录？',
+                content: '退出后需要重新登录才能继续使用管理端。',
+                okText: '退出登录',
+                cancelText: '取消',
+            }),
+        )
     })
 
     it('keeps grouped navigation collapsed by default and toggles child menus', async () => {

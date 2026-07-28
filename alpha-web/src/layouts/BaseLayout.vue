@@ -8,7 +8,7 @@ import {
     RightOutlined,
     SearchOutlined,
 } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -241,7 +241,18 @@ function resetContentScroll() {
     element.scrollTop = 0
 }
 
-async function logout() {
+function logout() {
+    Modal.confirm({
+        title: '确认退出登录？',
+        content: '退出后需要重新登录才能继续使用管理端。',
+        okText: '退出登录',
+        okType: 'danger',
+        cancelText: '取消',
+        onOk: performLogout,
+    })
+}
+
+async function performLogout() {
     try {
         await authApi.logout()
     } catch {
