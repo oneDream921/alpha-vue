@@ -10,6 +10,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     dictApi,
     type DictItem,
@@ -355,28 +356,26 @@ onMounted(loadTypes)
                                         record.status === 1 ? '启用' : '停用'
                                     " /></template
                         ></a-table-column>
-                        <a-table-column title="操作" width="80" align="center"
+                        <a-table-column title="操作" width="88" align="center"
                             ><template #default="{ record }"
-                                ><a-space
-                                    ><a-tooltip title="编辑"
-                                        ><a-button
-                                            v-permission="'system:dict:update'"
-                                            type="link"
-                                            size="small"
-                                            aria-label="编辑"
-                                            @click.stop="openTypeEdit(record)"
-                                            ><EditOutlined /></a-button></a-tooltip
-                                    ><a-tooltip title="删除"
-                                        ><a-button
-                                            v-permission="'system:dict:delete'"
-                                            type="link"
-                                            danger
-                                            size="small"
-                                            aria-label="删除"
-                                            @click.stop="removeType(record)"
-                                            ><DeleteOutlined /></a-button></a-tooltip></a-space></template
-                        ></a-table-column>
-                    </a-table> </a-card></a-col
+                                ><TableActionMenu aria-label="字典类型操作"
+                                    ><a-menu-item
+                                        key="edit"
+                                        v-permission="'system:dict:update'"
+                                        @click.stop="openTypeEdit(record)"
+                                        ><EditOutlined />编辑</a-menu-item
+                                    ><a-menu-item
+                                        key="delete"
+                                        v-permission="'system:dict:delete'"
+                                        danger
+                                        @click.stop="removeType(record)"
+                                        ><DeleteOutlined />删除</a-menu-item
+                                    ></TableActionMenu
+                                ></template
+                            ></a-table-column
+                        >
+                    </a-table>
+                </a-card></a-col
             ><a-col :xs="24" :lg="14"
                 ><a-card
                     :title="
@@ -453,29 +452,28 @@ onMounted(loadTypes)
                                     }}</a-tag
                                 ></template
                             ></a-table-column
-                        ><a-table-column title="操作" width="80" align="center"
+                        ><a-table-column title="操作" width="88" align="center"
                             ><template #default="{ record }"
-                                ><a-space
-                                    ><a-tooltip title="编辑"
-                                        ><a-button
-                                            v-permission="'system:dict:update'"
-                                            type="link"
-                                            size="small"
-                                            aria-label="编辑"
-                                            @click="openItemEdit(record)"
-                                            ><EditOutlined /></a-button></a-tooltip
-                                    ><a-tooltip title="删除"
-                                        ><a-button
-                                            v-permission="'system:dict:delete'"
-                                            type="link"
-                                            danger
-                                            size="small"
-                                            aria-label="删除"
-                                            @click="removeItem(record)"
-                                            ><DeleteOutlined /></a-button></a-tooltip></a-space></template
-                        ></a-table-column>
-                    </a-table> </a-card></a-col
-        ></a-row>
+                                ><TableActionMenu aria-label="字典项操作"
+                                    ><a-menu-item
+                                        key="edit"
+                                        v-permission="'system:dict:update'"
+                                        @click="openItemEdit(record)"
+                                        ><EditOutlined />编辑</a-menu-item
+                                    ><a-menu-item
+                                        key="delete"
+                                        v-permission="'system:dict:delete'"
+                                        danger
+                                        @click="removeItem(record)"
+                                        ><DeleteOutlined />删除</a-menu-item
+                                    ></TableActionMenu
+                                ></template
+                            ></a-table-column
+                        >
+                    </a-table>
+                </a-card></a-col
+            ></a-row
+        >
         <a-modal
             v-model:open="typeEditorOpen"
             :title="editingTypeId ? '编辑字典类型' : '新增字典类型'"

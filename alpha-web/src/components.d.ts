@@ -64,5 +64,6 @@ declare module 'vue' {
     DictTag: typeof import('./components/DictTag.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TableActionMenu: typeof import('./components/TableActionMenu.vue')['default']
   }
 }

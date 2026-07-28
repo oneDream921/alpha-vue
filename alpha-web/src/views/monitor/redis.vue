@@ -7,6 +7,7 @@ import {
 import { message } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     redisApi,
     type RedisKeyMetadata,
@@ -259,25 +260,26 @@ onMounted(refresh)
                     >
                 </template>
             </a-table-column>
-            <a-table-column title="操作" width="180" fixed="right">
+            <a-table-column
+                title="操作"
+                width="88"
+                fixed="right"
+                align="center"
+            >
                 <template #default="{ record }">
-                    <a-space>
-                        <a-button
-                            type="link"
-                            size="small"
-                            @click="inspect(record)"
-                            ><EyeOutlined />元数据</a-button
-                        >
-                        <a-button
+                    <TableActionMenu aria-label="Redis 键操作">
+                        <a-menu-item key="metadata" @click="inspect(record)">
+                            <EyeOutlined />元数据
+                        </a-menu-item>
+                        <a-menu-item
+                            key="delete"
                             v-permission="'monitor:redis:delete'"
                             data-testid="delete-redis-key"
-                            type="link"
                             danger
-                            size="small"
                             @click="openDelete(record)"
-                            ><DeleteOutlined />删除</a-button
+                            ><DeleteOutlined />删除</a-menu-item
                         >
-                    </a-space>
+                    </TableActionMenu>
                 </template>
             </a-table-column>
         </a-table>

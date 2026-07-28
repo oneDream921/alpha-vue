@@ -4,7 +4,6 @@ import {
     DisconnectOutlined,
     EditOutlined,
     KeyOutlined,
-    MoreOutlined,
     PlusOutlined,
     ReloadOutlined,
     SafetyOutlined,
@@ -12,8 +11,9 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import axios from 'axios'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     deptApi,
     roleApi,
@@ -42,10 +42,6 @@ const resettingUser = ref<User>()
 const resetPasswordFormRef = ref()
 const resetPasswordForm = reactive({ newPassword: '', confirmPassword: '' })
 const formRef = ref()
-const viewportWidth = ref(
-    typeof window === 'undefined' ? 1024 : window.innerWidth,
-)
-const showCompactActions = computed(() => viewportWidth.value < 768)
 const rules: Record<string, Rule[]> = {
     username: [
         { required: true, message: '请输入账号' },
@@ -226,16 +222,9 @@ async function saveRoles() {
     await load()
 }
 
-function updateViewport() {
-    viewportWidth.value = window.innerWidth
-}
-
 onMounted(async () => {
-    window.addEventListener('resize', updateViewport)
     await Promise.all([load(), loadOptions()])
 })
-
-onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
 </script>
 
 <template>
@@ -300,137 +289,47 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
             ></a-table-column>
             <a-table-column
                 title="操作"
-                :fixed="showCompactActions ? undefined : 'right'"
-                :width="showCompactActions ? 84 : 164"
+                fixed="right"
+                :width="88"
                 align="center"
                 ><template #default="{ record }"
-                    ><div v-if="!showCompactActions" class="table-actions">
-                        <a-tag v-if="record.username === 'admin'" color="blue"
-                            >内置管理员</a-tag
-                        >
-                        <a-button
-                            v-if="record.username !== 'admin'"
-                            v-permission="'system:user:update'"
-                            type="link"
-                            size="small"
-                            @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-button
-                        >
-                        <a-button
-                            v-if="
-                                record.username !== 'admin' &&
-                                record.id !== authStore.state.profile?.id
-                            "
-                            v-permission="'system:user:reset-password'"
-                            type="link"
-                            size="small"
-                            @click="openResetPassword(record)"
-                            ><KeyOutlined />重置密码</a-button
-                        >
-                        <a-button
-                            v-if="record.username !== 'admin'"
-                            v-permission="'system:role:assign'"
-                            type="link"
-                            size="small"
-                            @click="openRoles(record)"
-                            ><SafetyOutlined />角色</a-button
-                        >
-                        <a-button
-                            v-if="record.username !== 'admin'"
-                            v-permission="'system:user:update'"
-                            type="link"
-                            size="small"
-                            @click="kickout(record)"
-                            ><DisconnectOutlined />下线</a-button
-                        >
-                        <a-button
-                            v-if="record.username !== 'admin'"
-                            v-permission="'system:user:delete'"
-                            type="link"
-                            danger
-                            size="small"
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-button
-                        >
-                    </div>
-                    <a-tag v-else-if="record.username === 'admin'" color="blue"
+                    ><a-tag v-if="record.username === 'admin'" color="blue"
                         >内置管理员</a-tag
                     >
-                    <a-dropdown
-                        v-else
-                        placement="bottomRight"
-                        :trigger="['click']"
-                    >
-                        <a-button
-                            type="link"
-                            size="small"
-                            aria-label="用户操作"
+                    <TableActionMenu v-else aria-label="用户操作">
+                        <a-menu-item
+                            key="edit"
+                            v-permission="'system:user:update'"
+                            @click="openEdit(record)"
+                            ><EditOutlined />编辑</a-menu-item
                         >
-                            <MoreOutlined />操作
-                        </a-button>
-                        <template #overlay>
-                            <a-menu class="mobile-action-menu">
-                                <a-menu-item
-                                    v-if="
-                                        record.username !== 'admin' &&
-                                        authStore.hasPermission(
-                                            'system:user:update',
-                                        )
-                                    "
-                                    key="edit"
-                                    @click="openEdit(record)"
-                                    ><EditOutlined />编辑</a-menu-item
-                                >
-                                <a-menu-item
-                                    v-if="
-                                        record.username !== 'admin' &&
-                                        record.id !==
-                                            authStore.state.profile?.id &&
-                                        authStore.hasPermission(
-                                            'system:user:reset-password',
-                                        )
-                                    "
-                                    key="reset-password"
-                                    @click="openResetPassword(record)"
-                                    ><KeyOutlined />重置密码</a-menu-item
-                                >
-                                <a-menu-item
-                                    v-if="
-                                        record.username !== 'admin' &&
-                                        authStore.hasPermission(
-                                            'system:role:assign',
-                                        )
-                                    "
-                                    key="roles"
-                                    @click="openRoles(record)"
-                                    ><SafetyOutlined />角色</a-menu-item
-                                >
-                                <a-menu-item
-                                    v-if="
-                                        record.username !== 'admin' &&
-                                        authStore.hasPermission(
-                                            'system:user:update',
-                                        )
-                                    "
-                                    key="kickout"
-                                    @click="kickout(record)"
-                                    ><DisconnectOutlined />下线</a-menu-item
-                                >
-                                <a-menu-item
-                                    v-if="
-                                        record.username !== 'admin' &&
-                                        authStore.hasPermission(
-                                            'system:user:delete',
-                                        )
-                                    "
-                                    key="delete"
-                                    danger
-                                    @click="remove(record)"
-                                    ><DeleteOutlined />删除</a-menu-item
-                                >
-                            </a-menu>
-                        </template>
-                    </a-dropdown></template
+                        <a-menu-item
+                            v-if="record.id !== authStore.state.profile?.id"
+                            key="reset-password"
+                            v-permission="'system:user:reset-password'"
+                            @click="openResetPassword(record)"
+                            ><KeyOutlined />重置密码</a-menu-item
+                        >
+                        <a-menu-item
+                            key="roles"
+                            v-permission="'system:role:assign'"
+                            @click="openRoles(record)"
+                            ><SafetyOutlined />角色</a-menu-item
+                        >
+                        <a-menu-item
+                            key="kickout"
+                            v-permission="'system:user:update'"
+                            @click="kickout(record)"
+                            ><DisconnectOutlined />下线</a-menu-item
+                        >
+                        <a-menu-item
+                            key="delete"
+                            v-permission="'system:user:delete'"
+                            danger
+                            @click="remove(record)"
+                            ><DeleteOutlined />删除</a-menu-item
+                        >
+                    </TableActionMenu></template
                 ></a-table-column
             >
         </a-table>

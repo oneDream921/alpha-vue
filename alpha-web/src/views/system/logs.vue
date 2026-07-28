@@ -7,6 +7,7 @@ import {
 import { message } from 'ant-design-vue'
 import { onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import { logApi, type LoginLog, type OperationLog } from '@/service/logs'
 import { authStore } from '@/stores/auth'
 
@@ -257,34 +258,32 @@ onMounted(refreshLogs)
                                 }}</a-tag
                             ></template
                         ></a-table-column
-                    ><a-table-column title="操作" width="260" align="center"
+                    ><a-table-column title="操作" width="88" align="center"
                         ><template #default="{ record }"
-                            ><a-space v-if="requiresHandling(record)"
-                                ><a-button
-                                    type="link"
-                                    size="small"
+                            ><TableActionMenu
+                                v-if="requiresHandling(record)"
+                                aria-label="操作日志处理"
+                                ><a-menu-item
+                                    key="detail"
                                     @click="openDetail(record)"
-                                    ><FileSearchOutlined />详情</a-button
-                                ><a-button
+                                    ><FileSearchOutlined />详情</a-menu-item
+                                ><a-menu-item
+                                    key="handled"
                                     v-permission="'log:operation:handle'"
-                                    type="link"
-                                    size="small"
                                     @click="updateHandlingStatus(record, 1)"
-                                    ><CheckOutlined />已处理</a-button
-                                ><a-button
+                                    ><CheckOutlined />已处理</a-menu-item
+                                ><a-menu-item
+                                    key="ignored"
                                     v-permission="'log:operation:handle'"
-                                    type="link"
-                                    size="small"
                                     @click="updateHandlingStatus(record, 2)"
-                                    >已忽略</a-button
-                                ><a-button
+                                    >已忽略</a-menu-item
+                                ><a-menu-item
                                     v-if="record.handlingStatus !== 0"
+                                    key="restore"
                                     v-permission="'log:operation:handle'"
-                                    type="link"
-                                    size="small"
                                     @click="updateHandlingStatus(record, 0)"
-                                    >恢复</a-button
-                                ></a-space
+                                    >恢复</a-menu-item
+                                ></TableActionMenu
                             ><span v-else class="log-no-action"
                                 >无需操作</span
                             ></template
@@ -374,27 +373,24 @@ onMounted(refreshLogs)
                             ></template
                         ></a-table-column
                     >
-                    <a-table-column title="操作" width="230" align="center"
+                    <a-table-column title="操作" width="88" align="center"
                         ><template #default="{ record }"
-                            ><a-space
-                                ><a-button
-                                    type="link"
-                                    size="small"
+                            ><TableActionMenu aria-label="异常日志处理"
+                                ><a-menu-item
+                                    key="detail"
                                     @click="openDetail(record)"
-                                    ><FileSearchOutlined />详情</a-button
-                                ><a-button
+                                    ><FileSearchOutlined />详情</a-menu-item
+                                ><a-menu-item
+                                    key="handled"
                                     v-permission="'log:operation:handle'"
-                                    type="link"
-                                    size="small"
                                     @click="updateHandlingStatus(record, 1)"
-                                    >已处理</a-button
-                                ><a-button
+                                    >已处理</a-menu-item
+                                ><a-menu-item
+                                    key="ignored"
                                     v-permission="'log:operation:handle'"
-                                    type="link"
-                                    size="small"
                                     @click="updateHandlingStatus(record, 2)"
-                                    >已忽略</a-button
-                                ></a-space
+                                    >已忽略</a-menu-item
+                                ></TableActionMenu
                             ></template
                         ></a-table-column
                     >

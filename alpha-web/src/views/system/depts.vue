@@ -9,6 +9,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import { deptApi, type Dept } from '@/service/system'
 
 const rows = ref<Dept[]>([])
@@ -211,23 +212,21 @@ onMounted(load)
                         :status="text === 1 ? 'success' : 'default'"
                         :text="text === 1 ? '启用' : '停用'" /></template
             ></a-table-column>
-            <a-table-column title="操作" width="128" align="center"
+            <a-table-column title="操作" width="88" align="center"
                 ><template #default="{ record }"
-                    ><a-space
-                        ><a-button
+                    ><TableActionMenu aria-label="部门操作"
+                        ><a-menu-item
+                            key="edit"
                             v-permission="'system:dept:update'"
-                            type="link"
-                            size="small"
                             @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-button
-                        ><a-button
+                            ><EditOutlined />编辑</a-menu-item
+                        ><a-menu-item
+                            key="delete"
                             v-permission="'system:dept:delete'"
-                            type="link"
                             danger
-                            size="small"
                             @click="remove(record)"
-                            ><DeleteOutlined />删除</a-button
-                        ></a-space
+                            ><DeleteOutlined />删除</a-menu-item
+                        ></TableActionMenu
                     ></template
                 ></a-table-column
             >

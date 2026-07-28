@@ -8,6 +8,7 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import TableActionMenu from '@/components/TableActionMenu.vue'
 import { configApi, type Config } from '@/service/system'
 import { configPageFromTableChange } from './configs.pagination'
 import { validateConfigKey } from './configs.validation'
@@ -168,23 +169,21 @@ onMounted(load)
             <a-table-column title="配置键" data-index="configKey" width="240" />
             <a-table-column title="配置值" data-index="configValue" ellipsis />
             <a-table-column title="说明" data-index="description" width="220" />
-            <a-table-column title="操作" width="160" align="center"
+            <a-table-column title="操作" width="88" align="center"
                 ><template #default="{ record }"
-                    ><a-space
-                        ><a-button
+                    ><TableActionMenu aria-label="配置操作"
+                        ><a-menu-item
+                            key="edit"
                             v-permission="'system:config:update'"
-                            type="link"
-                            size="small"
                             @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-button
-                        ><a-button
+                            ><EditOutlined />编辑</a-menu-item
+                        ><a-menu-item
+                            key="delete"
                             v-permission="'system:config:delete'"
-                            type="link"
                             danger
-                            size="small"
                             @click="remove(record)"
-                            ><DeleteOutlined />删除</a-button
-                        ></a-space
+                            ><DeleteOutlined />删除</a-menu-item
+                        ></TableActionMenu
                     ></template
                 ></a-table-column
             >
