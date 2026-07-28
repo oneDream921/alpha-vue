@@ -54,7 +54,7 @@ pnpm --dir alpha-web build
 
 Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用 Druid 业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
 
-开发环境后端启动后可访问 `/druid/index.html` 查看 Druid 监控，默认账号来自 `DRUID_USERNAME` / `DRUID_PASSWORD`。管理端 `SQL 日志` 页面展示当前后端进程内最近 SQL 摘要；SQL 保留 `?` 占位符，不展示真实参数值。页面中的采集开关和 Mapper 勾选只影响当前后端进程，重启后恢复默认开启并记录全部 Mapper。
+开发环境后端启动后可访问 `/druid/index.html` 查看 Druid 监控，默认账号来自 `DRUID_USERNAME` / `DRUID_PASSWORD`。管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。SQL 日志的保留边界、生产启用条件和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
 
 ## 存储切换
 
