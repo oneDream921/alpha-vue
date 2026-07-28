@@ -1,0 +1,4 @@
+interface:
+  display_name: "Alpha Vue Local Start"
+  short_description: "Start backend, frontend, and local deps quickly"
+  default_prompt: "Use $alpha-vue-local-start to start the Alpha Vue local frontend and backend."

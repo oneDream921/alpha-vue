@@ -14,6 +14,7 @@
       ".claude/skills/afk-project-alpha-vue-architecture",
       ".claude/skills/afk-project-alpha-vue-backend",
       ".claude/skills/afk-project-alpha-vue-frontend",
+      ".claude/skills/afk-project-alpha-vue-local-start",
       "CLAUDE.md"
     ],
     "codex": [
@@ -28,6 +29,7 @@
       ".agents/skills/afk-project-alpha-vue-architecture",
       ".agents/skills/afk-project-alpha-vue-backend",
       ".agents/skills/afk-project-alpha-vue-frontend",
+      ".agents/skills/afk-project-alpha-vue-local-start",
       ".codex/hooks.json",
       ".codex/hooks/afk-check.mjs",
       ".codex/hooks/afk-checks.json",
@@ -54,7 +56,8 @@
       ".cursor/skills/afk-project-alpha-vue-api-design",
       ".cursor/skills/afk-project-alpha-vue-architecture",
       ".cursor/skills/afk-project-alpha-vue-backend",
-      ".cursor/skills/afk-project-alpha-vue-frontend"
+      ".cursor/skills/afk-project-alpha-vue-frontend",
+      ".cursor/skills/afk-project-alpha-vue-local-start"
     ]
   }
 }
