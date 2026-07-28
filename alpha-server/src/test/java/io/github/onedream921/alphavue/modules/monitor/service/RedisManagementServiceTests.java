@@ -19,6 +19,7 @@ class RedisManagementServiceTests {
             @Override public RedisScanResult scan(String prefix, String keyword, String cursor, int count) {
                 return new RedisScanResult(List.of(
                         new RedisKeyMetadata("cache:welcome", "string", 1L, 1L, "hello", false),
+                        new RedisKeyMetadata("system:dict:dict-test.status", "string", 1L, 1L, "[]", false),
                         new RedisKeyMetadata("satoken:token", "string", 1L, 1L, "secret", false)), "0");
             }
             @Override public RedisKeyMetadata metadata(String key) { return null; }
@@ -27,6 +28,8 @@ class RedisManagementServiceTests {
         }, properties);
 
         List<RedisKeyMetadataVo> records = service.page(new io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery("", "0", 10, null)).records();
-        assertThat(records).extracting(RedisKeyMetadataVo::value).containsExactly("hello", "[masked]");
+        assertThat(records).extracting(RedisKeyMetadataVo::value).containsExactly("hello", "[]", "[masked]");
+        assertThat(records).extracting(RedisKeyMetadataVo::category)
+                .containsExactly("业务/缓存数据", "数据字典缓存", "Sa-Token 会话");
     }
 }

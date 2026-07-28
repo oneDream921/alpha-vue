@@ -27,6 +27,13 @@
         WHERE type_code = #{typeCode} AND deleted = 0
     </select>
 
+    <select id="selectEnabledTypeCodes" resultType="string">
+        SELECT type_code
+        FROM sys_dict_type
+        WHERE deleted = 0 AND status = 1
+        ORDER BY type_code ASC
+    </select>
+
     <insert id="insertType" useGeneratedKeys="true" keyProperty="type.id">
         INSERT INTO sys_dict_type (type_code, type_name, status, remark, deleted, created_at, updated_at)
         VALUES (#{type.typeCode}, #{type.typeName}, #{type.status}, #{type.remark}, 0,

@@ -10,6 +10,7 @@ import io.github.onedream921.alphavue.modules.system.dto.DictRequests;
 import io.github.onedream921.alphavue.modules.system.service.DictService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
 import io.github.onedream921.alphavue.modules.system.vo.DictItemVo;
+import io.github.onedream921.alphavue.modules.system.vo.DictCacheRefreshVo;
 import io.github.onedream921.alphavue.modules.system.vo.DictTypeVo;
 import io.github.onedream921.alphavue.modules.system.vo.EnabledDictItemVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -157,6 +158,17 @@ public class DictController extends BaseController {
         access.require("system:dict:delete");
         dictService.deleteItem(id);
         return success(request);
+    }
+
+    /**
+     * 刷新字典业务读取缓存
+     */
+    @Operation(summary = "刷新字典缓存")
+    @PutMapping("/dicts/cache")
+    @OperationLog(module = "System", operation = "Refresh dictionary cache", type = BusinessType.UPDATE)
+    public ApiResponse<DictCacheRefreshVo> refreshCache(HttpServletRequest request) {
+        access.require("system:dict:update");
+        return success(dictService.refreshCache(), request);
     }
 
     /**

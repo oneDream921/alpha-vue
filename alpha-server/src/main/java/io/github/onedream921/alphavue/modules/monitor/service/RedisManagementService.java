@@ -98,6 +98,9 @@ public class RedisManagementService {
         if (key.startsWith("auth:login:failure:")) {
             return "登录失败窗口";
         }
+        if (key.startsWith("system:dict:")) {
+            return "数据字典缓存";
+        }
         if (key.startsWith("satoken:")
                 || key.contains(":login:session:")
                 || key.contains(":login:token:")

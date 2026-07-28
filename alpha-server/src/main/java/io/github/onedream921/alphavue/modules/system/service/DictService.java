@@ -10,11 +10,14 @@ import io.github.onedream921.alphavue.modules.system.entity.SysDictItem;
 import io.github.onedream921.alphavue.modules.system.mapper.SysDictItemMapper;
 import io.github.onedream921.alphavue.modules.system.mapper.SysDictTypeMapper;
 import io.github.onedream921.alphavue.modules.system.vo.DictItemVo;
+import io.github.onedream921.alphavue.modules.system.vo.DictCacheRefreshVo;
 import io.github.onedream921.alphavue.modules.system.vo.DictTypeVo;
 import io.github.onedream921.alphavue.modules.system.vo.EnabledDictItemVo;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -25,10 +28,12 @@ import java.util.List;
 public class DictService {
     private final SysDictTypeMapper typeMapper;
     private final SysDictItemMapper itemMapper;
+    private final DictCacheStore dictCacheStore;
 
-    public DictService(SysDictTypeMapper typeMapper, SysDictItemMapper itemMapper) {
+    public DictService(SysDictTypeMapper typeMapper, SysDictItemMapper itemMapper, DictCacheStore dictCacheStore) {
         this.typeMapper = typeMapper;
         this.itemMapper = itemMapper;
+        this.dictCacheStore = dictCacheStore;
     }
 
     /**
@@ -50,6 +55,7 @@ public class DictService {
         } catch (DuplicateKeyException exception) {
             throw new BusinessException(400, PublicErrorMessage.DICT_TYPE_CODE_EXISTS);
         }
+        evictTypeCache(typeCode);
         return DictTypeVo.from(type);
     }
 
@@ -84,6 +90,7 @@ public class DictService {
         if (typeMapper.updateType(type) != 1) {
             throw invalidRequest();
         }
+        evictTypeCache(type.getTypeCode());
         return DictTypeVo.from(type);
     }
 
@@ -92,13 +99,14 @@ public class DictService {
      */
     @Transactional
     public void deleteType(long id) {
-        requireType(id);
+        SysDictType type = requireType(id);
         if (itemMapper.countActiveByTypeId(id) > 0) {
             throw new BusinessException(400, PublicErrorMessage.DICT_TYPE_HAS_ITEMS);
         }
         if (typeMapper.softDeleteById(id) != 1) {
             throw invalidRequest();
         }
+        evictTypeCache(type.getTypeCode());
     }
 
     private SysDictType requireType(long id) {
@@ -124,7 +132,7 @@ public class DictService {
      */
     @Transactional
     public DictItemVo createItem(long typeId, DictRequests.ItemSave request) {
-        requireType(typeId);
+        SysDictType type = requireType(typeId);
         String value = request.value().trim();
         assertValueUnique(typeId, value, null);
         SysDictItem item = new SysDictItem();
@@ -135,6 +143,7 @@ public class DictService {
         } catch (DuplicateKeyException exception) {
             throw new BusinessException(400, PublicErrorMessage.DICT_ITEM_VALUE_EXISTS);
         }
+        evictTypeCache(type.getTypeCode());
         return DictItemVo.from(item);
     }
 
@@ -144,7 +153,7 @@ public class DictService {
     @Transactional
     public DictItemVo updateItem(long id, DictRequests.ItemSave request) {
         SysDictItem item = requireItem(id);
-        requireType(item.getTypeId());
+        SysDictType type = requireType(item.getTypeId());
         String value = request.value().trim();
         assertValueUnique(item.getTypeId(), value, id);
         copyItem(request, item, value);
@@ -155,6 +164,7 @@ public class DictService {
         } catch (DuplicateKeyException exception) {
             throw new BusinessException(400, PublicErrorMessage.DICT_ITEM_VALUE_EXISTS);
         }
+        evictTypeCache(type.getTypeCode());
         return DictItemVo.from(item);
     }
 
@@ -163,17 +173,55 @@ public class DictService {
      */
     @Transactional
     public void deleteItem(long id) {
-        requireItem(id);
+        SysDictItem item = requireItem(id);
+        SysDictType type = requireType(item.getTypeId());
         if (itemMapper.softDeleteById(id) != 1) {
             throw invalidRequest();
         }
+        evictTypeCache(type.getTypeCode());
     }
 
     /**
      * 读取启用类型下的启用字典项
      */
     public List<EnabledDictItemVo> enabledItems(String typeCode) {
-        return itemMapper.selectEnabledByTypeCode(typeCode.trim()).stream().map(EnabledDictItemVo::from).toList();
+        String normalizedTypeCode = typeCode.trim();
+        List<EnabledDictItemVo> cached = dictCacheStore.get(normalizedTypeCode);
+        if (cached != null) {
+            return cached;
+        }
+        List<EnabledDictItemVo> items = itemMapper.selectEnabledByTypeCode(normalizedTypeCode).stream()
+                .map(EnabledDictItemVo::from).toList();
+        dictCacheStore.put(normalizedTypeCode, items);
+        return items;
+    }
+
+    /**
+     * 重建全部启用字典类型的业务读取缓存。
+     */
+    public DictCacheRefreshVo refreshCache() {
+        List<String> typeCodes = typeMapper.selectEnabledTypeCodes();
+        typeCodes.forEach(typeCode -> dictCacheStore.put(typeCode, loadEnabledItems(typeCode)));
+        return new DictCacheRefreshVo(typeCodes.size());
+    }
+
+    private List<EnabledDictItemVo> loadEnabledItems(String typeCode) {
+        return itemMapper.selectEnabledByTypeCode(typeCode).stream().map(EnabledDictItemVo::from).toList();
+    }
+
+    private void evictTypeCache(String typeCode) {
+        if (typeCode != null && !typeCode.isBlank()) {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        dictCacheStore.evict(typeCode);
+                    }
+                });
+            } else {
+                dictCacheStore.evict(typeCode);
+            }
+        }
     }
 
     private SysDictItem requireItem(long id) {

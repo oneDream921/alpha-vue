@@ -4,6 +4,7 @@ import {
     EditOutlined,
     PlusOutlined,
     ReloadOutlined,
+    SyncOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
@@ -16,6 +17,7 @@ import {
     type DictType,
     type DictTypeSave,
 } from '@/service/system'
+import { dictStore } from '@/stores/dict'
 import {
     dictionaryTypeRow,
     dictPageFromTableChange,
@@ -37,6 +39,7 @@ const itemPageSize = ref(10)
 const itemLoading = ref(false)
 const typeEditorOpen = ref(false)
 const itemEditorOpen = ref(false)
+const cacheRefreshing = ref(false)
 const editingTypeId = ref<number>()
 const editingItemId = ref<number>()
 const typeFormRef = ref()
@@ -116,6 +119,16 @@ async function loadTypes() {
         typeTotal.value = response.data.data.total
     } finally {
         typeLoading.value = false
+    }
+}
+async function refreshDictCache() {
+    cacheRefreshing.value = true
+    try {
+        const response = await dictApi.refreshCache()
+        dictStore.clear()
+        message.success(`已刷新 ${response.data.data.typeCount} 个字典类型缓存`)
+    } finally {
+        cacheRefreshing.value = false
     }
 }
 async function loadItems() {
@@ -278,7 +291,15 @@ onMounted(loadTypes)
                 <h1>数据字典</h1>
                 <p>维护业务字段的统一可选值</p>
             </div>
-            <a-button @click="loadTypes"><ReloadOutlined />刷新</a-button>
+            <a-space>
+                <a-button
+                    v-permission="'system:dict:update'"
+                    :loading="cacheRefreshing"
+                    @click="refreshDictCache"
+                    ><SyncOutlined />刷新缓存</a-button
+                >
+                <a-button @click="loadTypes"><ReloadOutlined />刷新</a-button>
+            </a-space>
         </div>
         <a-row :gutter="16"
             ><a-col :xs="24" :lg="10"

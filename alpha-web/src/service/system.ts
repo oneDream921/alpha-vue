@@ -82,6 +82,10 @@ export interface EnabledDictItem {
     isDefault: number
 }
 
+export interface DictCacheRefreshResult {
+    typeCount: number
+}
+
 type EntityName = 'users' | 'roles' | 'menus' | 'depts' | 'configs'
 
 function resource<T, Create, Update>(name: EntityName) {
@@ -196,6 +200,8 @@ export const dictApi = {
         http.put<ApiResponse<DictItem>>(`/system/dict-items/${id}`, payload),
     deleteItem: (id: number) =>
         http.delete<ApiResponse<null>>(`/system/dict-items/${id}`),
+    refreshCache: () =>
+        http.put<ApiResponse<DictCacheRefreshResult>>('/system/dicts/cache'),
     enabledItems: (typeCode: string) =>
         http.get<ApiResponse<EnabledDictItem[]>>(
             `/system/dicts/${typeCode}/items`,

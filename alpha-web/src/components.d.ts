@@ -61,6 +61,7 @@ declare module 'vue' {
     ATreeSelect: typeof import('ant-design-vue/es')['TreeSelect']
     ATypographyText: typeof import('ant-design-vue/es')['TypographyText']
     AUpload: typeof import('ant-design-vue/es')['Upload']
+    DictTag: typeof import('./components/DictTag.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

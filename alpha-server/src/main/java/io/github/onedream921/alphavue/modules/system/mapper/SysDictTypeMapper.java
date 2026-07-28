@@ -5,6 +5,8 @@ import io.github.onedream921.alphavue.modules.system.entity.SysDictType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 字典类型数据访问 Mapper
  */
@@ -24,6 +26,11 @@ public interface SysDictTypeMapper {
      * 按类型编码查询未删除的字典类型
      */
     SysDictType selectActiveByTypeCode(@Param("typeCode") String typeCode);
+
+    /**
+     * 查询启用且未删除的字典类型编码
+     */
+    List<String> selectEnabledTypeCodes();
 
     /**
      * 新增字典类型

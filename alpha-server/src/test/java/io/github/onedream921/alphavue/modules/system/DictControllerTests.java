@@ -111,6 +111,9 @@ class DictControllerTests {
                         .content("{\"typeCode\":\"dict-test.denied\",\"typeName\":\"拒绝\",\"status\":1}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(403));
+        mockMvc.perform(put("/api/system/dicts/cache").header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
     }
 
     @Test
@@ -147,6 +150,10 @@ class DictControllerTests {
                 .andExpect(jsonPath("$.data.length()").value(2));
         mockMvc.perform(get("/api/system/dicts/{typeCode}/items", "dict-test.workflow"))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(put("/api/system/dicts/cache")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.typeCount").isNumber());
         mockMvc.perform(delete("/api/system/dict-types/{id}", typeId).header("Authorization", bearer(token)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("请先删除该字典类型下的字典项"));
