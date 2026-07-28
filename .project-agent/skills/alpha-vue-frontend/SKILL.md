@@ -12,7 +12,7 @@ Follow the project's frontend conventions while preserving existing behavior, co
 1. Resolve the repository root with `git rev-parse --show-toplevel` when needed.
 2. Read `docs/frontend-conventions.md` completely before making frontend decisions or edits. Treat it as the canonical detailed specification.
 3. Read `docs/conventions.md` when the task touches cross-layer contracts, security, permissions, API behavior, or delivery checks.
-4. Read `docs/superpowers/plans/2026-07-27-frontend-structure-refactor.md` only when executing or revising the approved frontend structure-governance plan.
+4. Read `docs/ai/services/alpha-web/overview.md` when executing or revising frontend structure-governance work; it records the approved durable boundaries and evolution rules.
 5. Inspect `alpha-web/package.json`, nearby implementation files, tests, and `git status --short` before proposing or applying changes.
 
 If a referenced rule conflicts with the user's explicit current request, surface the conflict and follow the user's decision. Do not silently weaken security, permissions, type safety, or accessibility.

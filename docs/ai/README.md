@@ -7,22 +7,30 @@
 
 | 路径 | 说明 |
 |------|------|
-| （待补充） | 一行定位各仓/应用即可 |
+| `alpha-web/` | Vue 3 管理端 |
+| `alpha-server/` | Spring Boot 单体服务 |
+| `deploy/` | 本地部署和 smoke test 配置 |
+| `docs/` | 项目规范、设计和运维文档 |
 
 ## 记忆导航
 
 | 任务 | 先读 |
 |------|------|
 | 业务规则 / 状态 / 术语 | [`domains/`](./domains/) |
-| 某服务怎么实现、类在哪 | `services/<名>/overview.md` |
+| 前端实现与结构调整 | [`services/alpha-web/overview.md`](./services/alpha-web/overview.md) |
+| 后端实现与模块落点 | [`services/alpha-server/overview.md`](./services/alpha-server/overview.md) |
 | 本地启动 / 构建 / 端口 | `services/<名>/local-dev.md` |
-| 前后端联调 / 跨服务字段 | [`contracts/`](./contracts/) |
+| 前后端联调 / 跨服务字段 | [`contracts/frontend-backend-common.md`](./contracts/frontend-backend-common.md) |
 
 ## 域注册表
 
 | 域 | 文档 | 一句话 |
 |----|------|--------|
-| （待补充） | `domains/<domain>.md` | … |
+| 访问控制 | [`domains/auth-rbac.md`](./domains/auth-rbac.md) | 登录会话、RBAC 与权限边界 |
+| 文件存储 | [`domains/file-storage.md`](./domains/file-storage.md) | 文件元数据、访问与删除规则 |
+| 参数配置 | [`domains/system-config.md`](./domains/system-config.md) | 可运营业务配置的持久化边界 |
+| Redis 运维 | [`domains/redis-management.md`](./domains/redis-management.md) | Redis 键空间的受限查询与单键处置 |
+| 数据字典 | [`domains/data-dictionary.md`](./domains/data-dictionary.md) | 可维护枚举类型与字典项 |
 
 新建域或服务文档时，先在本表或工作区结构表登记一行，再创建文件。模板见各目录下的 `_template*.md`。
 
