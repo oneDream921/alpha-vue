@@ -51,12 +51,18 @@ export interface Dept extends BaseEntity {
 
 export interface Config {
     id: number
+    configName: string
     configKey: string
     configValue: string
+    configGroup: string
+    dataType: ConfigDataType
+    enabled: boolean
     description?: string
     createdAt?: string
     updatedAt?: string
 }
+
+export type ConfigDataType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON'
 
 export interface DictType extends BaseEntity {
     typeCode: string
@@ -131,8 +137,12 @@ export type RoleUpdate = Omit<RoleCreate, 'code'>
 export type MenuSave = Omit<Menu, 'id' | 'createdAt'>
 export type DeptSave = Omit<Dept, 'id' | 'createdAt'>
 export interface ConfigSave {
+    configName: string
     configKey: string
     configValue: string
+    configGroup: string
+    dataType: ConfigDataType
+    enabled: boolean
     description?: string
 }
 export interface DictTypeSave {

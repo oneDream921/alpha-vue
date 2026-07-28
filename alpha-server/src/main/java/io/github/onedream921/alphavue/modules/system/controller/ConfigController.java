@@ -68,7 +68,7 @@ public class ConfigController extends BaseController {
     }
 
     /**
-     * 创建参数配置，不自动生效
+     * 创建参数配置并立即发布到 Redis
      */
     @Operation(summary = "创建参数配置")
     @PostMapping
@@ -79,7 +79,7 @@ public class ConfigController extends BaseController {
     }
 
     /**
-     * 更新参数配置，不自动生效
+     * 更新参数配置并立即发布到 Redis
      */
     @Operation(summary = "更新参数配置")
     @PutMapping("/{id}")
@@ -91,7 +91,7 @@ public class ConfigController extends BaseController {
     }
 
     /**
-     * 删除参数配置，不自动影响运行时配置
+     * 删除参数配置并移除 Redis 缓存
      */
     @Operation(summary = "删除参数配置")
     @DeleteMapping("/{id}")

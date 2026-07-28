@@ -51,7 +51,7 @@ public class ConfigService {
     }
 
     /**
-     * 创建参数配置，仅保存数据且不会自动生效
+     * 创建参数配置并在提交后发布运行时缓存
      */
     @Transactional
     public ConfigVo create(ConfigRequests.Save request) {
@@ -62,12 +62,13 @@ public class ConfigService {
         SysConfig config = new SysConfig();
         copy(request, config, configKey);
         configMapper.insertConfig(config);
-        evictCache(configKey);
-        return ConfigVo.from(config);
+        SysConfig saved = requireConfig(config.getId());
+        publishCache(saved);
+        return ConfigVo.from(saved);
     }
 
     /**
-     * 更新参数配置，仅保存数据且不会自动生效
+     * 更新参数配置并在提交后发布运行时缓存
      */
     @Transactional
     public ConfigVo update(long id, ConfigRequests.Save request) {
@@ -84,7 +85,9 @@ public class ConfigService {
         }
         evictCache(previousKey);
         if (!previousKey.equals(configKey)) evictCache(configKey);
-        return ConfigVo.from(config);
+        SysConfig saved = requireConfig(id);
+        publishCache(saved);
+        return ConfigVo.from(saved);
     }
 
     /**
@@ -107,17 +110,31 @@ public class ConfigService {
         String cached = configCacheStore.get(normalizedKey);
         if (cached != null) return cached;
         SysConfig config = configMapper.selectActiveByConfigKey(normalizedKey);
-        if (config == null) return null;
+        if (config == null || !Boolean.TRUE.equals(config.getEnabled())) return null;
         configCacheStore.put(normalizedKey, config.getConfigValue());
         return config.getConfigValue();
     }
 
     private void evictCache(String configKey) {
+        afterCommit(() -> configCacheStore.evict(configKey));
+    }
+
+    private void publishCache(SysConfig config) {
+        afterCommit(() -> {
+            if (Boolean.TRUE.equals(config.getEnabled())) {
+                configCacheStore.put(config.getConfigKey(), config.getConfigValue());
+            } else {
+                configCacheStore.evict(config.getConfigKey());
+            }
+        });
+    }
+
+    private void afterCommit(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() { configCacheStore.evict(configKey); }
+                @Override public void afterCommit() { action.run(); }
             });
-        } else configCacheStore.evict(configKey);
+        } else action.run();
     }
 
     private SysConfig requireConfig(long id) {
@@ -139,8 +156,12 @@ public class ConfigService {
     }
 
     private static void copy(ConfigRequests.Save request, SysConfig config, String configKey) {
+        config.setConfigName(request.configName().trim());
         config.setConfigKey(configKey);
         config.setConfigValue(request.configValue());
+        config.setConfigGroup(request.configGroup().trim());
+        config.setDataType(request.dataType());
+        config.setEnabled(request.enabled());
         config.setDescription(request.description() == null || request.description().isBlank()
                 ? null : request.description().trim());
     }

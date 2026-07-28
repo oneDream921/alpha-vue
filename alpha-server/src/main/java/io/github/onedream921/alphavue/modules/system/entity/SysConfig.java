@@ -11,7 +11,11 @@ import lombok.Setter;
 @Setter
 @TableName("sys_config")
 public class SysConfig extends SystemEntity {
+    private String configName;
     private String configKey;
     private String configValue;
+    private String configGroup;
+    private String dataType;
+    private Boolean enabled;
     private String description;
 }

@@ -7,6 +7,9 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.module.SimpleModule;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 /**
  * JSON 序列化配置
  *
@@ -14,6 +17,7 @@ import tools.jackson.databind.module.SimpleModule;
  */
 @Configuration
 public class JacksonLongAsStringConfig {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 将 Long 包装类型按字符串输出，保留浏览器可精确传回的主键值
@@ -25,6 +29,12 @@ public class JacksonLongAsStringConfig {
             @Override
             public void serialize(Long value, JsonGenerator generator, SerializationContext context) {
                 generator.writeString(value.toString());
+            }
+        });
+        module.addSerializer(LocalDateTime.class, new ValueSerializer<>() {
+            @Override
+            public void serialize(LocalDateTime value, JsonGenerator generator, SerializationContext context) {
+                generator.writeString(DATE_TIME_FORMATTER.format(value));
             }
         });
         return module;

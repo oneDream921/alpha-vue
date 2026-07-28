@@ -16,6 +16,7 @@
 | 角色     | `/system/roles` CRUD、`GET/PUT /{id}/menus`                       |
 | 菜单     | `/system/menus` CRUD                                              |
 | 部门     | `/system/depts` CRUD                                              |
+| 参数配置 | `/system/configs` CRUD；写入后立即发布或移除 Redis 运行时缓存       |
 | 字典     | `/system/dict-types` CRUD、`/system/dict-types/{typeId}/items`、`/system/dict-items/{id}`、`GET /system/dicts/{typeCode}/items`、`PUT /system/dicts/cache` |
 | 文件     | `GET /files`、`POST /files/upload`、`DELETE /files/{id}`          |
 | 日志     | `GET /logs/operations`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |

@@ -5,7 +5,8 @@
 <mapper namespace="io.github.onedream921.alphavue.modules.system.mapper.SysConfigMapper">
 
     <sql id="ConfigColumns">
-        id, config_key, config_value, description, deleted, created_at, updated_at
+        id, config_name, config_key, config_value, config_group, data_type, enabled, description,
+        deleted, created_at, updated_at
     </sql>
 
     <select id="selectPageActive" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfig">
@@ -28,14 +29,20 @@
     </select>
 
     <insert id="insertConfig" useGeneratedKeys="true" keyProperty="config.id">
-        INSERT INTO sys_config (config_key, config_value, description, deleted, created_at, updated_at)
-        VALUES (#{config.configKey}, #{config.configValue}, #{config.description}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, description,
+                                deleted, created_at, updated_at)
+        VALUES (#{config.configName}, #{config.configKey}, #{config.configValue}, #{config.configGroup},
+                #{config.dataType}, #{config.enabled}, #{config.description}, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     </insert>
 
     <update id="updateConfig">
         UPDATE sys_config
-        SET config_key = #{config.configKey},
+        SET config_name = #{config.configName},
+            config_key = #{config.configKey},
             config_value = #{config.configValue},
+            config_group = #{config.configGroup},
+            data_type = #{config.dataType},
+            enabled = #{config.enabled},
             description = #{config.description},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{config.id} AND deleted = 0

@@ -11,11 +11,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import io.github.onedream921.alphavue.modules.system.service.ConfigCacheStore;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,6 +35,9 @@ class ConfigControllerTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ConfigCacheStore configCacheStore;
 
     @BeforeEach
     void removeConfigFixtures() {
@@ -54,13 +59,15 @@ class ConfigControllerTests {
         MvcResult created = mockMvc.perform(post("/api/system/configs")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.notice\",\"configValue\":\"" + value
-                                + "\",\"description\":\"首页公告\"}"))
+                        .content(configBody("首页公告", "config-test.notice", value, "portal", "STRING", true, "首页公告")))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.configName").value("首页公告"))
                 .andExpect(jsonPath("$.data.configKey").value("config-test.notice"))
                 .andExpect(jsonPath("$.data.configValue").value(value))
+                .andExpect(jsonPath("$.data.createdAt").value(matchesPattern("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")))
                 .andReturn();
         long id = jsonId(created);
+        assertThat(configCacheStore.get("config-test.notice")).isEqualTo(value);
 
         mockMvc.perform(get("/api/system/configs?page=1&size=10")
                         .header("Authorization", bearer(token)))
@@ -72,11 +79,15 @@ class ConfigControllerTests {
         mockMvc.perform(put("/api/system/configs/{id}", id)
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.notice\",\"configValue\":\"updated-value\",\"description\":\"更新公告\"}"))
+                        .content(configBody("首页公告", "config-test.notice-v2", "updated-value", "portal", "STRING", true, "更新公告")))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.configKey").value("config-test.notice-v2"))
                 .andExpect(jsonPath("$.data.configValue").value("updated-value"));
+        assertThat(configCacheStore.get("config-test.notice")).isNull();
+        assertThat(configCacheStore.get("config-test.notice-v2")).isEqualTo("updated-value");
         mockMvc.perform(delete("/api/system/configs/{id}", id).header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
+        assertThat(configCacheStore.get("config-test.notice-v2")).isNull();
 
         assertThat(jdbcTemplate.queryForObject("SELECT deleted FROM sys_config WHERE id = ?", Long.class, id))
                 .isEqualTo(id);
@@ -92,25 +103,25 @@ class ConfigControllerTests {
         mockMvc.perform(post("/api/system/configs")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.unique\",\"configValue\":\"first\"}"))
+                        .content(configBody("唯一参数", "config-test.unique", "first", "general", "STRING", true, null)))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/system/configs")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.unique\",\"configValue\":\"second\"}"))
+                        .content(configBody("唯一参数", "config-test.unique", "second", "general", "STRING", true, null)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("请求参数错误"));
         for (String prefix : List.of("spring.", "server.", "datasource.", "redis.", "minio.", "sa-token.")) {
             mockMvc.perform(post("/api/system/configs")
                             .header("Authorization", bearer(token))
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"configKey\":\"" + prefix + "managed\",\"configValue\":\"forbidden\"}"))
+                            .content(configBody("受限参数", prefix + "managed", "forbidden", "general", "STRING", true, null)))
                     .andExpect(status().isBadRequest());
         }
         mockMvc.perform(post("/api/system/configs")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.api-token\",\"configValue\":\"forbidden\"}"))
+                        .content(configBody("受限参数", "config-test.api-token", "forbidden", "general", "STRING", true, null)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -128,7 +139,7 @@ class ConfigControllerTests {
         mockMvc.perform(post("/api/system/configs")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"configKey\":\"config-test.denied\",\"configValue\":\"blocked\"}"))
+                        .content(configBody("无权参数", "config-test.denied", "blocked", "general", "STRING", true, null)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(403));
         awaitRedactedAudit("Create configuration");
@@ -167,6 +178,14 @@ class ConfigControllerTests {
     private static long jsonId(MvcResult result) throws Exception {
         return Long.parseLong(result.getResponse().getContentAsString()
                 .replaceFirst("(?s).*\\\"id\\\"\\s*:\\s*\\\"?(\\d+)\\\"?.*", "$1"));
+    }
+
+    private static String configBody(String configName, String configKey, String configValue, String configGroup,
+                                     String dataType, boolean enabled, String description) {
+        String body = "{\"configName\":\"" + configName + "\",\"configKey\":\"" + configKey
+                + "\",\"configValue\":\"" + configValue + "\",\"configGroup\":\"" + configGroup
+                + "\",\"dataType\":\"" + dataType + "\",\"enabled\":" + enabled;
+        return description == null ? body + "}" : body + ",\"description\":\"" + description + "\"}";
     }
 
     private void awaitRedactedAudit(String operation) throws InterruptedException {
