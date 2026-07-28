@@ -9,7 +9,7 @@ import {
     SearchOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -42,6 +42,7 @@ interface MenuSearchOption {
 
 type MenuSearchValue = string | number | { value: string | number }
 type ScrollableContent = { scrollLeft: number; scrollTop: number }
+type FocusableSelect = ComponentPublicInstance & { focus?: () => void }
 type LayoutContentRef =
     ScrollableContent | (ComponentPublicInstance & { $el?: ScrollableContent })
 
@@ -52,8 +53,10 @@ const mobileDrawerOpen = ref(false)
 const desktopCollapsed = ref(viewportWidth.value < 1024)
 const openTabs = ref<OpenTab[]>([])
 const menuSearchValue = ref<string>()
+const menuSearchOpen = ref(false)
 const expandedNavigationGroups = ref<string[]>([])
 const appContentRef = ref<LayoutContentRef | null>(null)
+const menuSearchRef = ref<FocusableSelect | null>(null)
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -208,10 +211,22 @@ function filterMenuSearchOption(input: string, option?: MenuSearchOption) {
     return option?.label.toLowerCase().includes(input.toLowerCase()) ?? false
 }
 
+function openMenuSearch() {
+    menuSearchOpen.value = true
+    void nextTick(() => menuSearchRef.value?.focus?.())
+}
+
+function closeMenuSearchIfEmpty() {
+    if (!menuSearchValue.value) {
+        menuSearchOpen.value = false
+    }
+}
+
 async function handleMenuSearch(value: MenuSearchValue) {
     const path = typeof value === 'object' ? String(value.value) : String(value)
     await router.push(path)
     menuSearchValue.value = undefined
+    menuSearchOpen.value = false
     closeMobileNavigation()
 }
 
@@ -446,7 +461,18 @@ watch(() => route.fullPath, resetContentScroll)
                 </a-button>
                 <AppBreadcrumb :navigation="navigation" />
                 <span class="header-spacer" />
+                <a-button
+                    v-if="!menuSearchOpen"
+                    type="text"
+                    class="header-menu-search-trigger"
+                    aria-label="展开菜单搜索"
+                    title="搜索菜单"
+                    @click="openMenuSearch"
+                    ><SearchOutlined
+                /></a-button>
                 <a-select
+                    v-else
+                    ref="menuSearchRef"
                     v-model:value="menuSearchValue"
                     class="header-menu-search"
                     show-search
@@ -455,6 +481,7 @@ watch(() => route.fullPath, resetContentScroll)
                     option-filter-prop="label"
                     :filter-option="filterMenuSearchOption"
                     :options="menuSearchOptions"
+                    @blur="closeMenuSearchIfEmpty"
                     @select="handleMenuSearch"
                 >
                     <template #suffixIcon><SearchOutlined /></template>

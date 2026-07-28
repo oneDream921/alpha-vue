@@ -101,6 +101,26 @@ describe('BaseLayout', () => {
         expect(wrapper.get('[aria-label="折叠侧栏"]')).toBeTruthy()
     })
 
+    it('keeps the header menu search collapsed until the icon button is clicked', async () => {
+        window.innerWidth = 1024
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        expect(wrapper.find('.header-menu-search').exists()).toBe(false)
+
+        await wrapper.get('[aria-label="展开菜单搜索"]').trigger('click')
+
+        expect(wrapper.find('.header-menu-search').exists()).toBe(true)
+        expect(wrapper.find('[aria-label="展开菜单搜索"]').exists()).toBe(false)
+    })
+
     it('keeps grouped navigation collapsed by default and toggles child menus', async () => {
         authStore.setSession(
             'test-token',

@@ -244,7 +244,12 @@ body {
     flex: 1;
 }
 
+.header-menu-search-trigger {
+    flex: 0 0 auto;
+}
+
 .header-menu-search {
+    flex: 0 1 min(26vw, 260px);
     width: min(26vw, 260px);
     min-width: 180px;
 }
