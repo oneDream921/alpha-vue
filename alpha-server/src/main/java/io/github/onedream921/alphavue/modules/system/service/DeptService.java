@@ -73,9 +73,11 @@ public class DeptService extends ServiceImpl<SysDeptMapper, SysDept> {
     @Transactional
     public void delete(long id) {
         requireDept(id);
-        if (baseMapper.selectCount(new LambdaQueryWrapper<SysDept>().eq(SysDept::getParentId, id)) > 0
-                || userMapper.countByDeptId(id) > 0) {
-            throw invalidRequest();
+        if (baseMapper.selectCount(new LambdaQueryWrapper<SysDept>().eq(SysDept::getParentId, id)) > 0) {
+            throw new BusinessException(400, PublicErrorMessage.DEPT_HAS_CHILDREN);
+        }
+        if (userMapper.countByDeptId(id) > 0) {
+            throw new BusinessException(400, PublicErrorMessage.DEPT_HAS_USERS);
         }
         removeById(id);
     }

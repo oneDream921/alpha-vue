@@ -13,6 +13,8 @@ public enum PublicErrorMessage {
     DICT_TYPE_CODE_IMMUTABLE("字典类型编码不可修改"),
     DICT_ITEM_VALUE_EXISTS("字典项值已存在"),
     DICT_TYPE_HAS_ITEMS("请先删除该字典类型下的字典项"),
+    DEPT_HAS_CHILDREN("请先删除该部门下的子部门"),
+    DEPT_HAS_USERS("请先将该部门下的用户调整到其他部门"),
     LOGIN_TEMPORARILY_LOCKED("登录失败次数过多，请稍后再试"),
     UNAUTHORIZED("请先登录"),
     FORBIDDEN("没有操作权限"),
