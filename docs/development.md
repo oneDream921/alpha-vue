@@ -52,6 +52,25 @@ pnpm --dir alpha-web format:check
 pnpm --dir alpha-web build
 ```
 
+## 本地启停脚本
+
+```bash
+# 启动完整本地环境：先后端健康检查，再启动前端
+scripts/start-local.sh
+
+# 单独启动或停止前端、后端
+scripts/start-backend.sh
+scripts/stop-backend.sh
+scripts/start-frontend.sh
+scripts/stop-frontend.sh
+
+# 单独启动或停止 MySQL、Redis、MinIO 依赖容器
+scripts/start-dependencies.sh
+scripts/stop-dependencies.sh
+```
+
+脚本安全读取 `deploy/.env`，不会 shell source 该文件。停止脚本只处理对应应用的非 Docker 进程，不会停止 MySQL、Redis 或 MinIO 依赖容器。
+
 Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用 Druid 业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
 
 开发环境后端启动后可访问 `/druid/index.html` 查看 Druid 监控，默认账号来自 `DRUID_USERNAME` / `DRUID_PASSWORD`。管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。SQL 日志的保留边界、生产启用条件和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。

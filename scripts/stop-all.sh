@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+"$SCRIPT_DIR/stop-frontend.sh"
+"$SCRIPT_DIR/stop-backend.sh"
+
+echo "Frontend and backend stopped."
