@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import { menuTrailForPath, type NavigationNode } from './navigation'
+
 interface BreadcrumbItem {
+    key: string
     title: string
-    path: string
+    path?: string
 }
 
-const dashboardItem: BreadcrumbItem = { title: '工作台', path: '/' }
-const maxBreadcrumbItems = 6
 const route = useRoute()
-const visitedItems = ref<BreadcrumbItem[]>([])
+
+const props = defineProps<{
+    navigation: NavigationNode[]
+}>()
 
 function currentRouteTitle() {
     return typeof route.meta.title === 'string'
@@ -18,41 +22,24 @@ function currentRouteTitle() {
         : '管理控制台'
 }
 
-function currentRoutePath() {
-    return typeof route.fullPath === 'string' && route.fullPath.length > 0
-        ? route.fullPath
-        : route.path
-}
-
-function rememberCurrentRoute() {
+const breadcrumbs = computed<BreadcrumbItem[]>(() => {
     if (route.meta.breadcrumb === false) {
-        return
+        return []
     }
 
-    const currentItem: BreadcrumbItem = {
-        title: currentRouteTitle(),
-        path: currentRoutePath(),
-    }
-    const previousItems = visitedItems.value.filter(
-        (item) => item.path !== currentItem.path,
-    )
-
-    visitedItems.value = [...previousItems, currentItem].slice(
-        -maxBreadcrumbItems,
-    )
-}
-
-watch(
-    () => [route.fullPath, route.path, route.meta.title, route.meta.breadcrumb],
-    rememberCurrentRoute,
-    { immediate: true },
-)
-
-const breadcrumbs = computed(() => {
-    if (visitedItems.value.some((item) => item.path === dashboardItem.path)) {
-        return visitedItems.value
-    }
-    return [dashboardItem, ...visitedItems.value]
+    const menuTrail = menuTrailForPath(route.path, props.navigation)
+    return menuTrail.length > 0
+        ? menuTrail.map((item) => ({
+              key: item.key,
+              title: item.title,
+              path: item.path,
+          }))
+        : [
+              {
+                  key: `route:${route.path}`,
+                  title: currentRouteTitle(),
+              },
+          ]
 })
 </script>
 
@@ -71,7 +58,14 @@ const breadcrumbs = computed(() => {
                 :to="item.path"
                 >{{ item.title }}</RouterLink
             >
-            <span v-else class="breadcrumb-current">{{ item.title }}</span>
+            <span
+                v-else
+                :class="{
+                    'breadcrumb-current': index === breadcrumbs.length - 1,
+                    'breadcrumb-parent': index < breadcrumbs.length - 1,
+                }"
+                >{{ item.title }}</span
+            >
         </a-breadcrumb-item>
     </a-breadcrumb>
 </template>

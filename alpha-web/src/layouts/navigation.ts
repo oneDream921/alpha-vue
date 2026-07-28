@@ -271,6 +271,26 @@ export function tabTitleForPath(
     )
 }
 
+export function menuTrailForPath(
+    path: string,
+    nodes: readonly NavigationNode[],
+): NavigationNode[] {
+    for (const node of nodes) {
+        if (node.path === path) {
+            return [node]
+        }
+
+        if (node.children) {
+            const childTrail = menuTrailForPath(path, node.children)
+            if (childTrail.length > 0) {
+                return [node, ...childTrail]
+            }
+        }
+    }
+
+    return []
+}
+
 export function closeTabAt(
     tabs: readonly OpenTab[],
     targetPath: string,

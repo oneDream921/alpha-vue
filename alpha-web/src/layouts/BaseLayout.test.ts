@@ -206,7 +206,40 @@ describe('BaseLayout', () => {
         expect(wrapper.text()).not.toContain('Users')
     })
 
-    it('renders visited breadcrumb entries with the current page as the last item', () => {
+    it('renders the current page menu path in the header breadcrumb', () => {
+        authStore.setSession(
+            'test-token',
+            {
+                id: 1,
+                username: 'admin',
+                roles: ['SUPER_ADMIN'],
+                permissions: ['*'],
+                mustChangePassword: false,
+            },
+            [
+                {
+                    id: 2,
+                    parentId: 0,
+                    title: '系统管理',
+                    menuType: 'MENU',
+                    path: '/system',
+                    component: 'Layout',
+                    icon: 'SettingOutlined',
+                    sortOrder: 2,
+                },
+                {
+                    id: 3,
+                    parentId: 2,
+                    title: 'Users',
+                    menuType: 'MENU',
+                    path: 'users',
+                    component: 'system/users',
+                    permission: 'system:user:list',
+                    icon: 'UserOutlined',
+                    sortOrder: 1,
+                },
+            ],
+        )
         routeMock.path = '/system/users'
         routeMock.fullPath = '/system/users'
         routeMock.meta = {
@@ -226,9 +259,9 @@ describe('BaseLayout', () => {
         const breadcrumb = wrapper.get('.app-breadcrumb')
         const currentItems = wrapper.findAll('.breadcrumb-current')
 
-        expect(breadcrumb.text()).toContain('工作台')
+        expect(breadcrumb.text()).toContain('系统管理')
         expect(breadcrumb.text()).toContain('用户管理')
-        expect(wrapper.get('.app-breadcrumb a').text()).toBe('工作台')
+        expect(wrapper.find('.app-breadcrumb a').exists()).toBe(false)
         expect(currentItems[currentItems.length - 1].text()).toBe('用户管理')
     })
 

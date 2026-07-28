@@ -426,7 +426,7 @@ watch(
                     <MenuUnfoldOutlined v-if="sidebarCollapsed" />
                     <MenuFoldOutlined v-else />
                 </a-button>
-                <AppBreadcrumb />
+                <AppBreadcrumb :navigation="navigation" />
                 <span class="header-spacer" />
                 <a-select
                     v-model:value="menuSearchValue"

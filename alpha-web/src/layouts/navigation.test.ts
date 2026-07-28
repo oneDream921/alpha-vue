@@ -6,6 +6,7 @@ import {
     closeTabsExcept,
     closeTabsLeftOf,
     flattenNavigationLeaves,
+    menuTrailForPath,
     tabTitleForPath,
     type OpenTab,
 } from './navigation'
@@ -66,6 +67,11 @@ describe('layout navigation', () => {
         expect(
             flattenNavigationLeaves(navigation).map((item) => item.path),
         ).toContain('/system/users')
+        expect(
+            menuTrailForPath('/system/users', navigation).map(
+                (item) => item.title,
+            ),
+        ).toEqual(['系统管理', '用户管理'])
         expect(tabTitleForPath('/system/users', navigation, 'Users')).toBe(
             '用户管理',
         )
