@@ -121,11 +121,11 @@ body {
     gap: 10px;
     align-items: center;
     width: 100%;
-    min-height: 32px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 10px 12px;
     color: #667085;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 400;
     font-family: inherit;
     text-align: left;
     background: transparent;
@@ -214,6 +214,13 @@ body {
     color: var(--alpha-text);
 }
 
+.app-header > .ant-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
 .app-header .ant-btn-text:hover {
     color: var(--alpha-primary-strong) !important;
     background: var(--alpha-primary-soft) !important;
@@ -267,18 +274,24 @@ body {
 
 .header-menu-search-trigger {
     flex: 0 0 auto;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 20px !important;
 }
 
-.header-menu-search {
-    flex: 0 1 min(26vw, 260px);
-    width: min(26vw, 260px);
-    min-width: 180px;
+.header-menu-search-trigger .anticon {
+    font-size: 20px;
+    line-height: 1;
 }
 
-.header-user-cluster {
-    display: flex;
-    gap: 9px;
+.header-account-trigger {
+    display: inline-flex !important;
+    gap: 12px !important;
     align-items: center;
+    width: auto !important;
+    height: 36px !important;
+    padding: 3px 8px !important;
+    border-radius: var(--alpha-radius) !important;
 }
 
 .header-avatar {
@@ -293,6 +306,48 @@ body {
 .header-user {
     color: #475467;
     font-size: 13px;
+}
+
+.command-menu-modal .ant-modal-body {
+    padding-top: 4px;
+}
+
+.command-menu-list {
+    max-height: min(46vh, 360px);
+    margin-top: 12px;
+    overflow-y: auto;
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+}
+
+.command-menu-option {
+    min-height: 44px;
+    padding-inline: 14px !important;
+    color: #344054;
+    cursor: pointer;
+}
+
+.command-menu-option:hover,
+.command-menu-option:focus-visible {
+    color: var(--alpha-primary-strong);
+    background: var(--alpha-primary-soft);
+    outline: none;
+}
+
+.command-menu-hint {
+    margin: 12px 0 0;
+    color: var(--alpha-muted);
+    font-size: 12px;
+}
+
+.account-menu-label {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.account-menu-label .anticon {
+    margin-right: 0 !important;
 }
 
 .app-content {
@@ -682,6 +737,11 @@ body {
     text-align: left;
 }
 
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-measure-row > td {
+    padding: 0 !important;
+    border: 0 !important;
+}
+
 .ant-table-wrapper .ant-table-cell-align-center {
     text-align: center !important;
 }
@@ -1007,11 +1067,6 @@ body {
         gap: 8px;
     }
 
-    .header-menu-search {
-        width: min(42vw, 180px);
-        min-width: 126px;
-    }
-
     .navigation-child-link {
         margin-left: 10px;
     }
@@ -1035,8 +1090,8 @@ body {
         grid-template-columns: 1fr;
         gap: 0;
     }
-    .header-user {
-        display: none;
+    .header-account-trigger .header-user {
+        display: none !important;
     }
 
     .app-breadcrumb .ant-breadcrumb-link {

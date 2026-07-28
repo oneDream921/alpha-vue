@@ -7,6 +7,7 @@ import {
     MenuUnfoldOutlined,
     RightOutlined,
     SearchOutlined,
+    UserOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -41,9 +42,8 @@ interface MenuSearchOption {
     value: string
 }
 
-type MenuSearchValue = string | number | { value: string | number }
 type ScrollableContent = { scrollLeft: number; scrollTop: number }
-type FocusableSelect = ComponentPublicInstance & { focus?: () => void }
+type FocusableInput = ComponentPublicInstance & { focus?: () => void }
 type LayoutContentRef =
     ScrollableContent | (ComponentPublicInstance & { $el?: ScrollableContent })
 
@@ -53,11 +53,11 @@ const viewportWidth = ref(
 const mobileDrawerOpen = ref(false)
 const desktopCollapsed = ref(viewportWidth.value < 1024)
 const openTabs = ref<OpenTab[]>([])
-const menuSearchValue = ref<string>()
+const menuSearchValue = ref('')
 const menuSearchOpen = ref(false)
 const expandedNavigationGroups = ref<string[]>([])
 const appContentRef = ref<LayoutContentRef | null>(null)
-const menuSearchRef = ref<FocusableSelect | null>(null)
+const menuSearchRef = ref<FocusableInput | null>(null)
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -79,6 +79,14 @@ const menuSearchOptions = computed<MenuSearchOption[]>(() =>
         value: item.path,
     })),
 )
+const filteredMenuSearchOptions = computed(() => {
+    const keyword = menuSearchValue.value.trim().toLowerCase()
+    return keyword
+        ? menuSearchOptions.value.filter((item) =>
+              item.label.toLowerCase().includes(keyword),
+          )
+        : menuSearchOptions.value
+})
 const displayName = computed(
     () =>
         authStore.state.profile?.nickname ||
@@ -121,6 +129,21 @@ function toggleNavigationGroup(key: string) {
 
 function hasActiveChild(children: readonly { path?: string }[] | undefined) {
     return children?.some((child) => child.path && isActivePath(child.path))
+}
+
+function expandActiveNavigationGroup() {
+    const activeGroup = navigation.value.find((item) =>
+        item.children?.some((child) => child.path === route.path),
+    )
+    if (
+        activeGroup?.children &&
+        !expandedNavigationGroups.value.includes(activeGroup.key)
+    ) {
+        expandedNavigationGroups.value = [
+            ...expandedNavigationGroups.value,
+            activeGroup.key,
+        ]
+    }
 }
 
 function addCurrentTab() {
@@ -224,27 +247,59 @@ async function handleTabContextClick(tabPath: string, event: MenuClickEvent) {
     }
 }
 
-function filterMenuSearchOption(input: string, option?: MenuSearchOption) {
-    return option?.label.toLowerCase().includes(input.toLowerCase()) ?? false
-}
-
 function openMenuSearch() {
+    menuSearchValue.value = ''
     menuSearchOpen.value = true
     void nextTick(() => menuSearchRef.value?.focus?.())
 }
 
-function closeMenuSearchIfEmpty() {
-    if (!menuSearchValue.value) {
-        menuSearchOpen.value = false
+function selectFirstMenuSearchOption() {
+    const firstOption = filteredMenuSearchOptions.value[0]
+    if (firstOption) {
+        void handleMenuSearch(firstOption.value)
     }
 }
 
-async function handleMenuSearch(value: MenuSearchValue) {
-    const path = typeof value === 'object' ? String(value.value) : String(value)
+async function handleMenuSearch(path: string) {
     await router.push(path)
-    menuSearchValue.value = undefined
+    expandActiveNavigationGroup()
+    menuSearchValue.value = ''
     menuSearchOpen.value = false
     closeMobileNavigation()
+}
+
+async function handleAccountMenuClick(event: MenuClickEvent) {
+    if (event.key === 'profile') {
+        await router.push('/profile')
+        return
+    }
+    if (event.key === 'logout') {
+        logout()
+    }
+}
+
+function handleGlobalShortcut(event: globalThis.KeyboardEvent) {
+    if (
+        event.key.toLowerCase() !== 'k' ||
+        (!event.metaKey && !event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey
+    ) {
+        return
+    }
+
+    const target = event.target
+    if (
+        target instanceof globalThis.HTMLElement &&
+        (target.isContentEditable ||
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA')
+    ) {
+        return
+    }
+
+    event.preventDefault()
+    openMenuSearch()
 }
 
 function resetContentScroll() {
@@ -283,15 +338,23 @@ async function performLogout() {
 onMounted(() => {
     updateViewport()
     window.addEventListener('resize', updateViewport)
+    window.addEventListener('keydown', handleGlobalShortcut)
 })
 
-onBeforeUnmount(() => window.removeEventListener('resize', updateViewport))
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateViewport)
+    window.removeEventListener('keydown', handleGlobalShortcut)
+})
 
 watch(
     () => [route.fullPath, route.path, route.meta.title, navigation.value],
     addCurrentTab,
     { immediate: true },
 )
+
+watch(() => [route.path, navigation.value], expandActiveNavigationGroup, {
+    immediate: true,
+})
 
 watch(() => route.fullPath, resetContentScroll)
 </script>
@@ -501,47 +564,86 @@ watch(() => route.fullPath, resetContentScroll)
                 <AppBreadcrumb :navigation="navigation" />
                 <span class="header-spacer" />
                 <a-button
-                    v-if="!menuSearchOpen"
                     type="text"
                     class="header-menu-search-trigger"
-                    aria-label="展开菜单搜索"
-                    title="搜索菜单"
+                    aria-label="打开快捷导航"
+                    title="快捷导航（⌘/Ctrl + K）"
                     @click="openMenuSearch"
                     ><SearchOutlined
                 /></a-button>
-                <a-select
-                    v-else
+                <a-dropdown :trigger="['click']">
+                    <a-button
+                        type="text"
+                        class="header-account-trigger"
+                        aria-label="打开账户菜单"
+                        title="账户菜单"
+                    >
+                        <a-avatar
+                            :size="30"
+                            :src="authStore.state.profile?.avatar"
+                            class="header-avatar"
+                            >{{ avatarText }}</a-avatar
+                        >
+                        <span class="header-user">{{ displayName }}</span>
+                    </a-button>
+                    <template #overlay>
+                        <a-menu @click="handleAccountMenuClick">
+                            <a-menu-item key="profile">
+                                <span class="account-menu-label">
+                                    <UserOutlined />
+                                    <span>个人中心</span>
+                                </span>
+                            </a-menu-item>
+                            <a-menu-divider />
+                            <a-menu-item
+                                key="logout"
+                                data-testid="account-logout"
+                            >
+                                <span class="account-menu-label">
+                                    <LogoutOutlined />
+                                    <span>退出登录</span>
+                                </span>
+                            </a-menu-item>
+                        </a-menu>
+                    </template>
+                </a-dropdown>
+            </a-layout-header>
+            <a-modal
+                v-model:open="menuSearchOpen"
+                class="command-menu-modal"
+                title="快捷导航"
+                :footer="null"
+                :width="520"
+                @cancel="menuSearchValue = ''"
+            >
+                <a-input
                     ref="menuSearchRef"
                     v-model:value="menuSearchValue"
-                    class="header-menu-search"
-                    show-search
-                    allow-clear
-                    placeholder="搜索菜单"
-                    option-filter-prop="label"
-                    :filter-option="filterMenuSearchOption"
-                    :options="menuSearchOptions"
-                    @blur="closeMenuSearchIfEmpty"
-                    @select="handleMenuSearch"
+                    class="command-menu-input"
+                    placeholder="搜索可访问的菜单"
+                    @press-enter="selectFirstMenuSearchOption"
                 >
-                    <template #suffixIcon><SearchOutlined /></template>
-                </a-select>
-                <div class="header-user-cluster">
-                    <a-avatar
-                        :size="30"
-                        :src="authStore.state.profile?.avatar"
-                        class="header-avatar"
-                        >{{ avatarText }}</a-avatar
-                    >
-                    <span class="header-user">{{ displayName }}</span>
-                </div>
-                <a-button
-                    type="text"
-                    aria-label="退出登录"
-                    title="退出登录"
-                    @click="logout"
-                    ><LogoutOutlined
-                /></a-button>
-            </a-layout-header>
+                    <template #prefix><SearchOutlined /></template>
+                </a-input>
+                <a-list
+                    class="command-menu-list"
+                    :data-source="filteredMenuSearchOptions"
+                    :locale="{ emptyText: '没有匹配的菜单' }"
+                >
+                    <template #renderItem="{ item }">
+                        <a-list-item
+                            class="command-menu-option"
+                            tabindex="0"
+                            role="button"
+                            @click="handleMenuSearch(item.value)"
+                            @keydown.enter="handleMenuSearch(item.value)"
+                        >
+                            {{ item.label }}
+                        </a-list-item>
+                    </template>
+                </a-list>
+                <p class="command-menu-hint">按 Enter 打开第一项</p>
+            </a-modal>
             <div class="page-tabs" aria-label="已打开页面">
                 <a-dropdown
                     v-for="tab in openTabs"

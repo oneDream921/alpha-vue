@@ -309,7 +309,8 @@ function checkedKeyArray(value: unknown) {
                 :data-source="rows"
                 :loading="loading"
                 :pagination="false"
-                :scroll="{ x: 1540 }"
+                table-layout="fixed"
+                :scroll="{ x: 1500 }"
             >
                 <a-table-column title="时间" data-index="createdAt" width="110">
                     <template #default="{ text }">{{
@@ -338,7 +339,7 @@ function checkedKeyArray(value: unknown) {
                 <a-table-column
                     title="结果"
                     data-index="resultSize"
-                    :width="220"
+                    :width="180"
                 >
                     <template #default="{ text }">{{ text ?? '-' }}</template>
                 </a-table-column>
@@ -468,7 +469,15 @@ function checkedKeyArray(value: unknown) {
 
 .sql-table-wrap {
     width: 100%;
-    overflow-x: auto;
+    overflow: hidden;
+    background: var(--alpha-surface);
+    border: 1px solid #e4e7ec;
+    border-radius: var(--alpha-radius);
+    box-shadow: 0 1px 2px rgb(16 24 40 / 4%);
+}
+
+.sql-table-wrap :deep(.ant-table-content) {
+    overflow-x: auto !important;
 }
 
 .sql-preview-cell {
@@ -513,7 +522,10 @@ function checkedKeyArray(value: unknown) {
     }
 
     .sql-type-select,
-    .sql-limit-select,
+    .sql-limit-select {
+        width: min(100%, 280px);
+    }
+
     .sql-keyword-search {
         width: 100%;
         min-width: 0;

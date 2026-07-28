@@ -101,7 +101,7 @@ describe('BaseLayout', () => {
         expect(wrapper.get('[aria-label="折叠侧栏"]')).toBeTruthy()
     })
 
-    it('keeps the header menu search collapsed until the icon button is clicked', async () => {
+    it('opens the dynamic menu command panel from the header shortcut', async () => {
         window.innerWidth = 1024
         const wrapper = mount(BaseLayout, {
             global: {
@@ -113,12 +113,13 @@ describe('BaseLayout', () => {
             },
         })
 
-        expect(wrapper.find('.header-menu-search').exists()).toBe(false)
+        expect(document.body.querySelector('.command-menu-modal')).toBeNull()
 
-        await wrapper.get('[aria-label="展开菜单搜索"]').trigger('click')
+        await wrapper.get('[aria-label="打开快捷导航"]').trigger('click')
 
-        expect(wrapper.find('.header-menu-search').exists()).toBe(true)
-        expect(wrapper.find('[aria-label="展开菜单搜索"]').exists()).toBe(false)
+        const commandMenu = document.body.querySelector('.command-menu-modal')
+        expect(commandMenu).not.toBeNull()
+        expect(commandMenu?.textContent).toContain('快捷导航')
     })
 
     it('asks for confirmation before logging out', async () => {
@@ -135,7 +136,13 @@ describe('BaseLayout', () => {
             },
         })
 
-        await wrapper.get('[aria-label="退出登录"]').trigger('click')
+        await wrapper.get('[aria-label="打开账户菜单"]').trigger('click')
+        await wrapper.vm.$nextTick()
+        const logoutItem = document.body.querySelector(
+            '[data-testid="account-logout"]',
+        )
+        expect(logoutItem).not.toBeNull()
+        logoutItem?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 
         expect(confirm).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -214,6 +221,60 @@ describe('BaseLayout', () => {
         await wrapper.get('[aria-label="收起系统管理"]').trigger('click')
 
         expect(wrapper.text()).not.toContain('用户管理')
+    })
+
+    it('expands and highlights the active parent group after route navigation', () => {
+        authStore.setSession(
+            'test-token',
+            {
+                id: 1,
+                username: 'admin',
+                roles: ['SUPER_ADMIN'],
+                permissions: ['*'],
+                mustChangePassword: false,
+            },
+            [
+                {
+                    id: 2,
+                    parentId: 0,
+                    title: '系统管理',
+                    menuType: 'MENU',
+                    path: '/system',
+                    component: 'Layout',
+                    icon: 'SettingOutlined',
+                    sortOrder: 2,
+                },
+                {
+                    id: 4,
+                    parentId: 2,
+                    title: '角色管理',
+                    menuType: 'MENU',
+                    path: 'roles',
+                    component: 'system/roles',
+                    permission: 'system:role:list',
+                    icon: 'SafetyOutlined',
+                    sortOrder: 2,
+                },
+            ],
+        )
+        routeMock.path = '/system/roles'
+        routeMock.fullPath = '/system/roles'
+        routeMock.meta = { title: '角色管理' }
+
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+
+        expect(wrapper.get('[aria-label="收起系统管理"]')).toBeTruthy()
+        expect(wrapper.get('.navigation-link-active').text()).toContain(
+            '角色管理',
+        )
     })
 
     it('uses the fixed Chinese navigation labels instead of route-title fallbacks', () => {
