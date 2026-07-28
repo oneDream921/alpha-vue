@@ -10,7 +10,6 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
-import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     dictApi,
     type DictItem,
@@ -20,7 +19,6 @@ import {
 } from '@/service/system'
 import { dictStore } from '@/stores/dict'
 import {
-    dictionaryTypeRow,
     dictPageFromTableChange,
     itemPageForTypeSelection,
 } from './dicts.pagination'
@@ -29,7 +27,7 @@ import { validateItemValue, validateTypeCode } from './dicts.validation'
 const typeRows = ref<DictType[]>([])
 const typeTotal = ref(0)
 const typePage = ref(1)
-const typePageSize = ref(10)
+const typePageSize = ref(100)
 const typeLoading = ref(false)
 const typeKeyword = ref('')
 const selectedType = ref<DictType>()
@@ -38,6 +36,8 @@ const itemTotal = ref(0)
 const itemPage = ref(1)
 const itemPageSize = ref(10)
 const itemLoading = ref(false)
+const itemKeyword = ref('')
+const selectedItemKeys = ref<(string | number)[]>([])
 const typeEditorOpen = ref(false)
 const itemEditorOpen = ref(false)
 const cacheRefreshing = ref(false)
@@ -108,6 +108,19 @@ const filteredTypeRows = computed(() => {
           )
         : typeRows.value
 })
+const typeTreeData = computed(() =>
+    filteredTypeRows.value.map((type) => ({ key: type.id, title: type })),
+)
+const filteredItemRows = computed(() => {
+    const keyword = itemKeyword.value.trim().toLowerCase()
+    return keyword
+        ? itemRows.value.filter((item) =>
+              `${item.label} ${item.value} ${item.remark ?? ''}`
+                  .toLowerCase()
+                  .includes(keyword),
+          )
+        : itemRows.value
+})
 
 async function loadTypes() {
     typeLoading.value = true
@@ -154,22 +167,18 @@ async function selectType(type: DictType) {
     itemPageSize.value = next.pageSize
     itemRows.value = []
     itemTotal.value = 0
+    selectedItemKeys.value = []
     if (next.shouldLoad) await loadItems()
 }
-function typeRow(type: DictType) {
-    return dictionaryTypeRow(type, (selectedType) => {
-        void selectType(selectedType)
-    })
-}
-function changeTypePage(pagination: { current?: number; pageSize?: number }) {
-    const next = dictPageFromTableChange(
-        pagination,
-        typePage.value,
-        typePageSize.value,
-    )
-    typePage.value = next.page
-    typePageSize.value = next.pageSize
+function changeTypePage(nextPage: number, nextPageSize: number) {
+    typePage.value = nextPage
+    typePageSize.value = nextPageSize
     void loadTypes()
+}
+function handleTypeTreeSelect(selectedKeys: (string | number)[]) {
+    const selectedId = Number(selectedKeys[0])
+    const type = typeRows.value.find((item) => item.id === selectedId)
+    if (type) void selectType(type)
 }
 function changeItemPage(pagination: { current?: number; pageSize?: number }) {
     const next = dictPageFromTableChange(
@@ -180,6 +189,20 @@ function changeItemPage(pagination: { current?: number; pageSize?: number }) {
     itemPage.value = next.page
     itemPageSize.value = next.pageSize
     void loadItems()
+}
+function changeSelectedItems(keys: (string | number)[]) {
+    selectedItemKeys.value = keys
+}
+function formatTime(value?: string) {
+    if (!value) return '-'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '-'
+    const pad = (part: number) => String(part).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+        date.getDate(),
+    )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds(),
+    )}`
 }
 function openTypeCreate() {
     editingTypeId.value = undefined
@@ -281,199 +304,266 @@ function removeItem(item: DictItem) {
         },
     })
 }
+function removeSelectedItems() {
+    const count = selectedItemKeys.value.length
+    if (!count) return
+    Modal.confirm({
+        title: `删除选中的 ${count} 个字典项？`,
+        content: '删除后无法恢复，请确认选择无误。',
+        okType: 'danger',
+        async onOk() {
+            await Promise.all(
+                selectedItemKeys.value.map((id) =>
+                    dictApi.deleteItem(Number(id)),
+                ),
+            )
+            selectedItemKeys.value = []
+            message.success('删除成功')
+            await loadItems()
+        },
+    })
+}
 
 onMounted(loadTypes)
 </script>
 
 <template>
-    <section class="page-section">
-        <div class="page-heading">
-            <div>
-                <h1>数据字典</h1>
-                <p>维护业务字段的统一可选值</p>
-            </div>
-            <a-space>
-                <a-button
-                    v-permission="'system:dict:update'"
-                    :loading="cacheRefreshing"
-                    @click="refreshDictCache"
-                    ><SyncOutlined />刷新缓存</a-button
-                >
-                <a-button @click="loadTypes"><ReloadOutlined />刷新</a-button>
-            </a-space>
-        </div>
-        <a-row :gutter="16"
-            ><a-col :xs="24" :lg="10"
-                ><a-card title="字典类型">
-                    <template #extra
-                        ><a-button
-                            v-permission="'system:dict:create'"
-                            type="primary"
-                            size="small"
-                            @click="openTypeCreate"
-                            ><PlusOutlined />新增</a-button
-                        ></template
-                    >
-                    <div class="query-bar">
-                        <a-input-search
-                            v-model:value="typeKeyword"
-                            allow-clear
-                            placeholder="搜索类型编码或名称"
-                        /><a-button @click="typeKeyword = ''">重置</a-button>
-                    </div>
-                    <a-table
-                        row-key="id"
-                        :data-source="filteredTypeRows"
-                        :loading="typeLoading"
-                        :scroll="{ x: 540 }"
-                        :pagination="{
-                            current: typePage,
-                            pageSize: typePageSize,
-                            total: typeTotal,
-                            showSizeChanger: true,
-                        }"
-                        :custom-row="typeRow"
+    <section class="page-section dict-page">
+        <a-row :gutter="20" class="dict-layout">
+            <a-col :xs="24" :lg="8" :xl="7">
+                <aside class="dict-type-panel">
+                    <header class="dict-panel-header">
+                        <h1>字典类型列表</h1>
+                        <a-space :size="4">
+                            <a-button
+                                v-permission="'system:dict:create'"
+                                type="text"
+                                aria-label="新增字典类型"
+                                title="新增字典类型"
+                                @click="openTypeCreate"
+                                ><PlusOutlined
+                            /></a-button>
+                            <a-button
+                                type="text"
+                                aria-label="刷新字典类型"
+                                title="刷新字典类型"
+                                @click="loadTypes"
+                                ><ReloadOutlined
+                            /></a-button>
+                        </a-space>
+                    </header>
+                    <a-input
+                        v-model:value="typeKeyword"
+                        allow-clear
+                        class="dict-type-search"
+                        placeholder="请输入关键词搜索"
+                    />
+                    <a-spin :spinning="typeLoading">
+                        <a-tree
+                            class="dict-type-tree"
+                            block-node
+                            show-line
+                            :tree-data="typeTreeData"
+                            :selected-keys="
+                                selectedType ? [selectedType.id] : []
+                            "
+                            @select="handleTypeTreeSelect"
+                        >
+                            <template #title="{ title: type }">
+                                <div
+                                    class="dict-type-tree-node"
+                                    @click.stop="selectType(type)"
+                                >
+                                    <a-tooltip
+                                        :title="`${type.typeName}（${type.typeCode}）`"
+                                    >
+                                        <span class="dict-type-list-item"
+                                            ><strong>{{ type.typeName }}</strong
+                                            ><span
+                                                >（{{ type.typeCode }}）</span
+                                            ></span
+                                        >
+                                    </a-tooltip>
+                                    <div class="dict-type-actions">
+                                        <a-button
+                                            v-permission="'system:dict:update'"
+                                            type="text"
+                                            size="small"
+                                            aria-label="编辑字典类型"
+                                            title="编辑字典类型"
+                                            @click.stop="openTypeEdit(type)"
+                                            ><EditOutlined
+                                        /></a-button>
+                                        <a-button
+                                            v-permission="'system:dict:delete'"
+                                            type="text"
+                                            danger
+                                            size="small"
+                                            aria-label="删除字典类型"
+                                            title="删除字典类型"
+                                            @click.stop="removeType(type)"
+                                            ><DeleteOutlined
+                                        /></a-button>
+                                    </div>
+                                </div>
+                            </template>
+                        </a-tree>
+                        <a-empty
+                            v-if="!typeLoading && typeTreeData.length === 0"
+                            description="暂无字典类型"
+                            :image-style="{ height: '72px' }"
+                        />
+                    </a-spin>
+                    <a-pagination
+                        v-if="typeTotal > typePageSize"
+                        class="dict-type-pagination"
+                        size="small"
+                        :current="typePage"
+                        :page-size="typePageSize"
+                        :total="typeTotal"
+                        :show-size-changer="true"
                         @change="changeTypePage"
-                    >
-                        <a-table-column
-                            title="类型编码"
-                            data-index="typeCode"
-                        /><a-table-column
-                            title="类型名称"
-                            data-index="typeName"
-                        /><a-table-column
-                            title="状态"
-                            width="100"
-                            align="center"
-                            ><template #default="{ record }"
-                                ><a-badge
-                                    :status="
-                                        record.status === 1
-                                            ? 'success'
-                                            : 'default'
+                    />
+                </aside>
+            </a-col>
+            <a-col :xs="24" :lg="16" :xl="17">
+                <div class="dict-content-area">
+                    <a-collapse ghost class="dict-search-panel">
+                        <a-collapse-panel key="search" header="搜索">
+                            <div class="dict-search-form">
+                                <a-input
+                                    v-model:value="itemKeyword"
+                                    allow-clear
+                                    placeholder="搜索字典标签、键值或备注"
+                                />
+                                <a-button @click="itemKeyword = ''"
+                                    >重置</a-button
+                                >
+                            </div>
+                        </a-collapse-panel>
+                    </a-collapse>
+                    <section class="dict-data-panel">
+                        <header class="dict-data-toolbar">
+                            <h2>
+                                {{
+                                    selectedType
+                                        ? `${selectedType.typeName}（${selectedType.typeCode}）`
+                                        : '字典列表'
+                                }}
+                            </h2>
+                            <div class="dict-toolbar-actions">
+                                <a-button
+                                    v-permission="'system:dict:update'"
+                                    :loading="cacheRefreshing"
+                                    @click="refreshDictCache"
+                                    ><SyncOutlined />刷新缓存</a-button
+                                >
+                                <a-button
+                                    v-permission="'system:dict:create'"
+                                    type="primary"
+                                    :disabled="!selectedType"
+                                    @click="openItemCreate"
+                                    ><PlusOutlined />新增</a-button
+                                >
+                                <a-button
+                                    v-permission="'system:dict:delete'"
+                                    danger
+                                    :disabled="selectedItemKeys.length === 0"
+                                    @click="removeSelectedItems"
+                                    ><DeleteOutlined />批量删除</a-button
+                                >
+                                <a-button
+                                    @click="
+                                        selectedType ? loadItems() : loadTypes()
                                     "
-                                    :text="
-                                        record.status === 1 ? '启用' : '停用'
-                                    " /></template
-                        ></a-table-column>
-                        <a-table-column title="操作" width="88" align="center"
-                            ><template #default="{ record }"
-                                ><TableActionMenu aria-label="字典类型操作"
-                                    ><a-menu-item
-                                        key="edit"
-                                        v-permission="'system:dict:update'"
-                                        @click.stop="openTypeEdit(record)"
-                                        ><EditOutlined />编辑</a-menu-item
-                                    ><a-menu-item
-                                        key="delete"
-                                        v-permission="'system:dict:delete'"
-                                        danger
-                                        @click.stop="removeType(record)"
-                                        ><DeleteOutlined />删除</a-menu-item
-                                    ></TableActionMenu
-                                ></template
-                            ></a-table-column
+                                    ><ReloadOutlined />刷新</a-button
+                                >
+                            </div>
+                        </header>
+                        <a-empty
+                            v-if="!selectedType"
+                            class="dict-item-empty"
+                            description="请从左侧选择一个字典类型"
+                        />
+                        <a-table
+                            v-else
+                            row-key="id"
+                            :data-source="filteredItemRows"
+                            :loading="itemLoading"
+                            :row-selection="{
+                                selectedRowKeys: selectedItemKeys,
+                                onChange: changeSelectedItems,
+                            }"
+                            :scroll="{ x: 860 }"
+                            :pagination="{
+                                current: itemPage,
+                                pageSize: itemPageSize,
+                                total: itemTotal,
+                                showSizeChanger: true,
+                                showTotal: (count: number) => `共 ${count} 条`,
+                            }"
+                            @change="changeItemPage"
                         >
-                    </a-table>
-                </a-card></a-col
-            ><a-col :xs="24" :lg="14"
-                ><a-card
-                    :title="
-                        selectedType
-                            ? `${selectedType.typeName} 的字典项`
-                            : '字典项'
-                    "
-                >
-                    <template #extra
-                        ><a-button
-                            v-permission="'system:dict:create'"
-                            type="primary"
-                            size="small"
-                            :disabled="!selectedType"
-                            @click="openItemCreate"
-                            ><PlusOutlined />新增字典项</a-button
-                        ></template
-                    >
-                    <a-empty
-                        v-if="!selectedType"
-                        description="请选择左侧字典类型"
-                    /><a-table
-                        v-else
-                        row-key="id"
-                        :data-source="itemRows"
-                        :loading="itemLoading"
-                        :scroll="{ x: 820 }"
-                        :pagination="{
-                            current: itemPage,
-                            pageSize: itemPageSize,
-                            total: itemTotal,
-                            showSizeChanger: true,
-                        }"
-                        @change="changeItemPage"
-                    >
-                        <a-table-column
-                            title="标签"
-                            data-index="label"
-                            width="160"
-                        /><a-table-column
-                            title="值"
-                            data-index="value"
-                            width="200"
-                            ellipsis
-                        /><a-table-column
-                            title="排序"
-                            data-index="sortOrder"
-                            width="80"
-                            align="center"
-                        /><a-table-column
-                            title="状态"
-                            width="100"
-                            align="center"
-                            ><template #default="{ record }"
-                                ><a-badge
-                                    :status="
-                                        record.status === 1
-                                            ? 'success'
-                                            : 'default'
-                                    "
-                                    :text="
-                                        record.status === 1 ? '启用' : '停用'
-                                    " /></template></a-table-column
-                        ><a-table-column title="默认" width="100" align="center"
-                            ><template #default="{ record }"
-                                ><a-tag
-                                    :color="
-                                        record.isDefault === 1
-                                            ? 'blue'
-                                            : undefined
-                                    "
-                                    >{{
-                                        record.isDefault === 1 ? '是' : '否'
-                                    }}</a-tag
-                                ></template
-                            ></a-table-column
-                        ><a-table-column title="操作" width="88" align="center"
-                            ><template #default="{ record }"
-                                ><TableActionMenu aria-label="字典项操作"
-                                    ><a-menu-item
-                                        key="edit"
-                                        v-permission="'system:dict:update'"
-                                        @click="openItemEdit(record)"
-                                        ><EditOutlined />编辑</a-menu-item
-                                    ><a-menu-item
-                                        key="delete"
-                                        v-permission="'system:dict:delete'"
-                                        danger
-                                        @click="removeItem(record)"
-                                        ><DeleteOutlined />删除</a-menu-item
-                                    ></TableActionMenu
-                                ></template
-                            ></a-table-column
-                        >
-                    </a-table>
-                </a-card></a-col
-            ></a-row
-        >
+                            <a-table-column
+                                title="字典标签"
+                                data-index="label"
+                                width="160"
+                            /><a-table-column
+                                title="字典键值"
+                                data-index="value"
+                                width="200"
+                                ellipsis
+                            /><a-table-column
+                                title="字典排序"
+                                data-index="sortOrder"
+                                width="80"
+                                align="center"
+                            /><a-table-column
+                                title="备注"
+                                data-index="remark"
+                                width="180"
+                                ellipsis
+                            />
+                            <a-table-column
+                                title="创建时间"
+                                data-index="createdAt"
+                                width="180"
+                                ellipsis
+                                ><template #default="{ record }">{{
+                                    formatTime(record.createdAt)
+                                }}</template></a-table-column
+                            >
+                            <a-table-column
+                                title="操作"
+                                width="108"
+                                align="center"
+                                ><template #default="{ record }"
+                                    ><a-space :size="8">
+                                        <a-button
+                                            v-permission="'system:dict:update'"
+                                            type="text"
+                                            size="small"
+                                            aria-label="编辑字典项"
+                                            title="编辑字典项"
+                                            @click="openItemEdit(record)"
+                                            ><EditOutlined
+                                        /></a-button>
+                                        <a-button
+                                            v-permission="'system:dict:delete'"
+                                            type="text"
+                                            danger
+                                            size="small"
+                                            aria-label="删除字典项"
+                                            title="删除字典项"
+                                            @click="removeItem(record)"
+                                            ><DeleteOutlined
+                                        /></a-button> </a-space></template
+                            ></a-table-column>
+                        </a-table>
+                    </section>
+                </div>
+            </a-col>
+        </a-row>
         <a-modal
             v-model:open="typeEditorOpen"
             :title="editingTypeId ? '编辑字典类型' : '新增字典类型'"
@@ -542,3 +632,233 @@ onMounted(loadTypes)
         ></a-modal>
     </section>
 </template>
+
+<style scoped>
+.dict-page {
+    padding-top: 20px;
+}
+
+.dict-type-panel,
+.dict-data-panel,
+.dict-search-panel {
+    overflow: hidden;
+    background: var(--alpha-surface);
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+}
+
+.dict-type-panel {
+    min-height: 640px;
+    padding: 18px 16px;
+}
+
+.dict-panel-header,
+.dict-data-toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dict-panel-header {
+    min-height: 32px;
+    margin-bottom: 18px;
+}
+
+.dict-panel-header h1,
+.dict-data-toolbar h2 {
+    margin: 0;
+    color: var(--alpha-text);
+    font-size: 18px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.dict-type-search {
+    margin-bottom: 14px;
+}
+
+.dict-type-tree {
+    min-height: 420px;
+}
+
+.dict-type-tree :deep(.ant-tree-treenode) {
+    width: 100%;
+    padding-block: 3px;
+}
+
+.dict-type-tree :deep(.ant-tree-node-content-wrapper) {
+    width: calc(100% - 24px);
+    height: auto;
+    min-height: 42px;
+    padding: 0 8px;
+    border-radius: 4px;
+    transition: background-color 0.16s ease;
+}
+
+.dict-type-tree :deep(.ant-tree-node-content-wrapper:hover) {
+    background: var(--alpha-primary-soft);
+}
+
+.dict-type-tree :deep(.ant-tree-title) {
+    display: block;
+    width: 100%;
+}
+
+.dict-type-tree-node {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+    gap: 8px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.dict-type-tree-node:hover .dict-type-list-item {
+    color: var(--alpha-primary-strong);
+}
+
+.dict-type-list-item {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--alpha-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dict-type-list-item strong,
+.dict-type-list-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dict-type-list-item strong {
+    font-weight: 600;
+}
+
+.dict-type-list-item span {
+    margin-left: 4px;
+    color: var(--alpha-muted);
+}
+
+.dict-type-actions {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 58px;
+}
+
+.dict-type-actions :deep(.ant-btn) {
+    width: 28px;
+    padding-inline: 0;
+}
+
+.dict-type-pagination {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.dict-content-area {
+    display: grid;
+    gap: 16px;
+}
+
+.dict-search-panel :deep(.ant-collapse-header) {
+    min-height: 54px;
+    align-items: center;
+    color: var(--alpha-text);
+    font-weight: 600;
+}
+
+.dict-search-form {
+    display: flex;
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+
+.dict-search-form :deep(.ant-input-affix-wrapper),
+.dict-search-form :deep(.ant-input) {
+    flex: 1;
+}
+
+.dict-data-toolbar {
+    display: block;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--alpha-border-soft);
+}
+
+.dict-data-toolbar h2 {
+    margin-bottom: 14px;
+}
+
+.dict-toolbar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+.dict-data-panel :deep(.ant-table-wrapper) {
+    padding: 14px 18px 18px;
+}
+
+.dict-data-panel :deep(.ant-table) {
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dict-data-panel :deep(.ant-table-thead > tr > th) {
+    color: var(--alpha-text);
+    font-weight: 600;
+}
+
+.dict-data-panel :deep(.ant-table-tbody > tr > td),
+.dict-data-panel :deep(.ant-table-thead > tr > th) {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.dict-item-empty {
+    display: grid;
+    min-height: 420px;
+    place-content: center;
+}
+
+@media (max-width: 991px) {
+    .dict-type-panel {
+        min-height: auto;
+        margin-bottom: 16px;
+    }
+
+    .dict-type-tree {
+        min-height: 180px;
+        max-height: 280px;
+        overflow: auto;
+    }
+
+    .dict-data-toolbar {
+        padding-block: 14px;
+    }
+}
+
+@media (max-width: 767px) {
+    .dict-page {
+        padding-top: 12px;
+    }
+
+    .dict-toolbar-actions > :deep(.ant-btn) {
+        flex: 1 1 auto;
+    }
+
+    .dict-type-actions {
+        opacity: 1;
+    }
+}
+</style>
