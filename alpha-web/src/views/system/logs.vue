@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     CheckOutlined,
+    CopyOutlined,
     FileSearchOutlined,
     ReloadOutlined,
 } from '@ant-design/icons-vue'
@@ -113,6 +114,17 @@ async function refreshLogs() {
 function openDetail(record: OperationLog) {
     selectedOperation.value = record
     detailOpen.value = true
+}
+async function copyExceptionStack() {
+    const exceptionStack = selectedOperation.value?.exceptionStack
+    if (!exceptionStack) return
+
+    try {
+        await window.navigator.clipboard.writeText(exceptionStack)
+        message.success('异常堆栈已复制')
+    } catch {
+        message.error('复制失败，请手动复制')
+    }
 }
 async function updateHandlingStatus(
     record: OperationLog,
@@ -468,12 +480,12 @@ onMounted(refreshLogs)
             v-model:open="detailOpen"
             title="异常详情"
             :footer="null"
-            width="760px"
+            width="min(760px, calc(100vw - 32px))"
         >
             <a-descriptions
                 v-if="selectedOperation"
                 size="small"
-                :column="2"
+                :column="{ xs: 1, sm: 2 }"
                 bordered
             >
                 <a-descriptions-item label="Trace ID">{{
@@ -489,7 +501,52 @@ onMounted(refreshLogs)
                 <a-descriptions-item label="状态">{{
                     handlingStatusLabel(selectedOperation.handlingStatus)
                 }}</a-descriptions-item>
+                <a-descriptions-item label="异常堆栈" :span="2">
+                    <div class="exception-stack-content">
+                        <div class="exception-stack-toolbar">
+                            <a-button
+                                size="small"
+                                :disabled="!selectedOperation.exceptionStack"
+                                @click="copyExceptionStack"
+                                ><CopyOutlined />复制堆栈</a-button
+                            >
+                        </div>
+                        <a-textarea
+                            class="exception-stack"
+                            :value="
+                                selectedOperation.exceptionStack ||
+                                '未记录异常堆栈'
+                            "
+                            :rows="12"
+                            readonly
+                            wrap="off"
+                        />
+                    </div>
+                </a-descriptions-item>
             </a-descriptions>
         </a-modal>
     </section>
 </template>
+
+<style scoped>
+.exception-stack {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 320px;
+    overflow: auto;
+    resize: none;
+    white-space: pre;
+}
+
+.exception-stack-content {
+    width: 100%;
+    min-width: 0;
+}
+
+.exception-stack-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+</style>

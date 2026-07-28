@@ -56,6 +56,7 @@ public class OperationLogAspect {
             return result;
         } catch (BusinessException exception) {
             responseCode = exception.code();
+            exceptionStack = stackTrace(exception);
             throw exception;
         } catch (Throwable exception) {
             exceptionStack = stackTrace(exception);

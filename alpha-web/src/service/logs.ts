@@ -14,6 +14,7 @@ export interface OperationLog {
     ipAddress?: string
     durationMs?: number
     traceId?: string
+    exceptionStack?: string
     handlingStatus: 0 | 1 | 2
     handledBy?: number
     handledAt?: string

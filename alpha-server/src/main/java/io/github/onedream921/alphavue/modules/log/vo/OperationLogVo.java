@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 public record OperationLogVo(long id, Long userId, String username, String module, String operation, String businessType,
                              String method, String requestUri, Integer responseCode, int status,
                              String ipAddress, Long durationMs, String traceId, int handlingStatus,
-                             Long handledBy, LocalDateTime handledAt, LocalDateTime createdAt) {
+                             Long handledBy, LocalDateTime handledAt, LocalDateTime createdAt,
+                             String exceptionStack) {
     /**
      * 从操作日志实体转换为响应视图
      */
@@ -18,6 +19,7 @@ public record OperationLogVo(long id, Long userId, String username, String modul
         return new OperationLogVo(log.getId(), log.getUserId(), log.getUsername(), log.getModule(),
                 log.getOperation(), log.getBusinessType(), log.getMethod(), log.getRequestUri(), log.getResponseCode(),
                 log.getStatus(), log.getIpAddress(), log.getDurationMs(), log.getTraceId(),
-                log.getHandlingStatus(), log.getHandledBy(), log.getHandledAt(), log.getCreatedAt());
+                log.getHandlingStatus(), log.getHandledBy(), log.getHandledAt(), log.getCreatedAt(),
+                log.getExceptionStack());
     }
 }
