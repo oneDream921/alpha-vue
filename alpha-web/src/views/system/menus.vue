@@ -9,7 +9,6 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
-import TableActionMenu from '@/components/TableActionMenu.vue'
 import { authApi } from '@/service/auth'
 import { ensureManagementRoutes } from '@/router'
 import { menuApi, type Menu } from '@/service/system'
@@ -131,6 +130,17 @@ function openCreate() {
     Object.assign(form, emptyForm())
     editorOpen.value = true
 }
+function openCreateChild(row: Menu) {
+    editingId.value = undefined
+    Object.assign(form, { ...emptyForm(), parentId: row.id })
+    editorOpen.value = true
+}
+function expandAll() {
+    expandedRowKeys.value = rows.value.map((item) => item.id)
+}
+function collapseAll() {
+    expandedRowKeys.value = []
+}
 function openEdit(row: Menu) {
     editingId.value = row.id
     Object.assign(form, {
@@ -197,6 +207,8 @@ onMounted(load)
                 <p>维护导航、页面和按钮权限编码</p>
             </div>
             <a-space wrap>
+                <a-button @click="collapseAll">全部收起</a-button>
+                <a-button @click="expandAll">全部展开</a-button>
                 <a-button @click="load"><ReloadOutlined />刷新</a-button>
                 <a-button
                     v-permission="'system:menu:create'"
@@ -271,24 +283,35 @@ onMounted(load)
                         :status="text === 1 ? 'success' : 'default'"
                         :text="text === 1 ? '启用' : '停用'" /></template
             ></a-table-column>
-            <a-table-column title="操作" width="88" align="center"
+            <a-table-column title="操作" width="150" align="center"
                 ><template #default="{ record }"
-                    ><TableActionMenu aria-label="菜单操作"
-                        ><a-menu-item
-                            key="edit"
+                    ><a-space :size="4">
+                        <a-button
+                            v-permission="'system:menu:create'"
+                            type="text"
+                            size="small"
+                            title="新增子菜单"
+                            @click.stop="openCreateChild(record)"
+                            ><PlusOutlined
+                        /></a-button>
+                        <a-button
                             v-permission="'system:menu:update'"
-                            @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-menu-item
-                        ><a-menu-item
-                            key="delete"
+                            type="text"
+                            size="small"
+                            title="编辑菜单"
+                            @click.stop="openEdit(record)"
+                            ><EditOutlined
+                        /></a-button>
+                        <a-button
                             v-permission="'system:menu:delete'"
+                            type="text"
                             danger
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        ></TableActionMenu
-                    ></template
-                ></a-table-column
-            >
+                            size="small"
+                            title="删除菜单"
+                            @click.stop="remove(record)"
+                            ><DeleteOutlined
+                        /></a-button> </a-space></template
+            ></a-table-column>
         </a-table>
         <a-modal
             v-model:open="editorOpen"

@@ -54,9 +54,10 @@ public class UserController extends BaseController {
     public ApiResponse<PageResponse<UserVo>> page(
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) @Positive Long deptId,
             HttpServletRequest request) {
         access.require("system:user:list");
-        return success(userService.page(page, size), request);
+        return success(userService.page(page, size, deptId), request);
     }
 
     /**

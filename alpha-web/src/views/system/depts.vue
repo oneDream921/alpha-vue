@@ -9,7 +9,6 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
-import TableActionMenu from '@/components/TableActionMenu.vue'
 import { deptApi, type Dept } from '@/service/system'
 
 const rows = ref<Dept[]>([])
@@ -116,6 +115,17 @@ function openCreate() {
     Object.assign(form, emptyForm())
     editorOpen.value = true
 }
+function openCreateChild(row: Dept) {
+    editingId.value = undefined
+    Object.assign(form, { ...emptyForm(), parentId: row.id })
+    editorOpen.value = true
+}
+function expandAll() {
+    expandedRowKeys.value = rows.value.map((item) => item.id)
+}
+function collapseAll() {
+    expandedRowKeys.value = []
+}
 function openEdit(row: Dept) {
     editingId.value = row.id
     Object.assign(form, {
@@ -169,6 +179,8 @@ onMounted(load)
                 <p>维护组织结构和部门状态</p>
             </div>
             <a-space wrap>
+                <a-button @click="collapseAll">全部收起</a-button>
+                <a-button @click="expandAll">全部展开</a-button>
                 <a-button @click="load"><ReloadOutlined />刷新</a-button>
                 <a-button
                     v-permission="'system:dept:create'"
@@ -212,24 +224,35 @@ onMounted(load)
                         :status="text === 1 ? 'success' : 'default'"
                         :text="text === 1 ? '启用' : '停用'" /></template
             ></a-table-column>
-            <a-table-column title="操作" width="88" align="center"
+            <a-table-column title="操作" width="150" align="center"
                 ><template #default="{ record }"
-                    ><TableActionMenu aria-label="部门操作"
-                        ><a-menu-item
-                            key="edit"
+                    ><a-space :size="4">
+                        <a-button
+                            v-permission="'system:dept:create'"
+                            type="text"
+                            size="small"
+                            title="新增子部门"
+                            @click="openCreateChild(record)"
+                            ><PlusOutlined
+                        /></a-button>
+                        <a-button
                             v-permission="'system:dept:update'"
+                            type="text"
+                            size="small"
+                            title="编辑部门"
                             @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-menu-item
-                        ><a-menu-item
-                            key="delete"
+                            ><EditOutlined
+                        /></a-button>
+                        <a-button
                             v-permission="'system:dept:delete'"
+                            type="text"
                             danger
+                            size="small"
+                            title="删除部门"
                             @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        ></TableActionMenu
-                    ></template
-                ></a-table-column
-            >
+                            ><DeleteOutlined
+                        /></a-button> </a-space></template
+            ></a-table-column>
         </a-table>
         <a-modal
             v-model:open="editorOpen"

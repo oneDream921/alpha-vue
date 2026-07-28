@@ -32,6 +32,7 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(10)
 const keyword = ref('')
+const selectedDeptId = ref<number>()
 const editorOpen = ref(false)
 const roleOpen = ref(false)
 const resetPasswordOpen = ref(false)
@@ -71,6 +72,22 @@ const emptyForm = () => ({
     status: 1,
 })
 const form = reactive(emptyForm())
+type DeptTreeNode = { key: number; title: string; children: DeptTreeNode[] }
+const deptTreeData = computed<DeptTreeNode[]>(() => {
+    const nodes = new Map<number, DeptTreeNode>()
+    depts.value.forEach((dept) =>
+        nodes.set(dept.id, { key: dept.id, title: dept.name, children: [] }),
+    )
+    const roots: DeptTreeNode[] = []
+    depts.value.forEach((dept) => {
+        const node = nodes.get(dept.id)
+        if (!node) return
+        const parent = nodes.get(dept.parentId ?? 0)
+        if (parent) parent.children.push(node)
+        else roots.push(node)
+    })
+    return roots
+})
 const filteredRows = computed(() => {
     const value = keyword.value.trim().toLowerCase()
     return value
@@ -85,12 +102,22 @@ const filteredRows = computed(() => {
 async function load() {
     loading.value = true
     try {
-        const response = await userApi.page(page.value, size.value)
+        const response = await userApi.page(
+            page.value,
+            size.value,
+            selectedDeptId.value,
+        )
         rows.value = response.data.data.records
         total.value = response.data.data.total
     } finally {
         loading.value = false
     }
+}
+function selectDept(selectedKeys: (string | number)[]) {
+    selectedDeptId.value =
+        selectedKeys[0] == null ? undefined : Number(selectedKeys[0])
+    page.value = 1
+    void load()
 }
 function changePage(pagination: { current?: number; pageSize?: number }) {
     page.value = pagination.current ?? 1
@@ -244,95 +271,122 @@ onMounted(async () => {
                 >
             </a-space>
         </div>
-        <div class="page-toolbar">
-            <a-input-search
-                v-model:value="keyword"
-                allow-clear
-                placeholder="搜索账号、昵称或邮箱"
-                class="toolbar-search"
-            />
-        </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredRows"
-            :loading="loading"
-            :pagination="{
-                current: page,
-                pageSize: size,
-                total,
-                showSizeChanger: true,
-            }"
-            :scroll="{ x: 940 }"
-            @change="changePage"
-        >
-            <a-table-column title="账号" data-index="username" width="140" />
-            <a-table-column title="昵称" data-index="nickname" width="140" />
-            <a-table-column title="邮箱" data-index="email" width="210"
-                ><template #default="{ text }">{{
-                    text || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column title="部门" data-index="deptId" width="140"
-                ><template #default="{ text }">{{
-                    depts.find((item) => item.id === text)?.name || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column
-                title="状态"
-                data-index="status"
-                width="90"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-badge
-                        :status="text === 1 ? 'success' : 'default'"
-                        :text="text === 1 ? '启用' : '停用'" /></template
-            ></a-table-column>
-            <a-table-column
-                title="操作"
-                fixed="right"
-                :width="88"
-                align="center"
-                ><template #default="{ record }"
-                    ><a-tag v-if="record.username === 'admin'" color="blue"
-                        >内置管理员</a-tag
+        <div class="user-management-workspace">
+            <aside class="user-dept-filter">
+                <div class="user-dept-filter-title">部门范围</div>
+                <a-tree
+                    :tree-data="deptTreeData"
+                    :selected-keys="selectedDeptId ? [selectedDeptId] : []"
+                    @select="selectDept"
+                />
+            </aside>
+            <div>
+                <div class="page-toolbar">
+                    <a-input-search
+                        v-model:value="keyword"
+                        allow-clear
+                        placeholder="搜索账号、昵称或邮箱"
+                        class="toolbar-search"
+                    />
+                </div>
+                <a-table
+                    row-key="id"
+                    :data-source="filteredRows"
+                    :loading="loading"
+                    :pagination="{
+                        current: page,
+                        pageSize: size,
+                        total,
+                        showSizeChanger: true,
+                    }"
+                    :scroll="{ x: 940 }"
+                    @change="changePage"
+                >
+                    <a-table-column
+                        title="账号"
+                        data-index="username"
+                        width="140"
+                    />
+                    <a-table-column
+                        title="昵称"
+                        data-index="nickname"
+                        width="140"
+                    />
+                    <a-table-column title="邮箱" data-index="email" width="210"
+                        ><template #default="{ text }">{{
+                            text || '-'
+                        }}</template></a-table-column
                     >
-                    <TableActionMenu v-else aria-label="用户操作">
-                        <a-menu-item
-                            key="edit"
-                            v-permission="'system:user:update'"
-                            @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-menu-item
-                        >
-                        <a-menu-item
-                            v-if="record.id !== authStore.state.profile?.id"
-                            key="reset-password"
-                            v-permission="'system:user:reset-password'"
-                            @click="openResetPassword(record)"
-                            ><KeyOutlined />重置密码</a-menu-item
-                        >
-                        <a-menu-item
-                            key="roles"
-                            v-permission="'system:role:assign'"
-                            @click="openRoles(record)"
-                            ><SafetyOutlined />角色</a-menu-item
-                        >
-                        <a-menu-item
-                            key="kickout"
-                            v-permission="'system:user:update'"
-                            @click="kickout(record)"
-                            ><DisconnectOutlined />下线</a-menu-item
-                        >
-                        <a-menu-item
-                            key="delete"
-                            v-permission="'system:user:delete'"
-                            danger
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        >
-                    </TableActionMenu></template
-                ></a-table-column
-            >
-        </a-table>
+                    <a-table-column title="部门" data-index="deptId" width="140"
+                        ><template #default="{ text }">{{
+                            depts.find((item) => item.id === text)?.name || '-'
+                        }}</template></a-table-column
+                    >
+                    <a-table-column
+                        title="状态"
+                        data-index="status"
+                        width="90"
+                        align="center"
+                        ><template #default="{ text }"
+                            ><a-badge
+                                :status="text === 1 ? 'success' : 'default'"
+                                :text="
+                                    text === 1 ? '启用' : '停用'
+                                " /></template
+                    ></a-table-column>
+                    <a-table-column
+                        title="操作"
+                        fixed="right"
+                        :width="88"
+                        align="center"
+                        ><template #default="{ record }"
+                            ><a-tag
+                                v-if="record.username === 'admin'"
+                                color="blue"
+                                >内置管理员</a-tag
+                            >
+                            <TableActionMenu v-else aria-label="用户操作">
+                                <a-menu-item
+                                    key="edit"
+                                    v-permission="'system:user:update'"
+                                    @click="openEdit(record)"
+                                    ><EditOutlined />编辑</a-menu-item
+                                >
+                                <a-menu-item
+                                    v-if="
+                                        record.id !==
+                                        authStore.state.profile?.id
+                                    "
+                                    key="reset-password"
+                                    v-permission="'system:user:reset-password'"
+                                    @click="openResetPassword(record)"
+                                    ><KeyOutlined />重置密码</a-menu-item
+                                >
+                                <a-menu-item
+                                    key="roles"
+                                    v-permission="'system:role:assign'"
+                                    @click="openRoles(record)"
+                                    ><SafetyOutlined />角色</a-menu-item
+                                >
+                                <a-menu-item
+                                    key="kickout"
+                                    v-permission="'system:user:update'"
+                                    @click="kickout(record)"
+                                    ><DisconnectOutlined />下线</a-menu-item
+                                >
+                                <a-menu-item
+                                    key="delete"
+                                    v-permission="'system:user:delete'"
+                                    danger
+                                    @click="remove(record)"
+                                    ><DeleteOutlined />删除</a-menu-item
+                                >
+                            </TableActionMenu></template
+                        ></a-table-column
+                    >
+                </a-table>
+            </div>
+        </div>
 
         <a-modal
             v-model:open="editorOpen"
@@ -461,3 +515,29 @@ onMounted(async () => {
         </a-modal>
     </section>
 </template>
+
+<style scoped>
+.user-management-workspace {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.user-dept-filter {
+    padding: 12px;
+    border: 1px solid var(--alpha-border-soft);
+    border-radius: var(--alpha-radius);
+    background: var(--alpha-surface);
+}
+
+.user-dept-filter-title {
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    .user-management-workspace {
+        grid-template-columns: 1fr;
+    }
+}
+</style>

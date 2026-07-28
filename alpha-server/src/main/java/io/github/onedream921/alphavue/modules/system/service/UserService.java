@@ -42,9 +42,10 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     /**
      * 分页查询用户，并附带用户已关联的角色 ID
      */
-    public PageResponse<UserVo> page(int pageNumber, int pageSize) {
+    public PageResponse<UserVo> page(int pageNumber, int pageSize, Long deptId) {
         Page<SysUser> page = baseMapper.selectPage(new Page<>(pageNumber, pageSize),
-                new LambdaQueryWrapper<SysUser>().orderByAsc(SysUser::getId));
+                new LambdaQueryWrapper<SysUser>().eq(deptId != null, SysUser::getDeptId, deptId)
+                        .orderByAsc(SysUser::getId));
         return new PageResponse<>(page.getRecords().stream().map(this::view).toList(),
                 page.getTotal(), pageNumber, pageSize);
     }

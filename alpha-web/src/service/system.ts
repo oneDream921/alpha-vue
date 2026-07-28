@@ -152,6 +152,10 @@ export interface DictItemSave {
 
 export const userApi = {
     ...resource<User, UserCreate, UserUpdate>('users'),
+    page: (page = 1, size = 10, deptId?: number) =>
+        http.get<ApiResponse<PageResponse<User>>>('/system/users', {
+            params: { page, size, deptId },
+        }),
     assignRoles: (id: number, roleIds: number[]) =>
         http.put<ApiResponse<null>>(`/system/users/${id}/roles`, { roleIds }),
     kickout: (id: number) =>
