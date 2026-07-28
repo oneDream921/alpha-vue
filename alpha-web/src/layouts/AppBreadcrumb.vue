@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { menuTrailForPath, type NavigationNode } from './navigation'
@@ -7,6 +7,7 @@ import { menuTrailForPath, type NavigationNode } from './navigation'
 interface BreadcrumbItem {
     key: string
     title: string
+    icon?: Component
     path?: string
 }
 
@@ -32,6 +33,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
         ? menuTrail.map((item) => ({
               key: item.key,
               title: item.title,
+              icon: item.icon,
               path: item.path,
           }))
         : [
@@ -56,7 +58,9 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
             <RouterLink
                 v-if="item.path && index < breadcrumbs.length - 1"
                 :to="item.path"
-                >{{ item.title }}</RouterLink
+                ><component :is="item.icon" class="breadcrumb-icon" />{{
+                    item.title
+                }}</RouterLink
             >
             <span
                 v-else
@@ -64,7 +68,9 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => {
                     'breadcrumb-current': index === breadcrumbs.length - 1,
                     'breadcrumb-parent': index < breadcrumbs.length - 1,
                 }"
-                >{{ item.title }}</span
+                ><component :is="item.icon" class="breadcrumb-icon" />{{
+                    item.title
+                }}</span
             >
         </a-breadcrumb-item>
     </a-breadcrumb>

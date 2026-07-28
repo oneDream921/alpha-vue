@@ -306,6 +306,14 @@ export function closeTabsLeftOf(
     return targetIndex <= 0 ? [...tabs] : tabs.slice(targetIndex)
 }
 
+export function closeTabsRightOf(
+    tabs: readonly OpenTab[],
+    targetPath: string,
+): OpenTab[] {
+    const targetIndex = tabs.findIndex((tab) => tab.path === targetPath)
+    return targetIndex < 0 ? [...tabs] : tabs.slice(0, targetIndex + 1)
+}
+
 export function closeTabsExcept(
     tabs: readonly OpenTab[],
     targetPath: string,

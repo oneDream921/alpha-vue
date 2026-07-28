@@ -23,6 +23,7 @@ import {
     closeTabAt,
     closeTabsExcept,
     closeTabsLeftOf,
+    closeTabsRightOf,
     flattenNavigationLeaves,
     tabTitleForPath,
     type OpenTab,
@@ -185,6 +186,14 @@ async function closeOtherTabs(targetPath: string) {
     }
 }
 
+async function closeRightTabs(targetPath: string) {
+    const remaining = closeTabsRightOf(openTabs.value, targetPath)
+    openTabs.value = remaining
+    if (!remaining.some((tab) => tab.path === route.fullPath)) {
+        await router.replace(targetPath)
+    }
+}
+
 async function closeAllTabs() {
     openTabs.value = []
 
@@ -194,12 +203,20 @@ async function closeAllTabs() {
 }
 
 async function handleTabContextClick(tabPath: string, event: MenuClickEvent) {
+    if (event.key === 'close-current') {
+        await closeTab(tabPath)
+        return
+    }
     if (event.key === 'close-left') {
         await closeLeftTabs(tabPath)
         return
     }
     if (event.key === 'close-other') {
         await closeOtherTabs(tabPath)
+        return
+    }
+    if (event.key === 'close-right') {
+        await closeRightTabs(tabPath)
         return
     }
     if (event.key === 'close-all') {
@@ -309,6 +326,10 @@ watch(() => route.fullPath, resetContentScroll)
                     <div
                         v-if="item.children && !sidebarCollapsed"
                         class="navigation-group"
+                        :class="{
+                            'navigation-group-expanded':
+                                isNavigationGroupExpanded(item.key),
+                        }"
                     >
                         <button
                             type="button"
@@ -385,7 +406,14 @@ watch(() => route.fullPath, resetContentScroll)
                 class="mobile-navigation-list"
             >
                 <template v-for="item in navigation" :key="item.key">
-                    <div v-if="item.children" class="navigation-group">
+                    <div
+                        v-if="item.children"
+                        class="navigation-group"
+                        :class="{
+                            'navigation-group-expanded':
+                                isNavigationGroupExpanded(item.key),
+                        }"
+                    >
                         <button
                             type="button"
                             class="navigation-group-title"
@@ -546,7 +574,13 @@ watch(() => route.fullPath, resetContentScroll)
                                     handleTabContextClick(tab.path, event)
                             "
                         >
+                            <a-menu-item key="close-current"
+                                >关闭当前</a-menu-item
+                            >
                             <a-menu-item key="close-left">关闭左侧</a-menu-item>
+                            <a-menu-item key="close-right"
+                                >关闭右侧</a-menu-item
+                            >
                             <a-menu-item key="close-other"
                                 >关闭其他</a-menu-item
                             >
