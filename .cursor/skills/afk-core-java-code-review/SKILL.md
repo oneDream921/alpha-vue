@@ -89,5 +89,3 @@ description: Review Java changes against requirements and existing architecture,
 ```
 
 默认每条发现使用一个紧凑段落；仅证据链复杂时再展开「证据 / 影响 / 建议」，并省略没有发现的严重度标题。没有发现时写：`本轮改动未发现 High/Medium 风险点。审查范围：N 个文件。规格依据：...`。不要输出 Approve / Request Changes / Verdict。正文结束后仍按项目交互协议输出 `[下一步建议]` 与 `[TRACE]`，技能字段填 `java-code-review`。
-
-部分评审维度参考 Jeffallan/claude-skills 的 `code-reviewer`（MIT License，核对版本 `e8be415bc94d8d6ebddc2fb50e5d03c6e27d4319`），已按 AFK 的低噪音、默认只读和跨平台 Skill 格式改写。
