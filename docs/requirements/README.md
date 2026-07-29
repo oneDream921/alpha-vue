@@ -21,6 +21,6 @@ docs/requirements/
 
 | 分支 | slug | 标题 | 状态 | 文档 |
 | --- | --- | --- | --- | --- |
-| （暂无） | | | | |
+| `main` | `alpha-framework-modernization` | Alpha Vue 框架现代化与分阶段能力建设 | G0 已通过，待 P1-01 | [requirement.md](./main/alpha-framework-modernization/requirement.md) |
 
 落盘新文档时在上表追加一行。
