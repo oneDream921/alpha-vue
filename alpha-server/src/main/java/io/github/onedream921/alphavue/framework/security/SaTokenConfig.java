@@ -76,6 +76,18 @@ public class SaTokenConfig implements WebMvcConfigurer {
     }
 
     /**
+     * 在 Actuator 独立处理链中保护非健康端点
+     */
+    @Bean
+    FilterRegistrationBean<ActuatorAccessFilter> actuatorAccessFilter() {
+        FilterRegistrationBean<ActuatorAccessFilter> registration =
+                new FilterRegistrationBean<>(new ActuatorAccessFilter(userMapper));
+        registration.addUrlPatterns("/actuator", "/actuator/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 3);
+        return registration;
+    }
+
+    /**
      * 注册 Sa-Token 登录校验拦截器和公开资源放行规则
      */
     @Override
@@ -84,13 +96,12 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     StpUtil.checkLogin();
                     requireActiveAccount();
                 }))
-                .addPathPatterns("/**")
+                .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/captcha",
                         "/api/auth/test-token",
-                        "/actuator/health/**",
-                        "/druid/**",
+                        "/actuator/**",
                         "/v3/api-docs/**",
                         "/doc.html",
                         "/doc.html/**",

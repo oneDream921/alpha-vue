@@ -4,9 +4,6 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
-    druid:
-      validation-query: SELECT 1
-      test-while-idle: true
   flyway:
     enabled: true
     url: jdbc:h2:mem:alpha_vue;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
@@ -18,6 +15,11 @@ spring:
       repositories:
         enabled: false
 
+management:
+  health:
+    redis:
+      enabled: false
+
 sa-token:
   token-name: Authorization
   token-prefix: Bearer
@@ -28,7 +30,6 @@ sa-token:
 alpha:
   monitor:
     sql:
-      druid-enabled: false
       max-entries: 20
       slow-threshold-ms: 500
   file:

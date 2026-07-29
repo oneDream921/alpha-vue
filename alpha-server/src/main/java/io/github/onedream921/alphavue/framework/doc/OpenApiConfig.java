@@ -106,7 +106,7 @@ public class OpenApiConfig {
                 .pathsToMatch("/api/monitor/**")
                 .addOpenApiCustomizer(openApi -> openApi.setTags(List.of(
                         tag("Redis 管理", "Redis 键空间与运行概览"),
-                        tag("SQL 日志", "最近 SQL 执行摘要与 Druid 入口"))))
+                        tag("SQL 日志", "最近 SQL 执行摘要"))))
                 .build();
     }
 

@@ -75,7 +75,7 @@ class SqlLogControllerTests {
     }
 
     @Test
-    void enforcesClearPermissionAndReturnsDruidInfo() throws Exception {
+    void enforcesClearPermissionAndRejectsRemovedDruidEndpoint() throws Exception {
         long userId = insertUser();
         long roleId = insertRole();
         long menuId = insertListMenu();
@@ -85,9 +85,7 @@ class SqlLogControllerTests {
 
         mockMvc.perform(get("/api/monitor/sql/druid-url")
                         .header("Authorization", bearer(listOnlyToken)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.enabled").value(false))
-                .andExpect(jsonPath("$.data.path").value("/druid/index.html"));
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(delete("/api/monitor/sql/logs")
                         .header("Authorization", bearer(listOnlyToken)))

@@ -3,7 +3,7 @@ name: alpha-vue-backend
 description: Implement, refactor, debug, or review Alpha Vue Spring Boot and
   Java code under alpha-server. Use for controllers, services, MyBatis-Plus and
   XML mappers, entities, DTOs, VOs, Sa-Token authorization, transactions, Flyway
-  migrations, OpenAPI annotations, file, Redis, Druid, SQL monitor
+  migrations, OpenAPI annotations, file, Redis, HikariCP, SQL monitor
   infrastructure, backend tests, and backend module structure.
 ---
 
@@ -33,7 +33,7 @@ Follow the existing Spring MVC, MyBatis-Plus, MySQL, Flyway, Sa-Token, and OpenA
 - Use immutable request DTO records and explicit `*Vo` responses. Never expose entities or sensitive fields as controller input or output.
 - Use project permission codes and backend authorization on every protected entry point. Frontend visibility never authorizes access.
 - Use `BusinessException`, the global exception handler, parameterized SLF4J logging, MDC trace IDs, and safe audit metadata.
-- Keep Druid and SQL monitor features operationally safe: Druid must be externalized and production-disabled by default; SQL logs may store only bounded, in-memory, placeholder SQL summaries and must not expose real parameters or arbitrary SQL execution.
+- Keep HikariCP and SQL monitor features operationally safe: Hikari leak detection is disabled by default and only enabled in a controlled diagnostic window; SQL logs may store only bounded, in-memory, placeholder SQL summaries and must not expose real parameters or arbitrary SQL execution.
 
 ## Implement Safely
 

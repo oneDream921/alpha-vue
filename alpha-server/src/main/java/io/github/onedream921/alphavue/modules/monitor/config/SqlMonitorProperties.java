@@ -18,7 +18,4 @@ public class SqlMonitorProperties {
 
     private long slowThresholdMs = 500;
 
-    private boolean druidEnabled = false;
-
-    private String druidPath = "/druid/index.html";
 }

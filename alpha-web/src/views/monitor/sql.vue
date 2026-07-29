@@ -2,7 +2,6 @@
 import {
     ClearOutlined,
     CopyOutlined,
-    LinkOutlined,
     PauseCircleOutlined,
     ReloadOutlined,
     SettingOutlined,
@@ -13,14 +12,12 @@ import { computed, onMounted, ref } from 'vue'
 
 import {
     sqlMonitorApi,
-    type DruidInfo,
     type SqlLogEntry,
     type SqlLogSettings,
     type SqlLogStatement,
 } from '@/service/sqlMonitor'
 
 const rows = ref<SqlLogEntry[]>([])
-const druid = ref<DruidInfo>()
 const loading = ref(false)
 const clearing = ref(false)
 const queryError = ref('')
@@ -54,9 +51,6 @@ const enabledLabel = computed(() =>
 const enabledColor = computed(() =>
     settings.value.enabled ? 'green' : 'orange',
 )
-const druidPath = computed(() => druid.value?.path || '/druid/index.html')
-const druidDisabled = computed(() => !druid.value?.enabled)
-const druidUrl = computed(() => resolveBackendUrl(druidPath.value))
 const excludedStatementIds = computed(
     () => new Set(settings.value.excludedStatementIds),
 )
@@ -75,10 +69,6 @@ function formatTime(value: string) {
         minute: '2-digit',
         second: '2-digit',
     }).format(new Date(value))
-}
-
-async function loadDruidInfo() {
-    druid.value = (await sqlMonitorApi.druidUrl()).data.data
 }
 
 async function loadSettings() {
@@ -107,23 +97,7 @@ async function loadLogs() {
 }
 
 async function refresh() {
-    await Promise.all([loadDruidInfo(), loadSettings(), loadLogs()])
-}
-
-function openDruid() {
-    window.open(druidUrl.value, '_blank', 'noopener,noreferrer')
-}
-
-function resolveBackendUrl(path: string) {
-    if (/^https?:\/\//i.test(path)) {
-        return path
-    }
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`
-    const backendOrigin =
-        window.location.port === '5173'
-            ? 'http://localhost:8080'
-            : window.location.origin
-    return `${backendOrigin}${normalizedPath}`
+    await Promise.all([loadSettings(), loadLogs()])
 }
 
 async function copySql(row: SqlLogEntry) {
@@ -236,9 +210,6 @@ function checkedKeyArray(value: unknown) {
                 </p>
             </div>
             <a-space wrap>
-                <a-button :disabled="druidDisabled" @click="openDruid">
-                    <LinkOutlined />Druid
-                </a-button>
                 <a-button
                     v-permission="'monitor:sql:control'"
                     :loading="settingsSaving"

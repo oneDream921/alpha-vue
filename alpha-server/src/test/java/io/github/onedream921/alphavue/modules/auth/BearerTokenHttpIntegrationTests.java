@@ -60,6 +60,36 @@ class BearerTokenHttpIntegrationTests {
         assertThat(profileBody.path("data").path("permissions").toString()).contains("*");
     }
 
+    @Test
+    void protectsNonHealthActuatorEndpointsOverRealHttp() throws Exception {
+        HttpResponse<String> anonymousMetrics = httpClient.send(
+                HttpRequest.newBuilder(uri("/actuator/prometheus")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(anonymousMetrics.statusCode()).isEqualTo(401);
+
+        HttpResponse<String> health = httpClient.send(
+                HttpRequest.newBuilder(uri("/actuator/health")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(health.statusCode()).isEqualTo(200);
+
+        HttpRequest loginRequest = HttpRequest.newBuilder(uri("/api/auth/login"))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                .build();
+        HttpResponse<String> loginResponse = httpClient.send(
+                loginRequest, HttpResponse.BodyHandlers.ofString());
+        String token = objectMapper.readTree(loginResponse.body()).path("data").path("token").asText();
+        HttpResponse<String> authenticatedMetrics = httpClient.send(
+                HttpRequest.newBuilder(uri("/actuator/prometheus"))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(authenticatedMetrics.statusCode()).isEqualTo(200);
+        assertThat(authenticatedMetrics.body()).contains("hikaricp_connections_active");
+    }
+
     private URI uri(String path) {
         return URI.create("http://127.0.0.1:" + port + path);
     }

@@ -5,7 +5,6 @@ import io.github.onedream921.alphavue.framework.mybatis.SqlLogRecorder;
 import io.github.onedream921.alphavue.modules.monitor.config.SqlMonitorProperties;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogQuery;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
-import io.github.onedream921.alphavue.modules.monitor.vo.DruidInfoVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogEntryVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogSettingsVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogStatementVo;
@@ -90,10 +89,6 @@ public class SqlLogService implements SqlLogRecorder {
                 .map(String::trim)
                 .forEach(excludedStatementIds::add);
         return settings();
-    }
-
-    public DruidInfoVo druidInfo() {
-        return new DruidInfoVo(properties.isDruidEnabled(), properties.getDruidPath());
     }
 
     private void trim() {

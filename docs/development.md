@@ -27,11 +27,11 @@
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | 无                             | MinIO 应用凭据，不使用 root 凭据           |
 | `SA_TOKEN_TIMEOUT`                      | `28800`                        | 普通会话秒数                               |
 | `SA_TOKEN_ACTIVE_TIMEOUT`               | `1800`                         | 无操作超时秒数                             |
-| `DB_POOL_MIN_IDLE` / `DB_POOL_MAX_SIZE` | dev: `2` / `10`，prod: `5` / `20` | Druid 最小空闲与最大连接数              |
-| `DRUID_ENABLED`                         | dev: `true`，prod: `false`        | 是否启用 Druid 监控 servlet             |
-| `DRUID_USERNAME` / `DRUID_PASSWORD`     | dev: `alpha` / `alpha-druid`      | Druid 监控登录账号；生产必须独立配置强密码 |
-| `DRUID_ALLOW`                           | `127.0.0.1`                       | Druid 监控 IP 白名单                    |
-| `DRUID_FILTERS` / `DRUID_WALL_ENABLED`  | `stat` / `false`                 | Druid 过滤器；需要 WallFilter 时显式开启 |
+| `DB_POOL_MIN_IDLE` / `DB_POOL_MAX_SIZE` | dev: `2` / `10`，prod: `5` / `20` | Hikari 最小空闲与最大连接数            |
+| `DB_POOL_CONNECTION_TIMEOUT_MS`         | `30000`                           | Hikari 获取连接的最大等待时间          |
+| `DB_POOL_IDLE_TIMEOUT_MS`               | `600000`                          | Hikari 空闲连接回收时间                |
+| `DB_POOL_MAX_LIFETIME_MS`               | `1800000`                         | Hikari 连接最大生命周期                |
+| `DB_POOL_LEAK_DETECTION_THRESHOLD_MS`   | `0`                               | Hikari 泄漏检测阈值；`0` 表示关闭       |
 | `SQL_LOG_MAX_ENTRIES`                   | `200`                            | SQL 日志页保留的进程内最近 SQL 摘要数量 |
 | `SQL_SLOW_THRESHOLD_MS`                 | dev: `500`，prod: `1000`          | 慢 SQL 判断阈值                         |
 | `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Lettuce 最大活动连接数                     |
@@ -71,9 +71,9 @@ scripts/stop-dependencies.sh
 
 脚本安全读取 `deploy/.env`，不会 shell source 该文件。停止脚本只处理对应应用的非 Docker 进程，不会停止 MySQL、Redis 或 MinIO 依赖容器。
 
-Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用 Druid 业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
+Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
 
-开发环境后端启动后可访问 `/druid/index.html` 查看 Druid 监控，默认账号来自 `DRUID_USERNAME` / `DRUID_PASSWORD`。管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。SQL 日志的保留边界、生产启用条件和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
+管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。Hikari 指标通过受控的 `/actuator/prometheus` 观测。SQL 日志的保留边界和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
 
 ## 存储切换
 
