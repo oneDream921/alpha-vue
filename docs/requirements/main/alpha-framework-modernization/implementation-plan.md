@@ -298,6 +298,18 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
    用于失败回滚，禁止全命名空间清理。
 6. 全量检索 Lettuce/RedisTemplate 残留并分类说明。
 
+**执行状态**
+
+状态：`MERGED`
+基础提交：`3d0d089`
+任务分支：`codex/p1-04-redis-migration`
+实现提交：`8fd55b8`
+验收日期：2026-07-30
+合并提交：`8fd55b8`（当前 `main` 已包含）
+验证摘要：实际 diff 已移除 Spring Data Redis/Lettuce 与旧 Redis 适配，完成 RedisTemplate、Sa-Token DAO、配置与字典缓存、Redis 管理适配的 Redisson 迁移；提交包含 Redisson 基础设施、Spring Cache 读/失效/空值策略、TTL、编解码、Sa-Token 对象/会话、限流原子操作和 Redis 管理扫描相关测试，并同步正式开发、安全和运维文档。用户于 2026-07-30 确认测试通过，且人工覆盖后端启动及缓存/会话重启行为。
+剩余风险：P1-05 类型化配置与 G1 整体门禁尚未完成。
+下一动作：允许准备 P1-05，但本任务不得启动 P1-05。
+
 ### P1-05 类型化系统配置注册表
 
 **目标**
