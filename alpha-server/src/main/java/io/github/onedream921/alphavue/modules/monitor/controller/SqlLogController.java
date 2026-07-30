@@ -6,7 +6,6 @@ import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogQuery;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
 import io.github.onedream921.alphavue.modules.monitor.service.SqlLogService;
-import io.github.onedream921.alphavue.modules.monitor.vo.DruidInfoVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogEntryVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.SqlLogSettingsVo;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
@@ -95,13 +94,4 @@ public class SqlLogController extends BaseController {
         return success(sqlLogService.updateSettings(body), request);
     }
 
-    /**
-     * 查询 Druid 监控入口。
-     */
-    @Operation(summary = "查询 Druid 监控入口")
-    @GetMapping("/druid-url")
-    public ApiResponse<DruidInfoVo> druidUrl(HttpServletRequest request) {
-        access.require("monitor:sql:list");
-        return success(sqlLogService.druidInfo(), request);
-    }
 }

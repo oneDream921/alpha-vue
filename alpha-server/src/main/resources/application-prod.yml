@@ -1,39 +1,16 @@
 spring:
   datasource:
-    type: com.alibaba.druid.pool.DruidDataSource
     url: ${MYSQL_URL}
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    druid:
-      initial-size: ${DB_POOL_MIN_IDLE:5}
-      min-idle: ${DB_POOL_MIN_IDLE:5}
-      max-active: ${DB_POOL_MAX_SIZE:20}
-      max-wait: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
-      validation-query: SELECT 1
-      test-while-idle: true
-      test-on-borrow: false
-      test-on-return: false
-      filters: ${DRUID_FILTERS:stat}
-      web-stat-filter:
-        enabled: ${DRUID_WEB_STAT_ENABLED:false}
-        url-pattern: /*
-        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/actuator/*"
-      stat-view-servlet:
-        enabled: ${DRUID_ENABLED:false}
-        url-pattern: /druid/*
-        login-username: ${DRUID_USERNAME:}
-        login-password: ${DRUID_PASSWORD:}
-        allow: ${DRUID_ALLOW:127.0.0.1}
-        reset-enable: false
-      filter:
-        stat:
-          enabled: true
-          log-slow-sql: true
-          slow-sql-millis: ${SQL_SLOW_THRESHOLD_MS:1000}
-          merge-sql: true
-        wall:
-          enabled: ${DRUID_WALL_ENABLED:false}
+    hikari:
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_THRESHOLD_MS:0}
   data:
     redis:
       host: ${REDIS_HOST}
@@ -74,8 +51,6 @@ alpha:
     sql:
       max-entries: ${SQL_LOG_MAX_ENTRIES:200}
       slow-threshold-ms: ${SQL_SLOW_THRESHOLD_MS:1000}
-      druid-enabled: ${DRUID_ENABLED:false}
-      druid-path: ${DRUID_PATH:/druid/index.html}
 
 springdoc:
   api-docs:

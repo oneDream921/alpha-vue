@@ -20,11 +20,6 @@ export interface SqlLogQuery {
     slowOnly: boolean
 }
 
-export interface DruidInfo {
-    enabled: boolean
-    path: string
-}
-
 export interface SqlLogStatement {
     statementId: string
     mapperName: string
@@ -52,5 +47,4 @@ export const sqlMonitorApi = {
         http.get<ApiResponse<SqlLogSettings>>('/monitor/sql/settings'),
     updateSettings: (body: SqlLogSettingsUpdate) =>
         http.put<ApiResponse<SqlLogSettings>>('/monitor/sql/settings', body),
-    druidUrl: () => http.get<ApiResponse<DruidInfo>>('/monitor/sql/druid-url'),
 }

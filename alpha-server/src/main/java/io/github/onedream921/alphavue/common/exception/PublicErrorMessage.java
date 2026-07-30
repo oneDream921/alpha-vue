@@ -18,6 +18,7 @@ public enum PublicErrorMessage {
     LOGIN_TEMPORARILY_LOCKED("登录失败次数过多，请稍后再试"),
     UNAUTHORIZED("请先登录"),
     FORBIDDEN("没有操作权限"),
+    RESOURCE_NOT_FOUND("资源不存在"),
     INTERNAL_SERVER_ERROR("服务器内部错误");
 
     private final String value;
