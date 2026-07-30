@@ -31,6 +31,7 @@ alwaysApply: true
 - 涉及系统边界、模块划分、技术选型、重大非功能需求或架构评审时，使用 `alpha-vue-architecture` Skill；只有用户明确要求时才落盘 ADR 或设计文档。
 - 新增或变更前后端 API 契约时，使用 `alpha-vue-api-design` Skill，并以 `docs/api.md`、`docs/security.md` 和现有实现为准。
 - 实现、重构、调试或评审 `alpha-server` 的 Spring Boot / Java 代码时，使用 `alpha-vue-backend` Skill；它不替代 `java-code-review` 的风险审查。
+- 在专门的强模型计划线程中核对现代化计划进度、选择下一任务、生成供用户复制的快速模型执行提示词或强模型验收提示词、登记已验证执行状态时，使用 `alpha-vue-plan-controller` Skill。该 Skill 不创建线程、不执行开发任务；实际交付线程必须使用 `alpha-vue-task-delivery-gate`。
 - 启动或重启本地项目时，使用 `alpha-vue-local-start` Skill。
 - API、安全、开发和发布任务分别读取 `docs/api.md`、`docs/security.md`、`docs/development.md` 和 `docs/operations.md`。
 
