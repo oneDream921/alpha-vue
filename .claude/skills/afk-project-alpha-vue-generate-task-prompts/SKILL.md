@@ -61,15 +61,16 @@ evidence over stale prose, while keeping the approved plan as the scope boundary
 Decide which project Skills the receiving thread actually needs. Do not include every Skill by
 default. State the decision and its reason before the copyable prompt.
 
-Use `alpha-vue-task-delivery-gate` when the receiving task is a confirmed implementation or
+Use `alpha-vue-task-delivery-orchestrator` when the receiving task is a confirmed implementation or
 remediation with a formal delivery lifecycle, especially framework modernization, dependency or
 infrastructure replacement, authentication/session/security changes, migrations, runtime
-configuration, cross-layer behavior, manual acceptance, or Git handoff.
+configuration, cross-layer behavior, manual acceptance, or Git handoff. Its execution prompt must
+name one approved task and allow only the orchestrator's bounded planning, review, and status agents.
 
-Do not use the delivery gate for prompt generation itself, requirements discussion, read-only
+Do not use the orchestrator for prompt generation itself, requirements discussion, read-only
 explanation, ordinary standalone review, or a `STATUS_SYNC` task that only records already verified
 evidence. For a formal acceptance review of an approved delivery task, include it only when the
-review must evaluate the delivery gates rather than merely review code.
+review must evaluate the delivery process gates rather than merely review code.
 
 Select other Skills by actual scope:
 
@@ -136,7 +137,7 @@ Generate this prompt only when the user has explicitly said `测试通过` and i
 available. Require the receiving agent to verify Git commits and supplied evidence, then update only
 the named task's execution block in `implementation-plan.md` and supported checks in `acceptance.md`.
 It must not infer unverified results, change production code, start the next task, or use
-`alpha-vue-task-delivery-gate` merely for a documentation-only status update. Documentation changes
+`alpha-vue-task-delivery-orchestrator` merely for a documentation-only status update. Documentation changes
 remain uncommitted unless the user separately gives the repository's exact commit authorization.
 
 ## Output

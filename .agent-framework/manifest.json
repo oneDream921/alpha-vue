@@ -5,6 +5,7 @@
     "claude": [
       ".claude/skills/afk-core-align-memory",
       ".claude/skills/afk-core-debugging",
+      ".claude/skills/afk-core-grill-me",
       ".claude/skills/afk-core-java-code-review",
       ".claude/skills/afk-core-planning",
       ".claude/skills/afk-core-requirements-doc",
@@ -16,12 +17,13 @@
       ".claude/skills/afk-project-alpha-vue-frontend",
       ".claude/skills/afk-project-alpha-vue-generate-task-prompts",
       ".claude/skills/afk-project-alpha-vue-local-start",
-      ".claude/skills/afk-project-alpha-vue-task-delivery-gate",
+      ".claude/skills/afk-project-alpha-vue-task-delivery-orchestrator",
       "CLAUDE.md"
     ],
     "codex": [
       ".agents/skills/afk-core-align-memory",
       ".agents/skills/afk-core-debugging",
+      ".agents/skills/afk-core-grill-me",
       ".agents/skills/afk-core-java-code-review",
       ".agents/skills/afk-core-planning",
       ".agents/skills/afk-core-requirements-doc",
@@ -33,7 +35,7 @@
       ".agents/skills/afk-project-alpha-vue-frontend",
       ".agents/skills/afk-project-alpha-vue-generate-task-prompts",
       ".agents/skills/afk-project-alpha-vue-local-start",
-      ".agents/skills/afk-project-alpha-vue-task-delivery-gate",
+      ".agents/skills/afk-project-alpha-vue-task-delivery-orchestrator",
       ".codex/hooks.json",
       ".codex/hooks/afk-check.mjs",
       ".codex/hooks/afk-checks.json",
@@ -52,6 +54,7 @@
       ".cursor/rules/afk-project.mdc",
       ".cursor/skills/afk-core-align-memory",
       ".cursor/skills/afk-core-debugging",
+      ".cursor/skills/afk-core-grill-me",
       ".cursor/skills/afk-core-java-code-review",
       ".cursor/skills/afk-core-planning",
       ".cursor/skills/afk-core-requirements-doc",
@@ -63,7 +66,7 @@
       ".cursor/skills/afk-project-alpha-vue-frontend",
       ".cursor/skills/afk-project-alpha-vue-generate-task-prompts",
       ".cursor/skills/afk-project-alpha-vue-local-start",
-      ".cursor/skills/afk-project-alpha-vue-task-delivery-gate"
+      ".cursor/skills/afk-project-alpha-vue-task-delivery-orchestrator"
     ]
   }
 }

@@ -14,7 +14,7 @@
 - 涉及系统边界、模块划分、技术选型、重大非功能需求或架构评审时，使用 `alpha-vue-architecture` Skill；只有用户明确要求时才落盘 ADR 或设计文档。
 - 新增或变更前后端 API 契约时，使用 `alpha-vue-api-design` Skill，并以 `docs/api.md`、`docs/security.md` 和现有实现为准。
 - 实现、重构、调试或评审 `alpha-server` 的 Spring Boot / Java 代码时，使用 `alpha-vue-backend` Skill；它不替代 `java-code-review` 的风险审查。
-- 根据用户指定的 Alpha Vue 任务和已确认计划生成可复制的执行、评审、修复或状态同步提示词时，使用 `alpha-vue-generate-task-prompts` Skill。该 Skill 只生成提示词，不选择下一任务、不维护计划状态、不创建线程也不执行任务；它必须按任务范围判断是否使用 `alpha-vue-task-delivery-gate` 及其他项目 Skill。涉及用户可操作行为时，提示词必须包含人工测试清单，并要求用户通过后回复“测试通过”，再由独立状态同步任务更新计划和验收文档。
+- 根据用户指定的 Alpha Vue 任务和已确认计划生成可复制的执行、评审、修复或状态同步提示词时，使用 `alpha-vue-generate-task-prompts` Skill。该 Skill 只生成提示词，不选择下一任务、不维护计划状态、不创建线程也不执行任务；它必须按任务范围判断是否使用 `alpha-vue-task-delivery-orchestrator` 及其他项目 Skill。需要连续交付编排时，由 orchestrator 在能力可用时自动完成强模型规划、快速实施、集中验证、可复用强模型评审、最多两轮批量修复、用户测试和状态同步；默认使用项目脚本启动、使用测试与 curl 验证，不执行浏览器自动化。
 - 启动或重启本地项目时，使用 `alpha-vue-local-start` Skill。
 - API、安全、开发和发布任务分别读取 `docs/api.md`、`docs/security.md`、`docs/development.md` 和 `docs/operations.md`。
 
