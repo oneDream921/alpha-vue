@@ -14,8 +14,8 @@
       ".claude/skills/afk-project-alpha-vue-architecture",
       ".claude/skills/afk-project-alpha-vue-backend",
       ".claude/skills/afk-project-alpha-vue-frontend",
+      ".claude/skills/afk-project-alpha-vue-generate-task-prompts",
       ".claude/skills/afk-project-alpha-vue-local-start",
-      ".claude/skills/afk-project-alpha-vue-plan-controller",
       ".claude/skills/afk-project-alpha-vue-task-delivery-gate",
       "CLAUDE.md"
     ],
@@ -31,8 +31,8 @@
       ".agents/skills/afk-project-alpha-vue-architecture",
       ".agents/skills/afk-project-alpha-vue-backend",
       ".agents/skills/afk-project-alpha-vue-frontend",
+      ".agents/skills/afk-project-alpha-vue-generate-task-prompts",
       ".agents/skills/afk-project-alpha-vue-local-start",
-      ".agents/skills/afk-project-alpha-vue-plan-controller",
       ".agents/skills/afk-project-alpha-vue-task-delivery-gate",
       ".codex/hooks.json",
       ".codex/hooks/afk-check.mjs",
@@ -61,8 +61,8 @@
       ".cursor/skills/afk-project-alpha-vue-architecture",
       ".cursor/skills/afk-project-alpha-vue-backend",
       ".cursor/skills/afk-project-alpha-vue-frontend",
+      ".cursor/skills/afk-project-alpha-vue-generate-task-prompts",
       ".cursor/skills/afk-project-alpha-vue-local-start",
-      ".cursor/skills/afk-project-alpha-vue-plan-controller",
       ".cursor/skills/afk-project-alpha-vue-task-delivery-gate"
     ]
   }
