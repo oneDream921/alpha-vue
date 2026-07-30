@@ -324,6 +324,18 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 4. 增加 Boolean、Integer、Enum、String 的解析与错误处理。
 5. 只迁移第一期确有需要的配置，不提前加入未来策略。
 
+**执行状态**
+
+状态：`ACCEPTED_UNCOMMITTED`
+基础提交：`4bdc9c2`
+任务分支：`codex/p1-05-typed-config`
+实现提交：未提交
+验收日期：2026-07-30
+合并提交：无
+验证摘要：以 `sys_config_definition` 定义目录约束 `sys_config`，仅开放 `file.*` 业务定义；覆盖 Boolean、Integer、Enum、String 的默认值和规则校验，敏感默认值与配置值不进入普通响应或操作审计，动态项仅允许已实现的文件业务绑定。后端完整测试 96 项通过、8 项因环境条件跳过，`package` 通过；前端 typecheck、51 项测试、lint、format check 与 build 通过；`git diff --check` 通过。完成受控 Flyway repair 后，本地服务启动及真实 HTTP 配置/文件限制验收通过。用户于 2026-07-30 明确确认“测试通过”。
+剩余风险：P1-05 已完成验收，但实现和本次状态同步均未提交；G1 仍有 HikariCP、Spring Cache、Sa-Token、Redis 不可用边界及正式运维文档等未完成门禁，不能据此放行 G1。
+下一动作：等待 P1-05 的 Git 提交授权；不得启动 P1-06。
+
 ### P1-06 clientId 登录契约
 
 **目标**
