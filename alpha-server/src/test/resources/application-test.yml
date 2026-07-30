@@ -20,6 +20,9 @@ management:
     redis:
       enabled: false
 
+springdoc:
+  enable-javadoc: true
+
 sa-token:
   token-name: Authorization
   token-prefix: Bearer

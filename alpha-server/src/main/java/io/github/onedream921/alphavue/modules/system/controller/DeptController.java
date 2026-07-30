@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.system.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
@@ -10,7 +9,6 @@ import io.github.onedream921.alphavue.modules.system.dto.DeptRequests;
 import io.github.onedream921.alphavue.modules.system.service.DeptService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
 import io.github.onedream921.alphavue.modules.system.vo.DeptVo;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -33,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Validated
 @Tag(name = "部门管理")
-@ApiSupport(order = 23, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/depts")
 public class DeptController extends BaseController {
@@ -48,7 +45,6 @@ public class DeptController extends BaseController {
     /**
      * 分页查询部门列表
      */
-    @Operation(summary = "分页查询部门")
     @GetMapping
     public ApiResponse<PageResponse<DeptVo>> page(@RequestParam(defaultValue = "1") @Min(1) int page,
                                                   @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
@@ -60,7 +56,6 @@ public class DeptController extends BaseController {
     /**
      * 查询单个部门详情
      */
-    @Operation(summary = "查询部门详情")
     @GetMapping("/{id}")
     public ApiResponse<DeptVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dept:list");
@@ -70,7 +65,6 @@ public class DeptController extends BaseController {
     /**
      * 新增部门
      */
-    @Operation(summary = "创建部门")
     @PostMapping
     @OperationLog(module = "System", operation = "Create department", type = BusinessType.CREATE)
     public ApiResponse<DeptVo> create(@Valid @RequestBody DeptRequests.Save body, HttpServletRequest request) {
@@ -81,7 +75,6 @@ public class DeptController extends BaseController {
     /**
      * 更新部门基础信息
      */
-    @Operation(summary = "更新部门")
     @PutMapping("/{id}")
     @OperationLog(module = "System", operation = "Update department", type = BusinessType.UPDATE)
     public ApiResponse<DeptVo> update(@PathVariable @Positive long id, @Valid @RequestBody DeptRequests.Save body,
@@ -93,7 +86,6 @@ public class DeptController extends BaseController {
     /**
      * 删除没有子部门的部门
      */
-    @Operation(summary = "删除部门")
     @DeleteMapping("/{id}")
     @OperationLog(module = "System", operation = "Delete department", type = BusinessType.DELETE)
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {

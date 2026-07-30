@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.file.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
@@ -8,7 +7,7 @@ import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.file.service.FileService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
-import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
@@ -34,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Validated
 @Tag(name = "文件管理")
-@ApiSupport(order = 40, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/files")
 public class FileController extends BaseController {
@@ -50,7 +48,6 @@ public class FileController extends BaseController {
     /**
      * 上传文件并保存文件元数据
      */
-    @Operation(summary = "上传文件")
     @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @OperationLog(module = "File", operation = "Upload file", type = BusinessType.CREATE)
     public ApiResponse<FileService.FileView> upload(@RequestPart("file") MultipartFile file, HttpServletRequest request) {
@@ -62,7 +59,6 @@ public class FileController extends BaseController {
     /**
      * 分页查询文件元数据列表
      */
-    @Operation(summary = "分页查询文件")
     @GetMapping
     public ApiResponse<PageResponse<FileService.FileView>> page(
             @RequestParam(defaultValue = "1") @Min(1) int page,
@@ -75,7 +71,6 @@ public class FileController extends BaseController {
     /**
      * 删除文件对象并软删除对应元数据
      */
-    @Operation(summary = "删除文件")
     @DeleteMapping("/{id}")
     @OperationLog(module = "File", operation = "Delete file", type = BusinessType.DELETE)
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
@@ -87,7 +82,7 @@ public class FileController extends BaseController {
     /**
      * 使用短期签名读取私有文件，不要求浏览器额外注入 Authorization 请求头。
      */
-    @Operation(summary = "读取私有文件", hidden = true)
+    @Hidden
     @GetMapping("/{id}/content")
     public ResponseEntity<InputStreamResource> content(@PathVariable @Positive long id,
                                                         @RequestParam long expires,

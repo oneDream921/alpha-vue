@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.system.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
@@ -10,7 +9,6 @@ import io.github.onedream921.alphavue.modules.system.dto.MenuRequests;
 import io.github.onedream921.alphavue.modules.system.service.MenuService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
 import io.github.onedream921.alphavue.modules.system.vo.MenuVo;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -35,7 +33,6 @@ import java.util.List;
  */
 @Validated
 @Tag(name = "菜单管理")
-@ApiSupport(order = 22, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/system/menus")
 public class MenuController extends BaseController {
@@ -50,7 +47,6 @@ public class MenuController extends BaseController {
     /**
      * 分页查询菜单列表
      */
-    @Operation(summary = "分页查询菜单")
     @GetMapping
     public ApiResponse<PageResponse<MenuVo>> page(@RequestParam(defaultValue = "1") @Min(1) int page,
                                                   @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
@@ -62,7 +58,6 @@ public class MenuController extends BaseController {
     /**
      * 查询角色可分配菜单
      */
-    @Operation(summary = "查询角色可分配菜单")
     @GetMapping("/assignable")
     public ApiResponse<List<MenuVo>> assignable(HttpServletRequest request) {
         access.require("system:role:assign");
@@ -72,7 +67,6 @@ public class MenuController extends BaseController {
     /**
      * 查询单个菜单详情
      */
-    @Operation(summary = "查询菜单详情")
     @GetMapping("/{id}")
     public ApiResponse<MenuVo> get(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:menu:list");
@@ -82,7 +76,6 @@ public class MenuController extends BaseController {
     /**
      * 新增菜单
      */
-    @Operation(summary = "创建菜单")
     @PostMapping
     @OperationLog(module = "System", operation = "Create menu", type = BusinessType.CREATE)
     public ApiResponse<MenuVo> create(@Valid @RequestBody MenuRequests.Save body, HttpServletRequest request) {
@@ -93,7 +86,6 @@ public class MenuController extends BaseController {
     /**
      * 更新菜单基础信息
      */
-    @Operation(summary = "更新菜单")
     @PutMapping("/{id}")
     @OperationLog(module = "System", operation = "Update menu", type = BusinessType.UPDATE)
     public ApiResponse<MenuVo> update(@PathVariable @Positive long id, @Valid @RequestBody MenuRequests.Save body,
@@ -105,7 +97,6 @@ public class MenuController extends BaseController {
     /**
      * 删除没有子菜单的菜单
      */
-    @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
     @OperationLog(module = "System", operation = "Delete menu", type = BusinessType.DELETE)
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {

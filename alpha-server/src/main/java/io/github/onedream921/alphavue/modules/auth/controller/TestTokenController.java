@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.auth.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Profile("test")
 @Tag(name = "测试认证")
-@ApiSupport(order = 99, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/auth")
 public class TestTokenController extends BaseController {
@@ -41,7 +39,7 @@ public class TestTokenController extends BaseController {
     /**
      * 签发固定 Bearer Token，并绑定到配置的测试用户
      */
-    @Operation(summary = "签发测试令牌", hidden = true)
+    @Operation(hidden = true)
     @PostMapping("/test-token")
     public ApiResponse<LoginResponse> issue(HttpServletRequest request) {
         StpUtil.login(userId, SaLoginParameter.create()

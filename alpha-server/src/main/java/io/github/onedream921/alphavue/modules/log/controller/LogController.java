@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.log.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
@@ -11,7 +10,6 @@ import io.github.onedream921.alphavue.modules.log.service.LogQueryService;
 import io.github.onedream921.alphavue.modules.log.dto.OperationLogQuery;
 import io.github.onedream921.alphavue.modules.log.vo.LoginLogVo;
 import io.github.onedream921.alphavue.modules.log.vo.OperationLogVo;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
@@ -29,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Validated
 @Tag(name = "日志查询")
-@ApiSupport(order = 50, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/logs")
 public class LogController extends BaseController {
@@ -45,7 +42,6 @@ public class LogController extends BaseController {
     /**
      * 分页查询操作日志
      */
-    @Operation(summary = "分页查询操作日志")
     @GetMapping("/operations")
     public ApiResponse<PageResponse<OperationLogVo>> operations(
             @RequestParam(defaultValue = "1") @Min(1) int page,
@@ -62,7 +58,6 @@ public class LogController extends BaseController {
     /**
      * 分页查询登录日志
      */
-    @Operation(summary = "分页查询登录日志")
     @GetMapping("/logins")
     public ApiResponse<PageResponse<LoginLogVo>> logins(
             @RequestParam(defaultValue = "1") @Min(1) int page,
@@ -75,7 +70,6 @@ public class LogController extends BaseController {
     /**
      * 更新失败操作日志的处理状态：0 未处理、1 已处理、2 已忽略
      */
-    @Operation(summary = "更新异常日志处理状态")
     @PutMapping("/operations/{id}/handled")
     @OperationLog(module = "Log", operation = "Update operation log handling status", type = BusinessType.UPDATE)
     public ApiResponse<Void> updateHandlingStatus(@PathVariable @Min(1) long id,

@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.monitor.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
@@ -11,7 +10,6 @@ import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
@@ -31,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Validated
 @Tag(name = "Redis 管理")
-@ApiSupport(order = 40, author = "Alpha Vue")
 @RestController
 @RequestMapping("/api/monitor/redis")
 public class RedisManagementController extends BaseController {
@@ -46,7 +43,6 @@ public class RedisManagementController extends BaseController {
     /**
      * 查询 Redis 概览
      */
-    @Operation(summary = "查询 Redis 概览")
     @GetMapping("/overview")
     public ApiResponse<RedisOverviewVo> overview(HttpServletRequest request) {
         access.require("monitor:redis:list");
@@ -56,7 +52,6 @@ public class RedisManagementController extends BaseController {
     /**
      * 使用游标查询 Redis 键
      */
-    @Operation(summary = "分页查询 Redis 键")
     @GetMapping("/keys")
     public ApiResponse<RedisKeyPageVo> keys(@RequestParam(defaultValue = "") @Size(max = 128) String prefix,
                                              @RequestParam(defaultValue = "0") @Pattern(regexp = "\\d+") String cursor,
@@ -70,7 +65,6 @@ public class RedisManagementController extends BaseController {
     /**
      * 查询 Redis 键元数据和值预览
      */
-    @Operation(summary = "查询 Redis 键元数据")
     @GetMapping("/key")
     public ApiResponse<RedisKeyMetadataVo> key(@RequestParam @NotBlank @Size(max = 512) String key,
                                                 HttpServletRequest request) {
@@ -81,7 +75,6 @@ public class RedisManagementController extends BaseController {
     /**
      * 删除单个 Redis 键
      */
-    @Operation(summary = "删除 Redis 键")
     @DeleteMapping("/key")
     @OperationLog(module = "Monitor", operation = "删除 Redis 键", type = BusinessType.DELETE,
             saveRequest = false, saveResponse = false)

@@ -1,6 +1,5 @@
 package io.github.onedream921.alphavue.modules.system.controller;
 
-import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.common.api.PageResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
@@ -13,7 +12,6 @@ import io.github.onedream921.alphavue.modules.system.vo.DictItemVo;
 import io.github.onedream921.alphavue.modules.system.vo.DictCacheRefreshVo;
 import io.github.onedream921.alphavue.modules.system.vo.DictTypeVo;
 import io.github.onedream921.alphavue.modules.system.vo.EnabledDictItemVo;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -37,7 +35,6 @@ import java.util.List;
  * 数据字典管理接口
  */
 @Tag(name = "数据字典")
-@ApiSupport(order = 25, author = "Alpha Vue")
 @Validated
 @RestController
 @RequestMapping("/api/system")
@@ -53,7 +50,6 @@ public class DictController extends BaseController {
     /**
      * 分页查询字典类型
      */
-    @Operation(summary = "分页查询字典类型")
     @GetMapping("/dict-types")
     public ApiResponse<PageResponse<DictTypeVo>> pageTypes(@RequestParam(defaultValue = "1") @Min(1) int page,
                                                             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
@@ -65,7 +61,6 @@ public class DictController extends BaseController {
     /**
      * 查询字典类型详情
      */
-    @Operation(summary = "查询字典类型详情")
     @GetMapping("/dict-types/{id}")
     public ApiResponse<DictTypeVo> getType(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:dict:list");
@@ -75,7 +70,6 @@ public class DictController extends BaseController {
     /**
      * 创建字典类型
      */
-    @Operation(summary = "创建字典类型")
     @PostMapping("/dict-types")
     @OperationLog(module = "System", operation = "Create dictionary type", type = BusinessType.CREATE)
     public ApiResponse<DictTypeVo> createType(@Valid @RequestBody DictRequests.TypeSave body,
@@ -87,7 +81,6 @@ public class DictController extends BaseController {
     /**
      * 更新字典类型
      */
-    @Operation(summary = "更新字典类型")
     @PutMapping("/dict-types/{id}")
     @OperationLog(module = "System", operation = "Update dictionary type", type = BusinessType.UPDATE)
     public ApiResponse<DictTypeVo> updateType(@PathVariable @Positive long id,
@@ -100,7 +93,6 @@ public class DictController extends BaseController {
     /**
      * 删除字典类型
      */
-    @Operation(summary = "删除字典类型")
     @DeleteMapping("/dict-types/{id}")
     @OperationLog(module = "System", operation = "Delete dictionary type", type = BusinessType.DELETE)
     public ApiResponse<Void> deleteType(@PathVariable @Positive long id, HttpServletRequest request) {
@@ -112,7 +104,6 @@ public class DictController extends BaseController {
     /**
      * 分页查询字典项
      */
-    @Operation(summary = "分页查询字典项")
     @GetMapping("/dict-types/{typeId}/items")
     public ApiResponse<PageResponse<DictItemVo>> pageItems(@PathVariable @Positive long typeId,
                                                            @RequestParam(defaultValue = "1") @Min(1) int page,
@@ -125,7 +116,6 @@ public class DictController extends BaseController {
     /**
      * 创建字典项
      */
-    @Operation(summary = "创建字典项")
     @PostMapping("/dict-types/{typeId}/items")
     @OperationLog(module = "System", operation = "Create dictionary item", type = BusinessType.CREATE)
     public ApiResponse<DictItemVo> createItem(@PathVariable @Positive long typeId,
@@ -138,7 +128,6 @@ public class DictController extends BaseController {
     /**
      * 更新字典项
      */
-    @Operation(summary = "更新字典项")
     @PutMapping("/dict-items/{id}")
     @OperationLog(module = "System", operation = "Update dictionary item", type = BusinessType.UPDATE)
     public ApiResponse<DictItemVo> updateItem(@PathVariable @Positive long id,
@@ -151,7 +140,6 @@ public class DictController extends BaseController {
     /**
      * 删除字典项
      */
-    @Operation(summary = "删除字典项")
     @DeleteMapping("/dict-items/{id}")
     @OperationLog(module = "System", operation = "Delete dictionary item", type = BusinessType.DELETE)
     public ApiResponse<Void> deleteItem(@PathVariable @Positive long id, HttpServletRequest request) {
@@ -163,7 +151,6 @@ public class DictController extends BaseController {
     /**
      * 刷新字典业务读取缓存
      */
-    @Operation(summary = "刷新字典缓存")
     @PutMapping("/dicts/cache")
     @OperationLog(module = "System", operation = "Refresh dictionary cache", type = BusinessType.UPDATE)
     public ApiResponse<DictCacheRefreshVo> refreshCache(HttpServletRequest request) {
@@ -174,7 +161,6 @@ public class DictController extends BaseController {
     /**
      * 查询指定类型的启用字典项
      */
-    @Operation(summary = "查询启用字典项")
     @GetMapping("/dicts/{typeCode}/items")
     public ApiResponse<List<EnabledDictItemVo>> enabledItems(@PathVariable @jakarta.validation.constraints.Size(max = 64) String typeCode,
                                                               HttpServletRequest request) {

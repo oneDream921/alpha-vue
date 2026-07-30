@@ -7,11 +7,13 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.tags.Tag;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * OpenAPI 配置
@@ -20,6 +22,7 @@ import java.util.List;
 public class OpenApiConfig {
 
     private static final String BEARER_AUTH = "bearerAuth";
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of("/api/auth/login", "/api/auth/captcha");
 
     /**
      * 构建管理端后端接口的 OpenAPI 主文档
@@ -38,6 +41,24 @@ public class OpenApiConfig {
                                 .scheme("bearer")
                                 .bearerFormat("Sa-Token")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
+    }
+
+    /**
+     * 为不需要登录的认证接口覆盖根级 Bearer 鉴权要求。
+     */
+    @Bean
+    GlobalOpenApiCustomizer publicAuthenticationCustomizer() {
+        return openApi -> {
+            if (openApi.getPaths() == null) {
+                return;
+            }
+            PUBLIC_AUTH_PATHS.forEach(path -> {
+                var pathItem = openApi.getPaths().get(path);
+                if (pathItem != null) {
+                    pathItem.readOperations().forEach(operation -> operation.setSecurity(List.of()));
+                }
+            });
+        };
     }
 
     /**

@@ -56,7 +56,5 @@ springdoc:
   api-docs:
     enabled: true
   swagger-ui:
-    enabled: false
-
-knife4j:
-  enable: true
+    enabled: true
+  enable-javadoc: true

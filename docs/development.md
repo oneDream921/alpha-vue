@@ -71,7 +71,7 @@ scripts/stop-dependencies.sh
 
 脚本安全读取 `deploy/.env`，不会 shell source 该文件。停止脚本只处理对应应用的非 Docker 进程，不会停止 MySQL、Redis 或 MinIO 依赖容器。
 
-Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用业务连接池；不手工修改已发布迁移。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
+Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用业务连接池；不手工修改已发布迁移。开发 profile 启用 SpringDoc 和 Swagger UI，可访问 `/swagger-ui/index.html` 及 `/v3/api-docs/{group}`；生产 profile 关闭文档相关路径。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
 
 管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。Hikari 指标通过受控的 `/actuator/prometheus` 观测。SQL 日志的保留边界和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
 

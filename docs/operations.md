@@ -22,6 +22,7 @@ Redis 管理台用于在故障排查时按 `SCAN` 游标分批检查键空间，
 
 - 探针：`/actuator/health/liveness`、`/actuator/health/readiness`。
 - 指标：携带 Bearer Token 访问 `/actuator/prometheus`，并仅限内网采集端访问；健康探针公开，其余 Actuator 端点也必须在网关和应用层受控。
+- 文档：仅开发 profile 暴露 `/swagger-ui/index.html` 和 `/v3/api-docs/{group}`；生产 profile 应验证 `/v3/api-docs`、`/v3/api-docs/{group}`、`/swagger-ui.html` 与 `/swagger-ui/index.html` 均返回 404。
 - 关联：响应头和响应体中的 `traceId` 可关联访问日志与应用日志。不要把密码、Token、验证码或 `.env` 内容附入工单。
 - 连接耗尽：先检查 Hikari `hikaricp.connections.*` 指标、慢 SQL 与 MySQL `max_connections`，再调整池大小；不要通过无限 Redis 等待或盲目扩容掩盖问题。
 

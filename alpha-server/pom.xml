@@ -22,7 +22,7 @@
         <mybatis-plus.version>3.5.13</mybatis-plus.version>
         <sa-token.version>1.45.0</sa-token.version>
         <springdoc.version>3.0.3</springdoc.version>
-        <knife4j.version>4.4.0</knife4j.version>
+        <therapi.version>0.15.0</therapi.version>
         <minio.version>8.5.17</minio.version>
     </properties>
 
@@ -95,14 +95,9 @@
             <version>${springdoc.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-ui</artifactId>
-            <version>${knife4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-core</artifactId>
-            <version>${knife4j.version}</version>
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc</artifactId>
+            <version>${therapi.version}</version>
         </dependency>
         <dependency>
             <groupId>io.minio</groupId>
@@ -128,6 +123,23 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                        <path>
+                            <groupId>com.github.therapi</groupId>
+                            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+                            <version>${therapi.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
