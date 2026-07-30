@@ -14,7 +14,9 @@ HikariCP 使用 Spring Boot BOM 管理的默认实现。开发池默认最小 2�
 
 SQL 日志页只保存当前进程内最近 SQL 摘要，不持久化、不跨实例聚合；采集开关和 Mapper 排除列表是单实例全局运行时状态，多实例部署时各实例互不同步。连接池指标通过 `/actuator/prometheus` 受控观测；SQL 文本脱敏与禁止任意 SQL 执行等安全边界见 [安全说明](security.md)。
 
-Redis 使用 Lettuce 连接池。`REDIS_POOL_MAX_ACTIVE` 是单应用实例上限，`REDIS_POOL_MAX_WAIT` 默认 1 秒，避免连接耗尽时无限堆积请求；按 Redis 连接上限和副本数调整。Sa-Token 会话、验证码和登录失败窗口必须使用同一 Redis 集群/命名空间，并启用持久化与备份策略。
+现有业务 Redis 使用 Lettuce 连接池。P1-03 另外建立直接 Redisson 4.6.1 Client，连接池、连接超时、命令超时和重试由 `REDIS_POOL_MAX_ACTIVE`、`REDIS_POOL_MIN_IDLE`、`REDIS_CONNECT_TIMEOUT`、`REDIS_TIMEOUT`、`REDIS_RETRY_INTERVAL` 和 `REDIS_RETRY_ATTEMPTS` 控制；连接耗尽或 Redis 不可用时向适配器抛出明确基础设施异常，不返回假空值。两套 Client 仅在不可发布的 P1-03 验证窗口共存，Redisson 只能访问独立 `alpha:*` 验证键，不得对旧业务键双读、双写或清理。P1-04 完成业务迁移后再删除 Lettuce 和旧模板。
+
+Redisson Spring Cache 使用显式白名单对象 Codec，默认不缓存空值，并对已登记缓存使用 `REDIS_CACHE_TTL`（当前 10 分钟）。缓存失效必须由业务提交成功边界触发；P1-03 只验证 CacheManager，不改变现有配置和字典业务适配器。
 
 Redis 管理台用于在故障排查时按 `SCAN` 游标分批检查键空间，可通过前缀筛选缩小范围。删除会话、验证码或业务缓存键会立即影响线上状态，操作前必须完成二次确认。接口字段和查询参数见 [API 约定](api.md)，允许操作与脱敏边界见 [安全说明](security.md)。
 

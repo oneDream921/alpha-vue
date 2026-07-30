@@ -26,6 +26,7 @@ spring:
           max-active: ${REDIS_POOL_MAX_ACTIVE:8}
           max-wait: ${REDIS_POOL_MAX_WAIT:1s}
           time-between-eviction-runs: ${REDIS_POOL_EVICTION_INTERVAL:30s}
+
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     url: ${MYSQL_URL}
@@ -44,6 +45,19 @@ sa-token:
   is-log: ${SA_TOKEN_IS_LOG:false}
 
 alpha:
+  redis:
+    redisson:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3s}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:3s}
+      connection-pool-size: ${REDIS_POOL_MAX_ACTIVE:8}
+      connection-minimum-idle-size: ${REDIS_POOL_MIN_IDLE:1}
+      retry-interval: ${REDIS_RETRY_INTERVAL:1s}
+      retry-attempts: ${REDIS_RETRY_ATTEMPTS:2}
+      cache-ttl: ${REDIS_CACHE_TTL:10m}
   auth:
     captcha-enabled: ${CAPTCHA_ENABLED:true}
     captcha-ttl: ${CAPTCHA_TTL:5m}
