@@ -16,6 +16,11 @@ public interface SysConfigMapper {
     Page<SysConfig> selectPageActive(Page<SysConfig> page);
 
     /**
+     * 分页查询存在已发布定义的参数配置。
+     */
+    Page<SysConfig> selectPagePublished(Page<SysConfig> page);
+
+    /**
      * 按主键查询未删除的参数配置
      */
     SysConfig selectActiveById(@Param("id") long id);

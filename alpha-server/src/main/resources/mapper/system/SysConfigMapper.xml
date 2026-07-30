@@ -16,6 +16,17 @@
         ORDER BY id DESC
     </select>
 
+    <select id="selectPagePublished" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfig">
+        SELECT <include refid="ConfigColumns"/>
+        FROM sys_config c
+        WHERE c.deleted = 0
+          AND EXISTS (
+            SELECT 1 FROM sys_config_definition d
+            WHERE d.config_key = c.config_key AND d.status = 'PUBLISHED' AND d.deleted = 0
+          )
+        ORDER BY c.id DESC
+    </select>
+
     <select id="selectActiveById" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfig">
         SELECT <include refid="ConfigColumns"/>
         FROM sys_config

@@ -1,16 +1,99 @@
 import { describe, expect, it } from 'vitest'
 
-import { validateConfigKey } from './configs.validation'
+import type { ConfigDefinition } from '@/service/system'
+import {
+    validateConfigValue,
+    validateDefinitionRules,
+} from './configs.validation'
 
-describe('validateConfigKey', () => {
-    it('rejects infrastructure and sensitive configuration keys', () => {
-        expect(validateConfigKey('spring.application.name')).toBe(
-            '该配置键不允许保存',
-        )
-        expect(validateConfigKey('app.api-token')).toBe('该配置键不允许保存')
+const definition = (
+    overrides: Partial<ConfigDefinition>,
+): ConfigDefinition => ({
+    id: 1,
+    configKey: 'file.example',
+    configName: '测试配置',
+    configGroup: 'file',
+    valueType: 'STRING',
+    sensitive: false,
+    dynamic: false,
+    status: 'PUBLISHED',
+    enumValues: [],
+    ...overrides,
+})
+
+describe('validateConfigValue', () => {
+    it('validates Boolean, Integer, Enum and String definitions', () => {
+        expect(
+            validateConfigValue(definition({ valueType: 'BOOLEAN' }), 'true'),
+        ).toBeUndefined()
+        expect(
+            validateConfigValue(definition({ valueType: 'BOOLEAN' }), 'TRUE'),
+        ).toBeDefined()
+        expect(
+            validateConfigValue(
+                definition({
+                    valueType: 'INTEGER',
+                    integerMin: 1,
+                    integerMax: 3,
+                }),
+                '3',
+            ),
+        ).toBeUndefined()
+        expect(
+            validateConfigValue(
+                definition({
+                    valueType: 'INTEGER',
+                    integerMin: 1,
+                    integerMax: 3,
+                }),
+                '4',
+            ),
+        ).toBeDefined()
+        expect(
+            validateConfigValue(
+                definition({ valueType: 'ENUM', enumValues: ['a', 'b'] }),
+                'a',
+            ),
+        ).toBeUndefined()
+        expect(
+            validateConfigValue(
+                definition({ valueType: 'ENUM', enumValues: ['a', 'b'] }),
+                'c',
+            ),
+        ).toBeDefined()
+        expect(
+            validateConfigValue(
+                definition({ stringMaxLength: 3, stringPattern: '[a-z]+' }),
+                'abc',
+            ),
+        ).toBeUndefined()
+        expect(
+            validateConfigValue(
+                definition({ stringMaxLength: 3, stringPattern: '[a-z]+' }),
+                'ABCD',
+            ),
+        ).toBeDefined()
     })
 
-    it('accepts ordinary application configuration keys', () => {
-        expect(validateConfigKey('app.home.notice')).toBeUndefined()
+    it('rejects incomplete or malformed definition rules', () => {
+        expect(validateConfigValue(undefined, 'x')).toBeDefined()
+        expect(
+            validateDefinitionRules({ valueType: 'ENUM', defaultValue: 'a' }),
+        ).toBeDefined()
+        expect(
+            validateDefinitionRules({
+                valueType: 'INTEGER',
+                defaultValue: '1',
+                integerMin: 2,
+                integerMax: 1,
+            }),
+        ).toBeDefined()
+        expect(
+            validateDefinitionRules({
+                valueType: 'STRING',
+                defaultValue: 'x',
+                stringPattern: '(',
+            }),
+        ).toBeDefined()
     })
 })

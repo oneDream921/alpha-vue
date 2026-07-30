@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.onedream921.alphavue.modules.system.mapper.SysConfigDefinitionMapper">
+  <sql id="Columns">id,config_key,config_name,config_group,value_type,default_value,integer_min,integer_max,string_max_length,string_pattern,enum_values,`sensitive`,`dynamic`,runtime_binding,status,deleted,created_at,updated_at</sql>
+  <select id="selectPageActive" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE deleted=0 ORDER BY id DESC</select>
+  <select id="selectActiveById" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE id=#{id} AND deleted=0</select>
+  <select id="selectActiveByKey" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE config_key=#{configKey} AND deleted=0</select>
+  <select id="selectActiveByBinding" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE runtime_binding=#{runtimeBinding} AND deleted=0</select>
+  <select id="selectPublishedByKeys" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">
+    SELECT <include refid="Columns"/> FROM sys_config_definition
+    WHERE status='PUBLISHED' AND deleted=0 AND config_key IN
+    <foreach collection="configKeys" item="configKey" open="(" separator="," close=")">#{configKey}</foreach>
+  </select>
+  <select id="selectPublishedByKey" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE config_key=#{configKey} AND status='PUBLISHED' AND deleted=0</select>
+  <select id="selectPublishedByBinding" resultType="io.github.onedream921.alphavue.modules.system.entity.SysConfigDefinition">SELECT <include refid="Columns"/> FROM sys_config_definition WHERE runtime_binding=#{runtimeBinding} AND `dynamic`=1 AND status='PUBLISHED' AND deleted=0</select>
+  <insert id="insertDefinition" useGeneratedKeys="true" keyProperty="definition.id">INSERT INTO sys_config_definition (config_key,config_name,config_group,value_type,default_value,integer_min,integer_max,string_max_length,string_pattern,enum_values,`sensitive`,`dynamic`,runtime_binding,status,deleted,created_at,updated_at) VALUES (#{definition.configKey},#{definition.configName},#{definition.configGroup},#{definition.valueType},#{definition.defaultValue},#{definition.integerMin},#{definition.integerMax},#{definition.stringMaxLength},#{definition.stringPattern},#{definition.enumValues},#{definition.sensitive},#{definition.dynamic},#{definition.runtimeBinding},#{definition.status},0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)</insert>
+  <update id="updateDefinition">UPDATE sys_config_definition SET config_name=#{definition.configName},default_value=#{definition.defaultValue},integer_min=#{definition.integerMin},integer_max=#{definition.integerMax},string_max_length=#{definition.stringMaxLength},string_pattern=#{definition.stringPattern},enum_values=#{definition.enumValues},status=#{definition.status},updated_at=CURRENT_TIMESTAMP WHERE id=#{definition.id} AND deleted=0</update>
+</mapper>

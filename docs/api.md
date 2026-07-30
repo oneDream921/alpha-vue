@@ -16,7 +16,7 @@
 | 角色     | `/system/roles` CRUD、`GET/PUT /{id}/menus`                       |
 | 菜单     | `/system/menus` CRUD                                              |
 | 部门     | `/system/depts` CRUD                                              |
-| 参数配置 | `/system/configs` CRUD；写入后立即发布或移除 Redis 运行时缓存       |
+| 参数配置 | `GET/POST/PUT/DELETE /system/configs`、`GET/POST/PUT /system/configs/definitions` |
 | 字典     | `/system/dict-types` CRUD、`/system/dict-types/{typeId}/items`、`/system/dict-items/{id}`、`GET /system/dicts/{typeCode}/items`、`PUT /system/dicts/cache` |
 | 文件     | `GET /files`、`POST /files/upload`、`DELETE /files/{id}`          |
 | 日志     | `GET /logs/operations`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |
@@ -28,6 +28,10 @@
 个人头像上传只接受 `png/jpg/jpeg/gif/webp`，使用当前登录用户身份，不要求文件管理权限；上传成功后立即更新该用户头像。修改个人密码时，旧密码错误会返回“旧密码错误”，新旧密码相同会返回“新密码不能与旧密码相同”。
 
 HTTP 状态与响应 `code` 一致：参数错误 400、未登录 401、无权限 403、登录锁定 429、未处理错误 500。响应头 `X-Trace-Id` 与响应体 `traceId` 可用于问题定位。
+
+参数配置的值只能使用已发布定义目录中的 `file.*` 业务键。`system:config:list` 可查看值与定义；`system:config:create`、`system:config:update`、`system:config:delete` 分别控制值的新增、修改和删除；`system:config:define` 控制定义创建、修改和发布。定义包含 `BOOLEAN`、`INTEGER`、`ENUM`、`STRING` 类型、默认值、范围或枚举、敏感标记、动态标记和状态。敏感定义的默认值和配置值在普通响应中均为隐藏状态。
+
+定义为 `DATA_ONLY` 时仅保存受控业务数据，不自动绑定应用行为。动态定义只允许使用已实现的文件运行时绑定：单文件上传大小、允许扩展名和私有文件访问期限；其定义必须保持已发布。值写入在事务提交后才发布或失效 Redis 缓存；禁用值会回退到定义默认值。未注册、未发布、类型或范围不合法的值一律返回 400“请求参数错误”，不会返回配置值、数据库错误或内部异常信息。
 
 Redis 管理接受可选前缀筛选、键名关键词与 `SCAN` 游标（`cursor`、`count=1..100`），空前缀表示查询全库键空间。接口返回键名、分类、类型、TTL、大小估计和值预览；超出展示上限时通过 `valueTruncated` 标记。删除接口仅返回确认文本，不回显键名。
 

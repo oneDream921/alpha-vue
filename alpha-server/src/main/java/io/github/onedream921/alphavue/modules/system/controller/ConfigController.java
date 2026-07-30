@@ -7,8 +7,10 @@ import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.dto.ConfigRequests;
 import io.github.onedream921.alphavue.modules.system.service.ConfigService;
+import io.github.onedream921.alphavue.modules.system.service.ConfigDefinitionService;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
 import io.github.onedream921.alphavue.modules.system.vo.ConfigVo;
+import io.github.onedream921.alphavue.modules.system.vo.ConfigDefinitionVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -36,10 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConfigController extends BaseController {
     private final ConfigService configService;
     private final SystemAccessService access;
+    private final ConfigDefinitionService definitionService;
 
-    public ConfigController(ConfigService configService, SystemAccessService access) {
+    public ConfigController(ConfigService configService, SystemAccessService access, ConfigDefinitionService definitionService) {
         this.configService = configService;
         this.access = access;
+        this.definitionService = definitionService;
     }
 
     /**
@@ -51,6 +55,28 @@ public class ConfigController extends BaseController {
                                                     HttpServletRequest request) {
         access.require("system:config:list");
         return success(configService.page(page, size), request);
+    }
+
+    @GetMapping("/definitions")
+    public ApiResponse<PageResponse<ConfigDefinitionVo>> definitions(@RequestParam(defaultValue = "1") @Min(1) int page,
+                                                                      @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+                                                                      HttpServletRequest request) {
+        access.require("system:config:list");
+        return success(definitionService.page(page, size), request);
+    }
+
+    @PostMapping("/definitions")
+    @OperationLog(module = "System", operation = "Create configuration definition", type = BusinessType.CREATE)
+    public ApiResponse<ConfigDefinitionVo> createDefinition(@Valid @RequestBody ConfigRequests.DefinitionSave body, HttpServletRequest request) {
+        access.require("system:config:define");
+        return success(definitionService.create(body), request);
+    }
+
+    @PutMapping("/definitions/{id}")
+    @OperationLog(module = "System", operation = "Update configuration definition", type = BusinessType.UPDATE)
+    public ApiResponse<ConfigDefinitionVo> updateDefinition(@PathVariable @Positive long id, @Valid @RequestBody ConfigRequests.DefinitionSave body, HttpServletRequest request) {
+        access.require("system:config:define");
+        return success(definitionService.update(id, body), request);
     }
 
     /**

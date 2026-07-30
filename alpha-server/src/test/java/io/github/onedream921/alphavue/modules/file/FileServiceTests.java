@@ -7,6 +7,7 @@ import io.github.onedream921.alphavue.modules.file.service.FileAccessTokenServic
 import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.junit.jupiter.api.AfterEach;
@@ -76,6 +77,9 @@ class FileServiceTests {
     @Autowired
     private SysUserMapper userMapper;
 
+    @Autowired
+    private ConfigService configService;
+
     @AfterEach
     void cleanUp() throws IOException {
         jdbcTemplate.update("DELETE FROM sys_file");
@@ -92,6 +96,17 @@ class FileServiceTests {
         }
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void configureRuntimeFileRules() {
+        jdbcTemplate.update("DELETE FROM sys_config WHERE config_key LIKE 'file.%'");
+        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
+                "测试上传大小", "file.upload.max-size-mb", "1", "文件", "INTEGER", true);
+        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
+                "测试扩展名", "file.upload.allowed-extensions", "txt,png,webp", "文件", "STRING", true);
+        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
+                "测试访问期限", "file.private-access-ttl-minutes", "1", "文件", "INTEGER", true);
+    }
+
     @Test
     void rejectsAnExtensionOutsideTheConfiguredAllowList() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "payload.exe", "application/octet-stream", new byte[] {1});
@@ -106,7 +121,7 @@ class FileServiceTests {
     @Test
     void rejectsAFileLargerThanTheConfiguredMaximum() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "payload.txt", MediaType.TEXT_PLAIN_VALUE,
-                new byte[17]);
+                new byte[1_048_577]);
 
         mockMvc.perform(multipart("/api/files/upload").file(file).header("Authorization", bearer(loginAsAdmin())))
                 .andExpect(status().isBadRequest())
@@ -276,7 +291,7 @@ class FileServiceTests {
                 """);
         long id = jdbcTemplate.queryForObject("SELECT id FROM sys_file WHERE object_key = ?", Long.class, key);
         FileService service = new FailedSoftDeleteFileService(fileStorageProperties, localStorageProvider,
-                minioStorageProvider, userMapper, fileAccessTokenService);
+                minioStorageProvider, userMapper, fileAccessTokenService, configService);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", fileService.getBaseMapper());
 
         assertThatThrownBy(() -> service.delete(id))
@@ -308,8 +323,8 @@ class FileServiceTests {
     private static final class FailedSoftDeleteFileService extends FileService {
         private FailedSoftDeleteFileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
                                             MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
-                                            FileAccessTokenService fileAccessTokenService) {
-            super(properties, localStorageProvider, minioStorageProvider, userMapper, fileAccessTokenService);
+                                            FileAccessTokenService fileAccessTokenService, ConfigService configService) {
+            super(properties, localStorageProvider, minioStorageProvider, userMapper, fileAccessTokenService, configService);
         }
 
         @Override

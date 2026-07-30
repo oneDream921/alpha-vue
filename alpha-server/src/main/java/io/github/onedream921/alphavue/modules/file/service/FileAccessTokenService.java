@@ -1,6 +1,8 @@
 package io.github.onedream921.alphavue.modules.file.service;
 
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
+import io.github.onedream921.alphavue.modules.system.config.RuntimeConfigBinding;
+import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,22 +23,24 @@ public class FileAccessTokenService {
 
     private final FileStorageProperties properties;
     private final Clock clock;
+    private final ConfigService configService;
 
     @Autowired
-    public FileAccessTokenService(FileStorageProperties properties) {
-        this(properties, Clock.systemUTC());
+    public FileAccessTokenService(FileStorageProperties properties, ConfigService configService) {
+        this(properties, Clock.systemUTC(), configService);
     }
 
-    FileAccessTokenService(FileStorageProperties properties, Clock clock) {
+    FileAccessTokenService(FileStorageProperties properties, Clock clock, ConfigService configService) {
         this.properties = properties;
         this.clock = clock;
+        this.configService = configService;
     }
 
     public String accessUrl(long fileId) {
         if (properties.isPublicAccess()) {
             throw new IllegalStateException("Public files do not need an access token");
         }
-        long expiresAt = Instant.now(clock).plus(properties.getAccessTokenTtl()).getEpochSecond();
+        long expiresAt = Instant.now(clock).plusSeconds(Long.parseLong(configService.value(RuntimeConfigBinding.FILE_PRIVATE_ACCESS_TTL)) * 60L).getEpochSecond();
         return "/api/files/" + fileId + "/content?expires=" + expiresAt + "&signature=" + signature(fileId, expiresAt);
     }
 

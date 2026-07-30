@@ -53,16 +53,54 @@ export interface Config {
     id: number
     configName: string
     configKey: string
-    configValue: string
+    configValue?: string
     configGroup: string
     dataType: ConfigDataType
     enabled: boolean
     description?: string
+    domain: string
+    sensitive: boolean
+    dynamic: boolean
+    enumValues: string[]
     createdAt?: string
     updatedAt?: string
 }
 
-export type ConfigDataType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON'
+export type ConfigDataType = 'STRING' | 'INTEGER' | 'BOOLEAN' | 'ENUM'
+
+export interface ConfigDefinition {
+    id: number
+    configKey: string
+    configName: string
+    configGroup: string
+    valueType: ConfigDataType
+    defaultValue?: string
+    integerMin?: number
+    integerMax?: number
+    stringMaxLength?: number
+    stringPattern?: string
+    sensitive: boolean
+    dynamic: boolean
+    runtimeBinding?: string
+    status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'
+    enumValues: string[]
+}
+
+export interface ConfigDefinitionSave {
+    configKey: string
+    configName: string
+    valueType: ConfigDataType
+    defaultValue: string
+    integerMin?: number
+    integerMax?: number
+    stringMaxLength?: number
+    stringPattern?: string
+    enumValues?: string
+    sensitive: boolean
+    dynamic: boolean
+    runtimeBinding?: string
+    status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'
+}
 
 export interface DictType extends BaseEntity {
     typeCode: string
@@ -137,13 +175,9 @@ export type RoleUpdate = Omit<RoleCreate, 'code'>
 export type MenuSave = Omit<Menu, 'id' | 'createdAt'>
 export type DeptSave = Omit<Dept, 'id' | 'createdAt'>
 export interface ConfigSave {
-    configName: string
     configKey: string
     configValue: string
-    configGroup: string
-    dataType: ConfigDataType
     enabled: boolean
-    description?: string
 }
 export interface DictTypeSave {
     typeCode: string
@@ -187,7 +221,24 @@ export const menuApi = {
     assignable: () => http.get<ApiResponse<Menu[]>>('/system/menus/assignable'),
 }
 export const deptApi = resource<Dept, DeptSave, DeptSave>('depts')
-export const configApi = resource<Config, ConfigSave, ConfigSave>('configs')
+export const configApi = {
+    ...resource<Config, ConfigSave, ConfigSave>('configs'),
+    definitions: (page = 1, size = 100) =>
+        http.get<ApiResponse<PageResponse<ConfigDefinition>>>(
+            '/system/configs/definitions',
+            { params: { page, size } },
+        ),
+    createDefinition: (payload: ConfigDefinitionSave) =>
+        http.post<ApiResponse<ConfigDefinition>>(
+            '/system/configs/definitions',
+            payload,
+        ),
+    updateDefinition: (id: number, payload: ConfigDefinitionSave) =>
+        http.put<ApiResponse<ConfigDefinition>>(
+            `/system/configs/definitions/${id}`,
+            payload,
+        ),
+}
 export const dictApi = {
     pageTypes: (page = 1, size = 10) =>
         http.get<ApiResponse<PageResponse<DictType>>>('/system/dict-types', {

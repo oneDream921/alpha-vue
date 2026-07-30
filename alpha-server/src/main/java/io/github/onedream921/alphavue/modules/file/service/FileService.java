@@ -13,6 +13,8 @@ import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.StorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.modules.system.config.RuntimeConfigBinding;
+import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 import io.github.onedream921.alphavue.modules.system.vo.UserSummaryVo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,13 +37,15 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     private final Map<String, StorageProvider> providers;
     private final SysUserMapper userMapper;
     private final FileAccessTokenService accessTokenService;
+    private final ConfigService configService;
 
     public FileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
                        MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
-                       FileAccessTokenService accessTokenService) {
+                       FileAccessTokenService accessTokenService, ConfigService configService) {
         this.properties = properties;
         this.userMapper = userMapper;
         this.accessTokenService = accessTokenService;
+        this.configService = configService;
         this.providers = Map.of(
                 LocalStorageProvider.NAME, localStorageProvider,
                 MinioStorageProvider.NAME, minioStorageProvider);
@@ -165,7 +169,7 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     }
 
     private String validateUpload(MultipartFile file, String extension) {
-        if (file == null || file.isEmpty() || file.getSize() > properties.getMaxSizeBytes()
+        if (file == null || file.isEmpty() || file.getSize() > maxSizeBytes()
                 || !allowedExtensions().contains(extension)) {
             throw invalidRequest();
         }
@@ -224,10 +228,14 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     }
 
     private Set<String> allowedExtensions() {
-        return properties.getAllowedExtensions().stream()
+        return java.util.Arrays.stream(configService.value(RuntimeConfigBinding.FILE_UPLOAD_ALLOWED_EXTENSIONS).split(","))
                 .filter(extension -> extension != null && !extension.isBlank())
                 .map(FileService::normalizeExtension)
                 .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private long maxSizeBytes() {
+        return Integer.parseInt(configService.value(RuntimeConfigBinding.FILE_UPLOAD_MAX_SIZE)) * 1024L * 1024L;
     }
 
     private StorageProvider providerFor(String name) {
