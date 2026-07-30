@@ -243,13 +243,15 @@ S0-03 结论为 `GO`。
 
 **执行状态**
 
-状态：`IMPLEMENTED`
+状态：`MERGED`
 基础提交：`1460fc0`
 任务分支：`codex/p1-02-springdoc`
 实现提交：`9d09648`
-验证摘要：提交已接入 Therapi 0.15.0、移除 Knife4j、保留 SpringDoc 3.0.3，增加 OpenAPI 分组与 Javadoc/公开认证测试，并同步 API、安全、开发和运维文档；当前 `main` 与 `origin/main` 均已包含该提交。
-剩余风险：本轮未取得完整后端 test/package 命令输出、生产文档路径真实 HTTP 结果、可执行 JAR 元数据检查和强模型评审证据；不得据此标记 `ACCEPTED`、`MERGED` 或放行 G1。
-下一动作：补齐 P1-02 的自动化、真实运行和强模型验收证据；验收通过后再登记任务状态并选择 P1-03。
+验收日期：2026-07-30
+合并提交：`9d09648`（当前 `main` 已包含）
+验证摘要：提交已接入 Therapi 0.15.0、移除 Knife4j、保留 SpringDoc 3.0.3，增加 OpenAPI 分组与 Javadoc/公开认证测试，并同步 API、安全、开发和运维文档；用户已确认 P1-02 验收完成。
+剩余风险：G1 仍有 Hikari、Redisson、类型化配置及整体阶段门禁未完成，不得据此放行整个 G1。
+下一动作：开始 P1-03 Redisson 核心接入。
 
 ### P1-03 Redisson 核心接入
 
