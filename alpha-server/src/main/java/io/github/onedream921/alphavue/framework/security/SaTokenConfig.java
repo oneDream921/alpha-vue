@@ -10,29 +10,22 @@ import io.github.onedream921.alphavue.modules.auth.service.AuthService;
 import io.github.onedream921.alphavue.modules.auth.service.CaptchaService;
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.framework.redis.RedissonCoreAdapter;
+import io.github.onedream921.alphavue.framework.redis.RedisPhysicalKey;
+import io.github.onedream921.alphavue.framework.redis.RedissonSaTokenDao;
+import org.redisson.api.RedissonClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
 import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Sa-Token 安全配置
@@ -42,20 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class SaTokenConfig implements WebMvcConfigurer {
 
     private static final int MAX_LOGIN_FAILURES = 5;
-    private static final int MAX_TOKEN_SEARCH_PAGE_SIZE = 100;
-    private static final int MAX_TOKEN_SEARCH_KEYS = 1_000;
     private static final Duration LOGIN_FAILURE_WINDOW = Duration.ofMinutes(15);
-    private static final DefaultRedisScript<Long> RESERVE_LOGIN_ATTEMPT = new DefaultRedisScript<>("""
-            local attempts = redis.call('GET', KEYS[1])
-            if attempts and tonumber(attempts) >= tonumber(ARGV[1]) then
-                return 0
-            end
-            local count = redis.call('INCR', KEYS[1])
-            if count == 1 then
-                redis.call('PEXPIRE', KEYS[1], ARGV[2])
-            end
-            return 1
-            """, Long.class);
     private final SysUserMapper userMapper;
     private final FileStorageProperties fileStorageProperties;
 
@@ -138,13 +118,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
      */
     @Bean("saTokenDao")
     @Profile("!test")
-    SaTokenDao redisSaTokenDao(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new JdkSerializationRedisSerializer());
-        template.afterPropertiesSet();
-        return new RedisBackedSaTokenDao(template);
+    SaTokenDao redisSaTokenDao(RedissonClient redissonClient,
+                               @org.springframework.beans.factory.annotation.Qualifier("redissonSaTokenCodec") org.redisson.client.codec.Codec codec) {
+        return new RedissonSaTokenDao(redissonClient, codec);
     }
 
     /**
@@ -170,8 +146,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
      */
     @Bean
     @Profile("!test")
-    AuthService.LoginFailureStore redisLoginFailureStore(StringRedisTemplate redisTemplate) {
-        return new RedisLoginFailureStore(redisTemplate);
+    AuthService.LoginFailureStore redisLoginFailureStore(RedissonCoreAdapter redis) {
+        return new RedisLoginFailureStore(redis);
     }
 
     /**
@@ -188,14 +164,14 @@ public class SaTokenConfig implements WebMvcConfigurer {
      */
     @Bean
     @Profile("!test")
-    CaptchaService.CaptchaStore redisCaptchaStore(StringRedisTemplate redisTemplate) {
+    CaptchaService.CaptchaStore redisCaptchaStore(RedissonCoreAdapter redis) {
         return new CaptchaService.CaptchaStore() {
             /**
              * 保存验证码到 Redis
              */
             @Override
             public void put(String id, String code, Duration ttl) {
-                redisTemplate.opsForValue().set("auth:captcha:" + id, code, ttl);
+                redis.putString(RedisPhysicalKey.forIdentifier("auth", "captcha", id), code, ttl);
             }
 
             /**
@@ -203,7 +179,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
              */
             @Override
             public String consume(String id) {
-                return redisTemplate.opsForValue().getAndDelete("auth:captcha:" + id);
+                return redis.getAndDeleteString(RedisPhysicalKey.forIdentifier("auth", "captcha", id));
             }
         };
     }
@@ -236,10 +212,10 @@ public class SaTokenConfig implements WebMvcConfigurer {
     }
 
     private static final class RedisLoginFailureStore implements AuthService.LoginFailureStore {
-        private final StringRedisTemplate redisTemplate;
+        private final RedissonCoreAdapter redis;
 
-        private RedisLoginFailureStore(StringRedisTemplate redisTemplate) {
-            this.redisTemplate = redisTemplate;
+        private RedisLoginFailureStore(RedissonCoreAdapter redis) {
+            this.redis = redis;
         }
 
         /**
@@ -247,12 +223,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
          */
         @Override
         public boolean reserveAttempt(String username, String ipAddress) {
-            Long reserved = redisTemplate.execute(
-                    RESERVE_LOGIN_ATTEMPT,
-                    List.of(key(username, ipAddress)),
-                    Integer.toString(MAX_LOGIN_FAILURES),
-                    Long.toString(LOGIN_FAILURE_WINDOW.toMillis()));
-            return Long.valueOf(1L).equals(reserved);
+            return redis.reserveAttempt(RedisPhysicalKey.forIdentifier("auth", "login-failure",
+                    username + "\u0000" + ipAddress), MAX_LOGIN_FAILURES, LOGIN_FAILURE_WINDOW);
         }
 
         /**
@@ -260,7 +232,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
          */
         @Override
         public void clear(String username, String ipAddress) {
-            redisTemplate.delete(key(username, ipAddress));
+            redis.delete(RedisPhysicalKey.forIdentifier("auth", "login-failure",
+                    username + "\u0000" + ipAddress));
         }
     }
 
@@ -272,7 +245,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
          */
         @Override
         public synchronized boolean reserveAttempt(String username, String ipAddress) {
-            String key = key(username, ipAddress);
+            String key = username + "\u0000" + ipAddress;
             long now = System.nanoTime();
             FailureWindow current = attempts.get(key);
             if (current == null || current.expiresAtNanos() <= now) {
@@ -291,126 +264,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
          */
         @Override
         public synchronized void clear(String username, String ipAddress) {
-            attempts.remove(key(username, ipAddress));
+            attempts.remove(username + "\u0000" + ipAddress);
         }
 
         private record FailureWindow(int attempts, long expiresAtNanos) {
         }
     }
 
-    private static String key(String username, String ipAddress) {
-        return "auth:login:failure:" + username + ':' + ipAddress;
-    }
-
-    private static final class RedisBackedSaTokenDao extends SaTokenDaoDefaultImpl {
-        private final RedisTemplate<String, Object> redisTemplate;
-
-        private RedisBackedSaTokenDao(RedisTemplate<String, Object> redisTemplate) {
-            this.redisTemplate = redisTemplate;
-        }
-
-        /**
-         * 从 Redis 读取 Sa-Token 对象
-         */
-        @Override
-        public Object getObject(String key) {
-            return redisTemplate.opsForValue().get(key);
-        }
-
-        /**
-         * 从 Redis 读取并转换 Sa-Token 对象类型
-         */
-        @Override
-        public <T> T getObject(String key, Class<T> cs) {
-            Object value = getObject(key);
-            return value == null ? null : cs.cast(value);
-        }
-
-        /**
-         * 将 Sa-Token 对象写入 Redis
-         */
-        @Override
-        public void setObject(String key, Object value, long timeout) {
-            if (timeout == SaTokenDao.NEVER_EXPIRE) {
-                redisTemplate.opsForValue().set(key, value);
-                return;
-            }
-            redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(timeout));
-        }
-
-        /**
-         * 在保留原过期时间的前提下更新 Sa-Token 对象
-         */
-        @Override
-        public void updateObject(String key, Object value) {
-            Long timeout = redisTemplate.getExpire(key, TimeUnit.SECONDS);
-            if (timeout == null || timeout == SaTokenDao.NOT_VALUE_EXPIRE) {
-                return;
-            }
-            if (timeout == SaTokenDao.NEVER_EXPIRE) {
-                redisTemplate.opsForValue().set(key, value);
-                return;
-            }
-            redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(timeout));
-        }
-
-        /**
-         * 删除 Redis 中的 Sa-Token 对象
-         */
-        @Override
-        public void deleteObject(String key) {
-            redisTemplate.delete(key);
-        }
-
-        /**
-         * 查询 Redis 中 Sa-Token 对象的剩余有效期
-         */
-        @Override
-        public long getObjectTimeout(String key) {
-            Long timeout = redisTemplate.getExpire(key, TimeUnit.SECONDS);
-            return timeout == null ? SaTokenDao.NOT_VALUE_EXPIRE : timeout;
-        }
-
-        /**
-         * 更新 Redis 中 Sa-Token 对象的剩余有效期
-         */
-        @Override
-        public void updateObjectTimeout(String key, long timeout) {
-            if (timeout == SaTokenDao.NEVER_EXPIRE) {
-                redisTemplate.persist(key);
-                return;
-            }
-            redisTemplate.expire(key, Duration.ofSeconds(timeout));
-        }
-
-        /**
-         * 按 Sa-Token 前缀和关键字搜索 Redis 键
-         */
-        @Override
-        public List<String> searchData(String prefix, String keyword, int start, int size, boolean sortType) {
-            if (size <= 0 || start >= MAX_TOKEN_SEARCH_KEYS) {
-                return List.of();
-            }
-            int safeStart = Math.max(start, 0);
-            int safeSize = Math.min(size, MAX_TOKEN_SEARCH_PAGE_SIZE);
-            int scanLimit = Math.min(MAX_TOKEN_SEARCH_KEYS, safeStart + safeSize);
-            List<String> values = new ArrayList<>(scanLimit);
-            String pattern = prefix + "*" + (keyword == null ? "" : keyword) + "*";
-            try (Cursor<String> cursor = redisTemplate.scan(ScanOptions.scanOptions()
-                    .match(pattern)
-                    .count(Math.min(scanLimit, MAX_TOKEN_SEARCH_PAGE_SIZE))
-                    .build())) {
-                while (cursor.hasNext() && values.size() < scanLimit) {
-                    values.add(cursor.next());
-                }
-            }
-            if (values.isEmpty()) {
-                return List.of();
-            }
-            values.sort(String::compareTo);
-            int from = Math.min(safeStart, values.size());
-            int to = Math.min(from + safeSize, values.size());
-            return List.copyOf(values.subList(from, to));
-        }
-    }
 }

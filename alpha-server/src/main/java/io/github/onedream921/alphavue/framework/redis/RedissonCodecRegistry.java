@@ -1,6 +1,7 @@
 package io.github.onedream921.alphavue.framework.redis;
 
 import cn.dev33.satoken.session.SaSession;
+import cn.dev33.satoken.session.SaTerminalInfo;
 import cn.dev33.satoken.stp.SaTokenInfo;
 import io.github.onedream921.alphavue.modules.system.vo.EnabledDictItemVo;
 import org.redisson.client.codec.Codec;
@@ -47,6 +48,7 @@ public class RedissonCodecRegistry {
             ConcurrentHashMap.class.getName(),
             Vector.class.getName(),
             SaSession.class.getName(),
+            SaTerminalInfo.class.getName(),
             SaTokenInfo.class.getName());
 
     @Bean

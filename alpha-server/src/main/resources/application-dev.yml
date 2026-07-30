@@ -11,22 +11,6 @@ spring:
       idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
       max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
       leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_THRESHOLD_MS:0}
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD:}
-      timeout: ${REDIS_TIMEOUT:3s}
-      connect-timeout: ${REDIS_CONNECT_TIMEOUT:3s}
-      client-name: ${REDIS_CLIENT_NAME:alpha-server}
-      lettuce:
-        pool:
-          min-idle: ${REDIS_POOL_MIN_IDLE:1}
-          max-idle: ${REDIS_POOL_MAX_IDLE:4}
-          max-active: ${REDIS_POOL_MAX_ACTIVE:8}
-          max-wait: ${REDIS_POOL_MAX_WAIT:1s}
-          time-between-eviction-runs: ${REDIS_POOL_EVICTION_INTERVAL:30s}
-
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     url: ${MYSQL_URL}

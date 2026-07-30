@@ -1,6 +1,7 @@
 package io.github.onedream921.alphavue.framework.redis;
 
 import cn.dev33.satoken.session.SaSession;
+import cn.dev33.satoken.dao.SaTokenDao;
 import io.github.onedream921.alphavue.modules.system.vo.EnabledDictItemVo;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +39,7 @@ class RedissonInfrastructureIntegrationTests {
     private static Codec cacheCodec;
     private static Codec saTokenCodec;
     private static RedissonSpringCacheManager cacheManager;
+    private static RedissonSaTokenDao saTokenDao;
 
     @BeforeAll
     static void startClient() {
@@ -60,6 +62,7 @@ class RedissonInfrastructureIntegrationTests {
         configs.put(CACHE_NAME, new CacheConfig(2_000, 0));
         cacheManager = new RedissonSpringCacheManager(client, configs, cacheCodec);
         cacheManager.setAllowNullValues(false);
+        saTokenDao = new RedissonSaTokenDao(client, saTokenCodec);
     }
 
     @AfterAll
@@ -90,9 +93,9 @@ class RedissonInfrastructureIntegrationTests {
         client.<EnabledDictItemVo>getBucket(NAMESPACE + ":object", cacheCodec).set(item);
         assertThat(client.<EnabledDictItemVo>getBucket(NAMESPACE + ":object", cacheCodec).get()).isEqualTo(item);
         SaSession session = new SaSession("session-id").setLoginId(1L).setToken("token");
-        RedissonSaTokenObjectAdapter adapter = new RedissonSaTokenObjectAdapter(client, saTokenCodec);
-        adapter.setObject(SA_TOKEN_KEY, session, java.time.Duration.ofMinutes(1));
-        SaSession restored = adapter.getObject(SA_TOKEN_KEY);
+        client.<SaSession>getBucket(SA_TOKEN_KEY.value(), saTokenCodec)
+                .set(session, 1, TimeUnit.MINUTES);
+        SaSession restored = client.<SaSession>getBucket(SA_TOKEN_KEY.value(), saTokenCodec).get();
         assertThat(restored.getId()).isEqualTo("session-id");
         assertThat(restored.getLoginId()).isEqualTo(1L);
         assertThat(restored.getToken()).isEqualTo("token");
@@ -122,6 +125,51 @@ class RedissonInfrastructureIntegrationTests {
                 .setConnectTimeout(250)
                 .setRetryAttempts(0);
         assertThatThrownBy(() -> Redisson.create(config)).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void migratesSaTokenDaoObjectsTtlSearchAndDelete() {
+        String logicalKey = "satoken:login:session:" + UUID.randomUUID();
+        SaSession session = new SaSession("migration-session").setLoginId(7L).setToken("opaque-token");
+
+        saTokenDao.setObject(logicalKey, session, 30);
+
+        assertThat(saTokenDao.getObject(logicalKey, SaSession.class).getLoginId()).isEqualTo(7L);
+        assertThat(saTokenDao.getObjectTimeout(logicalKey)).isBetween(1L, 30L);
+        assertThat(saTokenDao.searchData("satoken:login:session:", logicalKey.substring(0, 24), 0, 10, true))
+                .contains(logicalKey);
+
+        saTokenDao.updateObjectTimeout(logicalKey, SaTokenDao.NEVER_EXPIRE);
+        assertThat(saTokenDao.getObjectTimeout(logicalKey)).isEqualTo(SaTokenDao.NEVER_EXPIRE);
+        saTokenDao.deleteObject(logicalKey);
+        assertThat(saTokenDao.getObject(logicalKey)).isNull();
+        assertThat(saTokenDao.getObjectTimeout(logicalKey)).isEqualTo(SaTokenDao.NOT_VALUE_EXPIRE);
+    }
+
+    @Test
+    void preservesSaTokenSessionSearchKeys() {
+        String sessionId = "satoken:login:session:" + UUID.randomUUID();
+        SaSession session = new SaSession(sessionId).setLoginId(7L).setToken("opaque-token");
+
+        saTokenDao.setSession(session, 30);
+
+        assertThat(saTokenDao.getSession(sessionId).getLoginId()).isEqualTo(7L);
+        assertThat(saTokenDao.searchData("satoken:login:session:", sessionId.substring(0, 24), 0, 10, true))
+                .contains(sessionId);
+        saTokenDao.deleteSession(sessionId);
+    }
+
+    @Test
+    void reservesLoginFailureWindowAtomicallyWithTtl() {
+        RedisKey key = RedisKey.of("test", "failure", UUID.randomUUID().toString());
+        RedissonCoreAdapter adapter = new RedissonCoreAdapter(client, cacheCodec);
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertThat(adapter.reserveAttempt(key, 5, java.time.Duration.ofMinutes(15))).isTrue();
+        }
+        assertThat(adapter.reserveAttempt(key, 5, java.time.Duration.ofMinutes(15))).isFalse();
+        assertThat(client.getBucket(key.value()).remainTimeToLive()).isBetween(1L, 900_000L);
+        adapter.delete(key);
     }
 
     private static String env(String name, String fallback) {

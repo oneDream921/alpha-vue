@@ -1,13 +1,13 @@
 package io.github.onedream921.alphavue.framework.redis;
 
 import org.redisson.api.RAtomicLong;
-import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.Codec;
 import org.springframework.stereotype.Component;
 import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 核心 Redis 适配层。
@@ -32,6 +32,22 @@ public class RedissonCoreAdapter {
 
     public String getString(RedisKey key) {
         return client.<String>getBucket(key.value()).get();
+    }
+
+    public String getAndDeleteString(RedisKey key) {
+        return client.<String>getBucket(key.value()).getAndDelete();
+    }
+
+    public boolean reserveAttempt(RedisKey key, int limit, Duration window) {
+        Long result = client.getScript().eval(
+                org.redisson.api.RScript.Mode.READ_WRITE,
+                "local current = redis.call('GET', KEYS[1]) "
+                        + "if current and tonumber(current) >= tonumber(ARGV[1]) then return 0 end "
+                        + "local count = redis.call('INCR', KEYS[1]) "
+                        + "if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[2]) end return 1",
+                org.redisson.api.RScript.ReturnType.LONG,
+                List.of(key.value()), limit, window.toMillis());
+        return Long.valueOf(1L).equals(result);
     }
 
     public <T> void putObject(RedisKey key, T value, Duration ttl) {

@@ -34,18 +34,15 @@
 | `DB_POOL_LEAK_DETECTION_THRESHOLD_MS`   | `0`                               | Hikari 泄漏检测阈值；`0` 表示关闭       |
 | `SQL_LOG_MAX_ENTRIES`                   | `200`                            | SQL 日志页保留的进程内最近 SQL 摘要数量 |
 | `SQL_SLOW_THRESHOLD_MS`                 | dev: `500`，prod: `1000`          | 慢 SQL 判断阈值                         |
-| `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Lettuce 最大活动连接数                     |
+| `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Redisson 最大连接池大小                   |
 | `REDIS_POOL_MAX_WAIT`                   | `1s`                           | Redis 连接耗尽时最大等待时间               |
 | `REDIS_DATABASE`                         | `0`                            | Redisson 独立 Client 使用的 Redis DB       |
 | `REDIS_RETRY_INTERVAL`                   | `1s`                           | Redisson 命令重试间隔                      |
 | `REDIS_RETRY_ATTEMPTS`                   | `2`                            | Redisson 命令重试次数                      |
 | `REDIS_CACHE_TTL`                        | `10m`                          | P1-03 验证缓存默认 TTL                     |
 
-P1-03 新增直接 Redisson 4.6.1 Client 和 Spring Cache 集成，不使用
-`redisson-spring-boot-starter`。新 Client 的默认 Codec 是 `StringCodec`；缓存和后续
-Sa-Token 对象适配边界使用代码登记的 Kryo5 白名单 Codec，但暂不接入现有会话 DAO。当前验证码、登录失败、系统
-配置、系统字典、Sa-Token 会话和 Redis 监控仍由旧实现提供，P1-03 不迁移这些业务。
-验证适配器只能使用 `alpha:<domain>:<purpose>:<identifier>` 键，不读取或清理旧前缀。
+项目使用直接 Redisson 4.6.1 Client 和 Spring Cache 集成，不使用
+`redisson-spring-boot-starter`。默认 Codec 是 `StringCodec`；缓存和 Sa-Token 对象边界使用代码登记的 Kryo5 白名单 Codec。验证码、登录失败、系统配置、系统字典、Sa-Token 会话和 Redis 监控均使用 Redisson，生产键统一为 `alpha:*`，不读取或清理旧前缀。
 
 ## 日常命令
 

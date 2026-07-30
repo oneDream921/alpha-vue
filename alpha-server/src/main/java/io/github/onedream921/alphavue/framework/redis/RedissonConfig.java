@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * Redisson Client 和 Spring Cache 配置。
  *
- * <p>这里只建立新的 alpha 验证基础设施，不替换现有业务 Redis 适配器。</p>
+ * <p>业务 Redis 访问统一通过 Redisson，并限定在受控 alpha 命名空间。</p>
  */
 @Configuration
 @Profile("!test")

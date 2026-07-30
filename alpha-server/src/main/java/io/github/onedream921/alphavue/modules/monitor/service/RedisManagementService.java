@@ -92,18 +92,17 @@ public class RedisManagementService {
     }
 
     private static String category(String key) {
-        if (key.startsWith("auth:captcha:")) {
+        if (key.startsWith("alpha:auth:captcha:") || key.startsWith("auth:captcha:")) {
             return "验证码";
         }
-        if (key.startsWith("auth:login:failure:")) {
+        if (key.startsWith("alpha:auth:login-failure:") || key.startsWith("auth:login:failure:")) {
             return "登录失败窗口";
         }
-        if (key.startsWith("system:dict:")) {
+        if (key.startsWith("alpha:system:cache:dictionary") || key.startsWith("system:dict:")) {
             return "数据字典缓存";
         }
-        if (key.startsWith("satoken:")
-                || key.contains(":login:session:")
-                || key.contains(":login:token:")
+        if (key.startsWith("alpha:sa-token:") || key.startsWith("satoken:")
+                || key.contains(":login:session:") || key.contains(":login:token:")
                 || key.contains(":login:last-active:")) {
             return "Sa-Token 会话";
         }
@@ -115,10 +114,14 @@ public class RedisManagementService {
 
     private static boolean isSensitiveKey(String key) {
         String normalized = key.toLowerCase(Locale.ROOT);
-        return normalized.startsWith("auth:captcha:")
-                || normalized.contains("login:session:")
-                || normalized.contains("login:token:")
+        return normalized.startsWith("alpha:auth:captcha:")
+                || normalized.startsWith("alpha:auth:login-failure:")
+                || normalized.startsWith("alpha:sa-token:")
+                || normalized.startsWith("auth:captcha:")
+                || normalized.startsWith("auth:login:failure:")
                 || normalized.startsWith("satoken:")
+                || normalized.contains(":login:session:")
+                || normalized.contains(":login:token:")
                 || normalized.matches(".*(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key).*" );
     }
 
