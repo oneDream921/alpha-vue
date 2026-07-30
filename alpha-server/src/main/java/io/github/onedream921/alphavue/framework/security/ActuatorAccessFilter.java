@@ -50,7 +50,11 @@ public class ActuatorAccessFilter extends OncePerRequestFilter {
         if (loginId == null) {
             return false;
         }
-        return userMapper.countActiveById(Long.parseLong(loginId.toString())) > 0;
+        if (userMapper.countActiveById(Long.parseLong(loginId.toString())) == 0) {
+            return false;
+        }
+        StpUtil.getStpLogic().updateLastActiveToNow(token);
+        return true;
     }
 
     private boolean isActuatorPath(String path) {
