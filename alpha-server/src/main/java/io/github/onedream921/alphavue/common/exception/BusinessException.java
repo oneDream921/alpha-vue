@@ -7,14 +7,24 @@ public final class BusinessException extends RuntimeException {
 
     private final int code;
     private final PublicErrorMessage publicMessage;
+    private final String auditSummary;
 
     /**
      * 创建带公共错误消息的业务异常
      */
     public BusinessException(int code, PublicErrorMessage publicMessage) {
+        this(code, publicMessage, publicMessage.value());
+    }
+
+    /**
+     * 创建带公共消息和内部审计摘要的业务异常。
+     */
+    public BusinessException(int code, PublicErrorMessage publicMessage, String auditSummary) {
         super(publicMessage.value());
         this.code = code;
         this.publicMessage = publicMessage;
+        this.auditSummary = auditSummary == null || auditSummary.isBlank()
+                ? publicMessage.value() : auditSummary;
     }
 
     /**
@@ -29,5 +39,12 @@ public final class BusinessException extends RuntimeException {
      */
     public PublicErrorMessage publicMessage() {
         return publicMessage;
+    }
+
+    /**
+     * 返回不暴露给客户端的审计摘要。
+     */
+    public String auditSummary() {
+        return auditSummary;
     }
 }

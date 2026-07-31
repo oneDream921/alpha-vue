@@ -61,7 +61,7 @@ public class OperationLogAspect {
         } catch (BusinessException exception) {
             responseCode = exception.code();
             errorCode = exception.code();
-            exceptionStack = stackTrace(exception);
+            exceptionStack = safeBusinessSummary(exception);
             throw exception;
         } catch (Throwable exception) {
             exceptionStack = stackTrace(exception);
@@ -112,5 +112,16 @@ public class OperationLogAspect {
         String value = writer.toString()
                 .replaceAll("(?i)(password|token|cookie|secret|authorization|captcha|api[-_]?key)\\s*[:=]\\s*[^,\\s]+", "$1=[redacted]");
         return value.length() <= 8_000 ? value : value.substring(0, 8_000);
+    }
+
+    /**
+     * 预期业务拒绝不是系统故障，审计只保留公共摘要，不保存调用堆栈。
+     */
+    private static String safeBusinessSummary(BusinessException exception) {
+        String message = exception.auditSummary();
+        if (message == null || message.isBlank()) {
+            return "业务请求被拒绝";
+        }
+        return message.length() <= 512 ? message : message.substring(0, 512);
     }
 }
