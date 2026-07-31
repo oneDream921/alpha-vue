@@ -4,7 +4,6 @@ import type { AppRoute, UserProfile } from '@/stores/auth'
 export interface LoginPayload {
     username: string
     password: string
-    clientId: string
     deviceId?: string
     deviceName?: string
     captcha?: string
@@ -27,7 +26,10 @@ export interface CaptchaResult {
 export const authApi = {
     captcha: () => http.get<ApiResponse<CaptchaResult>>('/auth/captcha'),
     login: (payload: LoginPayload) =>
-        http.post<ApiResponse<LoginResult>>('/auth/login', payload),
+        http.post<ApiResponse<LoginResult>>('/auth/login', {
+            ...payload,
+            clientId: 'pc-admin',
+        }),
     logout: () => http.post<ApiResponse<null>>('/auth/logout'),
     profile: () => http.get<ApiResponse<UserProfile>>('/auth/profile'),
     routes: () => http.get<ApiResponse<AppRoute[]>>('/auth/routes'),

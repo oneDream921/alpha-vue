@@ -59,7 +59,12 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
                         })
                     })
                 }
-                if (error.response?.status !== 401) {
+                const requestUrl = error.config?.url ?? ''
+                const requestPath = requestUrl.split('?', 1)[0]
+                const isLoginRequest =
+                    error.config?.method?.toLowerCase() === 'post' &&
+                    requestPath === '/auth/login'
+                if (error.response?.status !== 401 && !isLoginRequest) {
                     const errorMessage = error.response?.data?.message
                     message.error(
                         typeof errorMessage === 'string' && errorMessage

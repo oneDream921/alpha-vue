@@ -1,4 +1,5 @@
-const LOCAL_DATE_TIME_PATTERN = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.\d+)?$/
+const LOCAL_DATE_TIME_PATTERN =
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.\d+)?$/
 
 export function parseDateTime(value: string): Date {
     return new Date(value.replace(LOCAL_DATE_TIME_PATTERN, '$1T$2'))

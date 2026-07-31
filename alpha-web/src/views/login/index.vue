@@ -19,7 +19,6 @@ const loading = ref(false)
 const form = reactive({
     username: '',
     password: '',
-    clientId: 'pc-admin',
     deviceId: '',
     deviceName: '',
     rememberMe: false,
@@ -43,7 +42,6 @@ async function submit() {
     clearManagementRoutes()
     try {
         const login = await authApi.login(form)
-        authStore.setToken(login.data.data.token)
         const [profile, routes] = await Promise.all([
             authApi.profile(),
             authApi.routes(),

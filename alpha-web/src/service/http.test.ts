@@ -1,7 +1,8 @@
 import AxiosMockAdapter from 'axios-mock-adapter'
 import { describe, expect, it, vi } from 'vitest'
 
-const { warning, router } = vi.hoisted(() => ({
+const { error, warning, router } = vi.hoisted(() => ({
+    error: vi.fn(),
     warning: vi.fn((options: { onOk?: () => unknown }) => {
         void options.onOk?.()
     }),
@@ -12,7 +13,7 @@ const { warning, router } = vi.hoisted(() => ({
 }))
 
 vi.mock('ant-design-vue', () => ({
-    message: { error: vi.fn() },
+    message: { error },
     Modal: { warning },
 }))
 
@@ -58,6 +59,46 @@ describe('createHttpClient', () => {
             response: { status: 401 },
         })
         expect(auth.clearAuth).toHaveBeenCalledOnce()
+    })
+
+    it('does not show a generic error for rejected login credentials', async () => {
+        error.mockClear()
+        const auth = {
+            getToken: () => null,
+            clearAuth: vi.fn(),
+        }
+        const client = createHttpClient(auth)
+        const mock = new AxiosMockAdapter(client)
+
+        mock.onPost('/auth/login').reply(401, {
+            code: 401,
+            message: '账号或密码错误',
+        })
+
+        await expect(client.post('/auth/login')).rejects.toMatchObject({
+            response: { status: 401 },
+        })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('recognizes login requests with query parameters by method and path', async () => {
+        error.mockClear()
+        const auth = {
+            getToken: () => null,
+            clearAuth: vi.fn(),
+        }
+        const client = createHttpClient(auth)
+        const mock = new AxiosMockAdapter(client)
+
+        mock.onPost('/auth/login?source=login-page').reply(401, {
+            code: 401,
+            message: '账号或密码错误',
+        })
+
+        await expect(
+            client.post('/auth/login?source=login-page'),
+        ).rejects.toMatchObject({ response: { status: 401 } })
+        expect(error).not.toHaveBeenCalled()
     })
 
     it('opens only one login prompt for concurrent unauthorized responses', async () => {
