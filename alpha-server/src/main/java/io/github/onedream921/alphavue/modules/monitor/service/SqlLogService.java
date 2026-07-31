@@ -2,6 +2,7 @@ package io.github.onedream921.alphavue.modules.monitor.service;
 
 import io.github.onedream921.alphavue.framework.mybatis.SqlLogCapture;
 import io.github.onedream921.alphavue.framework.mybatis.SqlLogRecorder;
+import io.github.onedream921.alphavue.framework.mybatis.SqlLogSanitizer;
 import io.github.onedream921.alphavue.modules.monitor.config.SqlMonitorProperties;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogQuery;
 import io.github.onedream921.alphavue.modules.monitor.dto.SqlLogSettingsRequest;
@@ -43,14 +44,15 @@ public class SqlLogService implements SqlLogRecorder {
         if (!enabled.get() || excludedStatementIds.contains(capture.statementId())) {
             return;
         }
+        Instant createdAt = Instant.now();
         SqlLogEntryVo entry = new SqlLogEntryVo(
                 sequence.incrementAndGet(),
-                Instant.now(),
+                createdAt,
                 capture.traceId(),
                 capture.statementId(),
                 capture.sqlCommandType(),
                 capture.tableName(),
-                capture.sql(),
+                SqlLogSanitizer.bound(capture.sql(), properties.getMaxSqlLength()),
                 capture.elapsedMs(),
                 capture.elapsedMs() >= properties.getSlowThresholdMs(),
                 capture.resultSize());
@@ -59,6 +61,7 @@ public class SqlLogService implements SqlLogRecorder {
     }
 
     public List<SqlLogEntryVo> recent(SqlLogQuery query) {
+        trim();
         String type = normalize(query.type());
         String keyword = normalize(query.keyword());
         return entries.stream()
@@ -93,6 +96,8 @@ public class SqlLogService implements SqlLogRecorder {
 
     private void trim() {
         int maxEntries = Math.max(1, properties.getMaxEntries());
+        Instant expiresBefore = Instant.now().minusMillis(Math.max(0, properties.getRetentionMs()));
+        entries.removeIf(entry -> entry.createdAt().isBefore(expiresBefore));
         while (entries.size() > maxEntries) {
             entries.pollLast();
         }

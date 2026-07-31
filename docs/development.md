@@ -34,6 +34,8 @@
 | `DB_POOL_LEAK_DETECTION_THRESHOLD_MS`   | `0`                               | Hikari 泄漏检测阈值；`0` 表示关闭       |
 | `SQL_LOG_MAX_ENTRIES`                   | `200`                            | SQL 日志页保留的进程内最近 SQL 摘要数量 |
 | `SQL_SLOW_THRESHOLD_MS`                 | dev: `500`，prod: `1000`          | 慢 SQL 判断阈值                         |
+| `SQL_LOG_RETENTION_MS`                  | `1800000`                        | SQL 摘要最长保留时间；仅保留进程内数据 |
+| `SQL_LOG_MAX_SQL_LENGTH`                | `4096`                           | 单条 SQL 摘要最大字符数                |
 | `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Redisson 最大连接池大小                   |
 | `REDIS_POOL_MAX_WAIT`                   | `1s`                           | Redis 连接耗尽时最大等待时间               |
 | `REDIS_DATABASE`                         | `0`                            | Redisson 独立 Client 使用的 Redis DB       |

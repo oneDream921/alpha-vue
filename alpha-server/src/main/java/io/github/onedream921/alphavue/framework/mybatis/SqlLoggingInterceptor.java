@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 })
 public class SqlLoggingInterceptor implements Interceptor {
 
-    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "(?i)\\b(?:from|join|update|into)\\s+[`\"]?([a-zA-Z0-9_\\.]+)");
 
@@ -65,7 +64,7 @@ public class SqlLoggingInterceptor implements Interceptor {
             BoundSql boundSql = args.length >= 6 && args[5] instanceof BoundSql existingBoundSql
                     ? existingBoundSql
                     : mappedStatement.getBoundSql(args[1]);
-            String sql = normalizeSql(boundSql.getSql());
+            String sql = SqlLogSanitizer.normalize(boundSql.getSql());
             if (sql.isBlank()) {
                 return;
             }
@@ -94,13 +93,6 @@ public class SqlLoggingInterceptor implements Interceptor {
             return number.intValue();
         }
         return null;
-    }
-
-    private static String normalizeSql(String sql) {
-        if (sql == null) {
-            return "";
-        }
-        return WHITESPACE.matcher(sql).replaceAll(" ").trim();
     }
 
     private static String tableName(String sql) {

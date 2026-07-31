@@ -35,6 +35,8 @@ alpha:
     sql:
       max-entries: 20
       slow-threshold-ms: 500
+      retention-ms: 1800000
+      max-sql-length: 4096
   file:
     access-token-secret: test-file-access-secret
     access-token-ttl: 5m

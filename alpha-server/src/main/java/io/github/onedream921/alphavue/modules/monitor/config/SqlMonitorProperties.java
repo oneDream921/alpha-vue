@@ -18,4 +18,8 @@ public class SqlMonitorProperties {
 
     private long slowThresholdMs = 500;
 
+    private long retentionMs = 1_800_000;
+
+    private int maxSqlLength = 4_096;
+
 }

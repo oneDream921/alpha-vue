@@ -80,4 +80,26 @@ class SqlLogServiceTests {
 
         assertThat(service.recent(new SqlLogQuery(10, null, null, false))).hasSize(1);
     }
+
+    @Test
+    void expiresEntriesAndBoundsSqlSummary() {
+        SqlMonitorProperties properties = new SqlMonitorProperties();
+        properties.setRetentionMs(0);
+        properties.setMaxSqlLength(64);
+        SqlLogService service = new SqlLogService(properties);
+
+        service.record(new SqlLogCapture("UserMapper.select", "SELECT", "sys_user",
+                "SELECT * FROM sys_user WHERE password = 'secret-value' /* sensitive comment */", 1, 1, "trace"));
+
+        assertThat(service.recent(new SqlLogQuery(10, null, null, false))).isEmpty();
+
+        properties.setRetentionMs(1_800_000);
+        service.record(new SqlLogCapture("UserMapper.select", "SELECT", "sys_user",
+                "SELECT * FROM sys_user WHERE password = 'secret-value' /* sensitive comment */", 1, 1, "trace"));
+
+        var logs = service.recent(new SqlLogQuery(10, null, null, false));
+        assertThat(logs).hasSize(1);
+        assertThat(logs.get(0).sql()).doesNotContain("secret-value", "sensitive comment");
+        assertThat(logs.get(0).sql()).hasSizeLessThanOrEqualTo(64);
+    }
 }
