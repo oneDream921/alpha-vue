@@ -221,6 +221,24 @@ SnailJob、Lock4j 在早期蓝图中的默认排期冲突。用户于 2026-07-30
 - 典型查询和事务回滚；
 - 配置中无残留 Druid 属性。
 
+**执行状态**
+
+状态：`MERGED`
+基础提交：`eac83c4`
+任务分支：`codex/p1-01-hikari`
+实现提交：`50dc5e8`
+验收日期：2026-07-31
+合并提交：`50dc5e8`（当前 `main` 已包含）
+验证摘要：实际 diff 已移除 Druid 运行时依赖、配置和管理入口，开发与生产配置统一使用
+Spring Boot 默认 HikariCP；正式安全、开发和运维文档已同步 Hikari 指标、连接池参数与泄漏
+检测边界。2026-07-31 在 `codex/p1-01-hikari-closeout` 复核时，依赖树仅解析到
+`com.zaxxer:HikariCP:7.0.2`，未发现 Druid 依赖；Hikari 相关聚焦测试 8 项通过，后端
+Surefire 报告汇总 97 项、0 失败、0 错误、8 项因环境条件跳过，测试日志覆盖 Flyway 19 个迁移、MyBatis-Plus
+上下文初始化、真实 HTTP 指标访问和 `HikariPool` 启动。
+剩余风险：G1 中 Spring Cache、Sa-Token 和 Redis 不可用边界仍有未完成验收项，不能据此
+放行整个 G1。
+下一动作：继续收口 G1 剩余 Redis/缓存/会话及阶段放行确认项，不得启动 P1-06。
+
 ### P1-02 API 文档基线调整
 
 **前置条件**

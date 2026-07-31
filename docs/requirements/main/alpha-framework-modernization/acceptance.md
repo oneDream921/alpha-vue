@@ -73,11 +73,11 @@ docker compose config
 
 ### 4.1 HikariCP
 
-- [ ] Druid 依赖、配置、过滤器和管理入口已删除。
-- [ ] HikariCP 配置可在开发和测试环境启动。
-- [ ] Flyway、MyBatis-Plus、事务提交与回滚正常。
-- [ ] 连接池指标满足运维排障需要。
-- [ ] 仓库中无未解释的 Druid 残留。
+- [x] Druid 依赖、配置、过滤器和管理入口已删除。
+- [x] HikariCP 配置可在开发和测试环境启动。
+- [x] Flyway、MyBatis-Plus、事务提交与回滚正常。
+- [x] 连接池指标满足运维排障需要。
+- [x] 仓库中无未解释的 Druid 残留。
 
 ### 4.2 API 文档
 
