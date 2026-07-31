@@ -42,6 +42,7 @@ async function submit() {
     clearManagementRoutes()
     try {
         const login = await authApi.login(form)
+        authStore.setToken(login.data.data.token)
         const [profile, routes] = await Promise.all([
             authApi.profile(),
             authApi.routes(),

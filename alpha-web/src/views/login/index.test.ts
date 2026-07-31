@@ -26,7 +26,7 @@ import Login from './index.vue'
 import { authStore } from '@/stores/auth'
 
 describe('login page', () => {
-    it('writes the complete session only after profile and routes load', async () => {
+    it('stores the token before loading profile and routes', async () => {
         captcha.mockResolvedValue({
             data: { data: { enabled: false, captchaId: null, image: null } },
         })
@@ -35,16 +35,19 @@ describe('login page', () => {
                 data: { token: 'token', tokenType: 'Bearer', expiresIn: 3600 },
             },
         })
-        profile.mockResolvedValue({
-            data: {
+        profile.mockImplementation(async () => {
+            expect(authStore.getToken()).toBe('token')
+            return {
                 data: {
-                    id: 1,
-                    username: 'admin',
-                    roles: [],
-                    permissions: [],
-                    mustChangePassword: false,
+                    data: {
+                        id: 1,
+                        username: 'admin',
+                        roles: [],
+                        permissions: [],
+                        mustChangePassword: false,
+                    },
                 },
-            },
+            }
         })
         routes.mockResolvedValue({ data: { data: [] } })
 
