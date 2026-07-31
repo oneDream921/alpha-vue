@@ -6,7 +6,7 @@
 2. 为 MySQL、Redis、MinIO 配置生产专用凭据；Flyway 只新增迁移，绝不改写已发布迁移。
 3. 在 CI 或干净环境依次执行后端 `test`、`package` 和前端 typecheck、test、lint、format、build。
 4. 启动依赖服务与应用后运行 `deploy/smoke-test.sh`，检查健康接口、认证、鉴权、文件上传/预览/删除。
-5. 最后复核变更范围，按主题提交；首次推送使用 `git push -u origin codex/alpha-vue-foundation`，不直接推送 `main`。
+5. 最后复核变更范围，按主题提交；首次推送使用当前专题分支，例如 `git push -u origin codex/<slug>`，不直接推送 `main`。
 
 ## 连接池、缓存与 SQL 监控
 

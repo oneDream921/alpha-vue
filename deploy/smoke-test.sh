@@ -16,6 +16,7 @@ cleanup() {
     if [[ -n "$token" ]]; then
         [[ -z "$text_file_id" ]] || curl -sS -X DELETE -H "Authorization: Bearer $token" "$api_base/files/$text_file_id" >/dev/null || true
         [[ -z "$image_file_id" ]] || curl -sS -X DELETE -H "Authorization: Bearer $token" "$api_base/files/$image_file_id" >/dev/null || true
+        curl -sS -X POST -H "Authorization: Bearer $token" "$api_base/auth/logout" >/dev/null || true
     fi
     rm -f "$response_file" "$upload_file" "$image_file"
     rmdir "$upload_dir"
@@ -57,7 +58,7 @@ if [[ "$(jq -r '.data.enabled' "$response_file")" == "true" ]]; then
     exit 1
 fi
 
-request login 200 -H 'Content-Type: application/json' -d "$(jq -nc --arg u "$admin_user" --arg p "$SMOKE_PASSWORD" '{username:$u,password:$p}')" "$api_base/auth/login"
+request login 200 -H 'Content-Type: application/json' -d "$(jq -nc --arg u "$admin_user" --arg p "$SMOKE_PASSWORD" '{username:$u,password:$p,clientId:"pc-admin"}')" "$api_base/auth/login"
 token="$(jq -er '.data.token' "$response_file")"
 auth_header="Authorization: Bearer $token"
 
@@ -92,5 +93,8 @@ jq -e --arg textId "$deleted_text_id" --arg imageId "$deleted_image_id" '
     [.data.records[].id | tostring] as $ids
     | ($ids | index($textId)) == null and ($ids | index($imageId)) == null
 ' "$response_file" >/dev/null
+request logout 200 -X POST -H "$auth_header" "$api_base/auth/logout"
+request expired-profile 401 -H "$auth_header" "$api_base/auth/profile"
+token=""
 
 printf 'Alpha Vue smoke test passed.\n'

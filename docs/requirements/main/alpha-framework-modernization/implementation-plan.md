@@ -557,6 +557,14 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 ### P1-13 第一期收口
 
+**执行状态**
+
+状态：`COMPLETED_READY_TO_COMMIT`（2026-07-31）
+
+验证摘要：后端 test/package 通过（Maven 110 项测试，0 failure/error，8 项 skipped）；前端 typecheck、test、lint、format check 和 build 通过（23 个文件、60 项测试）；Compose 配置校验和 `deploy/smoke-test.sh` 通过。真实 HTTP 已验证 Bearer profile/routes、在线用户、登录日志、操作日志、SQL 监控和 Redis 请求为 200，缺失/未知 `clientId` 返回 400，注销后旧 Bearer 返回 401；文件存储 local/MinIO 闭环已有验证。用户已于 2026-07-31 完成 1440x900、1024x768、390x844 浏览器验收。强模型已完成安全、兼容和范围复核，结论为 PASS。
+
+当前边界：P1-13 任务已达到可提交状态，但 G1/G2 尚未整体放行；G2-M01/M02/M03 等未完成人工项，以及 G1 用户确认和 G2 5.9 用户明确确认第一期完成项，仍保持未完成，不构成阶段放行。
+
 **执行步骤**
 
 1. 更新 README、架构、安全、运维和开发规范中已经落地的内容。

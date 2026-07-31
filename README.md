@@ -52,4 +52,4 @@ Vite 开发服务器支持直接刷新任意前端路由，并将 `/api` 与 `/u
 
 本地服务地址：MySQL `127.0.0.1:3306`、Redis `127.0.0.1:6379`、MinIO API `http://127.0.0.1:9000`、MinIO Console `http://127.0.0.1:9001`。
 
-更多说明见 [开发指南](docs/development.md)、[API 约定](docs/api.md)、[安全说明](docs/security.md)、[运行与发布手册](docs/operations.md)、[编码规范](docs/conventions.md) 和 [前端开发规范](docs/frontend-conventions.md)。首次推送前请依次完成后端测试/打包、前端质量检查、Compose 配置校验和真实 smoke test；所有检查通过后，再将经确认的文件按主题提交到 `codex/alpha-vue-foundation` 并推送。
+更多说明见 [开发指南](docs/development.md)、[API 约定](docs/api.md)、[安全说明](docs/security.md)、[运行与发布手册](docs/operations.md)、[编码规范](docs/conventions.md) 和 [前端开发规范](docs/frontend-conventions.md)。首次推送前请依次完成后端测试/打包、前端质量检查、Compose 配置校验和真实 smoke test；所有检查通过后，再将经确认的文件按当前任务主题提交到对应的 `codex/<slug>` 分支并推送。
