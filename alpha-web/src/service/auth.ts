@@ -4,6 +4,9 @@ import type { AppRoute, UserProfile } from '@/stores/auth'
 export interface LoginPayload {
     username: string
     password: string
+    clientId: string
+    deviceId?: string
+    deviceName?: string
     captcha?: string
     captchaId?: string
     rememberMe?: boolean
@@ -11,6 +14,8 @@ export interface LoginPayload {
 
 export interface LoginResult {
     token: string
+    tokenType: string
+    expiresIn: number
 }
 
 export interface CaptchaResult {

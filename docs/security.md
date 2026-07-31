@@ -1,6 +1,7 @@
 # 安全说明
 
 - 密码仅保存 BCrypt 哈希；修改密码后当前会话立即注销。
+- 登录必须使用数据库注册且启用的 `clientId`；当前管理端使用 `pc-admin`。`deviceId` 和 `deviceName` 仅作为受长度限制的会话元数据，不作为认证凭据。
 - Token 仅从 Authorization Header 读取，禁止 Cookie 和请求体 Token。
 - Redis 保存 Sa-Token 会话、登录失败窗口和一次性验证码；普通会话 8 小时，记住我 7 天，无操作 30 分钟失效。
 - 登录失败按账号与 IP 原子计数，默认 5 次后锁定 15 分钟。

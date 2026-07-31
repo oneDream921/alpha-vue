@@ -31,7 +31,7 @@ class BearerTokenHttpIntegrationTests {
         HttpRequest loginRequest = HttpRequest.newBuilder(uri("/api/auth/login"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .POST(HttpRequest.BodyPublishers.ofString("""
-                        {"username":"admin","password":"admin123"}
+                        {"username":"admin","password":"admin123","clientId":"pc-admin"}
                         """))
                 .build();
 
@@ -75,7 +75,7 @@ class BearerTokenHttpIntegrationTests {
         HttpRequest loginRequest = HttpRequest.newBuilder(uri("/api/auth/login"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .POST(HttpRequest.BodyPublishers.ofString(
-                        "{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        "{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .build();
         HttpResponse<String> loginResponse = httpClient.send(
                 loginRequest, HttpResponse.BodyHandlers.ofString());

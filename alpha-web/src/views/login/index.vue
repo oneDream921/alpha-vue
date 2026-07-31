@@ -19,6 +19,9 @@ const loading = ref(false)
 const form = reactive({
     username: '',
     password: '',
+    clientId: 'pc-admin',
+    deviceId: '',
+    deviceName: '',
     rememberMe: false,
     captchaId: '',
     captcha: '',

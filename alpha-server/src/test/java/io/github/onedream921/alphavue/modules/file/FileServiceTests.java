@@ -336,7 +336,7 @@ class FileServiceTests {
     private String loginAsAdmin() throws Exception {
         MvcResult result = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         return result.getResponse().getContentAsString().replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");

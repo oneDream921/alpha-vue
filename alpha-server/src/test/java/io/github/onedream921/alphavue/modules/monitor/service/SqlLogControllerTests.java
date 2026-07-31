@@ -163,7 +163,7 @@ class SqlLogControllerTests {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"password\":\""
-                                + ("admin".equals(username) ? "admin123" : "password-123") + "\"}"))
+                                + ("admin".equals(username) ? "admin123" : "password-123") + "\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         return result.getResponse().getContentAsString().replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");

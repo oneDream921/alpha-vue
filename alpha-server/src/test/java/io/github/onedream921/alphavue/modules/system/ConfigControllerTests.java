@@ -164,7 +164,7 @@ class ConfigControllerTests {
 
     private String login() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk()).andReturn();
         return result.getResponse().getContentAsString().replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");
     }
@@ -187,7 +187,7 @@ class ConfigControllerTests {
         jdbcTemplate.update("INSERT INTO sys_user (username, password, nickname, must_change_password, status, deleted) VALUES ('config-viewer', ?, '配置查看者', 0, 1, 0)",
                 "$2a$10$v6eFc6AgyU7o6oIjdA/V1eJctWdbQX9ydbfXfQd0JMht/trbUgurO");
         MvcResult result = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"config-viewer\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"config-viewer\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk()).andReturn();
         return result.getResponse().getContentAsString().replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");
     }

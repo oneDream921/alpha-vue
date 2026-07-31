@@ -40,9 +40,24 @@ class AuthControllerTests {
     void rejectsInvalidCredentials() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"incorrect\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"incorrect\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void rejectsMissingOrUnknownClientId() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"unknown\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
     }
 
     @Test
@@ -62,7 +77,7 @@ class AuthControllerTests {
     void logsInAndRetrievesProtectedProfileWithBearerToken() throws Exception {
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
@@ -82,7 +97,7 @@ class AuthControllerTests {
     void distinguishesIncorrectCurrentPasswordFromReusingTheCurrentPassword() throws Exception {
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         String token = login.getResponse().getContentAsString()
@@ -121,7 +136,7 @@ class AuthControllerTests {
                                         return request;
                                     })
                                     .contentType(MediaType.APPLICATION_JSON)
-                                    .content("{\"username\":\"admin\",\"password\":\"incorrect\"}"))
+                                    .content("{\"username\":\"admin\",\"password\":\"incorrect\",\"clientId\":\"pc-admin\"}"))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -143,7 +158,7 @@ class AuthControllerTests {
                                 return request;
                             })
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"username\":\"admin\",\"password\":\"incorrect\"}"))
+                            .content("{\"username\":\"admin\",\"password\":\"incorrect\",\"clientId\":\"pc-admin\"}"))
                     .andExpect(status().isTooManyRequests())
                     .andExpect(jsonPath("$.code").value(429));
         } finally {
@@ -156,7 +171,7 @@ class AuthControllerTests {
         jdbcTemplate.update("DELETE FROM sys_oper_log");
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         String token = login.getResponse().getContentAsString()

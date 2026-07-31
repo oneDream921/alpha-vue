@@ -11,6 +11,7 @@ import io.github.onedream921.alphavue.modules.file.service.FileService;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.modules.auth.service.ClientRegistryService.Client;
 import io.github.onedream921.alphavue.modules.system.vo.RouteVo;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.stereotype.Service;
@@ -32,20 +33,24 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final CaptchaService captchaService;
     private final FileService fileService;
+    private final ClientRegistryService clientRegistryService;
 
     public AuthService(SysUserMapper userMapper, LoginFailureStore loginFailureStore, AuditLogService auditLogService,
-                       CaptchaService captchaService, FileService fileService) {
+                       CaptchaService captchaService, FileService fileService,
+                       ClientRegistryService clientRegistryService) {
         this.userMapper = userMapper;
         this.loginFailureStore = loginFailureStore;
         this.auditLogService = auditLogService;
         this.captchaService = captchaService;
         this.fileService = fileService;
+        this.clientRegistryService = clientRegistryService;
     }
 
     /**
      * 校验验证码和密码，登录成功后签发会话 Token
      */
     public LoginResponse login(LoginRequest request, String ipAddress) {
+        Client client = clientRegistryService.requireEnabled(request.clientId());
         captchaService.validate(request.captchaId(), request.captcha());
         if (!loginFailureStore.reserveAttempt(request.username(), ipAddress)) {
             auditLogService.recordLogin(request.username(), null, false, ipAddress);
@@ -61,7 +66,12 @@ public class AuthService {
         loginFailureStore.clear(request.username(), ipAddress);
         long timeout = Boolean.TRUE.equals(request.rememberMe())
                 ? REMEMBERED_SESSION_TIMEOUT_SECONDS : SESSION_TIMEOUT_SECONDS;
-        StpUtil.login(account.id(), SaLoginParameter.create().setTimeout(timeout));
+        SaLoginParameter loginParameter = SaLoginParameter.create().setTimeout(timeout)
+                .setDevice("pc-admin")
+                .setDeviceId(request.deviceId())
+                .setExtra("clientId", client.clientId())
+                .setExtra("deviceName", request.deviceName());
+        StpUtil.login(account.id(), loginParameter);
         auditLogService.recordLogin(account.username(), account.id(), true, ipAddress);
         return new LoginResponse(StpUtil.getTokenValue(), "Bearer", timeout);
     }

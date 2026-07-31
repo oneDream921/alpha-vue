@@ -64,7 +64,7 @@ class DeptControllerTests {
     private String loginAdmin() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         return result.getResponse().getContentAsString()

@@ -87,7 +87,7 @@ class LogControllerTests {
     private String login() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                        .content("{\"username\":\"admin\",\"password\":\"admin123\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         return result.getResponse().getContentAsString()

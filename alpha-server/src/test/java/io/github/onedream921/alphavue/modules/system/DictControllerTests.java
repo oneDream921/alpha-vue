@@ -218,7 +218,7 @@ class DictControllerTests {
     private String login(String username, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}"))
+                        .content("{\"username\":\"" + username + "\",\"password\":\"" + password + "\",\"clientId\":\"pc-admin\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         return result.getResponse().getContentAsString()
