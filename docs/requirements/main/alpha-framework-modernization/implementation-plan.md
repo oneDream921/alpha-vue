@@ -325,8 +325,8 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 验收日期：2026-07-30
 合并提交：`8fd55b8`（当前 `main` 已包含）
 验证摘要：实际 diff 已移除 Spring Data Redis/Lettuce 与旧 Redis 适配，完成 RedisTemplate、Sa-Token DAO、配置与字典缓存、Redis 管理适配的 Redisson 迁移；提交包含 Redisson 基础设施、Spring Cache 读/失效/空值策略、TTL、编解码、Sa-Token 对象/会话、限流原子操作和 Redis 管理扫描相关测试，并同步正式开发、安全和运维文档。用户于 2026-07-30 确认测试通过，且人工覆盖后端启动及缓存/会话重启行为。
-剩余风险：P1-05 类型化配置与 G1 整体门禁尚未完成。
-下一动作：允许准备 P1-05，但本任务不得启动 P1-05。
+剩余风险：P1-05 类型化配置已完成；G1 仍有 Redis/缓存/会话不可用边界及整体阶段门禁未完成。
+下一动作：继续收口 G1 剩余 Redis/缓存/会话及阶段放行确认项，不得启动 P1-06。
 
 ### P1-05 类型化系统配置注册表
 
@@ -344,15 +344,15 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 **执行状态**
 
-状态：`ACCEPTED_UNCOMMITTED`
+状态：`MERGED`
 基础提交：`4bdc9c2`
 任务分支：`codex/p1-05-typed-config`
-实现提交：未提交
+实现提交：`6c4a182`
 验收日期：2026-07-30
-合并提交：无
+合并提交：`6c4a182`（当前 `main` 已包含）
 验证摘要：以 `sys_config_definition` 定义目录约束 `sys_config`，仅开放 `file.*` 业务定义；覆盖 Boolean、Integer、Enum、String 的默认值和规则校验，敏感默认值与配置值不进入普通响应或操作审计，动态项仅允许已实现的文件业务绑定。后端完整测试 96 项通过、8 项因环境条件跳过，`package` 通过；前端 typecheck、51 项测试、lint、format check 与 build 通过；`git diff --check` 通过。完成受控 Flyway repair 后，本地服务启动及真实 HTTP 配置/文件限制验收通过。用户于 2026-07-30 明确确认“测试通过”。
-剩余风险：P1-05 已完成验收，但实现和本次状态同步均未提交；G1 仍有 HikariCP、Spring Cache、Sa-Token、Redis 不可用边界及正式运维文档等未完成门禁，不能据此放行 G1。
-下一动作：等待 P1-05 的 Git 提交授权；不得启动 P1-06。
+剩余风险：G1 仍有 Redis/缓存/会话不可用边界及整体阶段门禁未完成，不能据此放行 G1。
+下一动作：继续收口 G1 剩余 Redis/缓存/会话及阶段放行确认项，不得启动 P1-06。
 
 ### P1-06 clientId 登录契约
 
@@ -443,8 +443,9 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 **执行状态**
 
-状态：`ACCEPTED_UNCOMMITTED`
-实现提交：未提交
+状态：`MERGED`
+任务分支：`codex/p1-08-online-sessions`
+实现提交：`6831897`（当前 `main` 已包含）
 验证摘要：聚焦在线会话测试通过；后端全量测试 100 项通过、8 项因环境条件跳过，package 通过；前端 51 项测试通过、typecheck、lint、format check 和 build 通过。
 实现要点：在线列表只读取 Sa-Token 受控会话索引；定向下线按用户和终端索引执行；token 仅返回 SHA-256 摘要；V21 菜单迁移使用自增 ID 避免与既有菜单冲突。
 人工验收：用户已于 2026-07-31 确认在线用户与定向下线功能验证通过。
