@@ -559,11 +559,13 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 **执行状态**
 
-状态：`COMPLETED_READY_TO_COMMIT`（2026-07-31）
+状态：`COMPLETED`（2026-08-01）
 
 验证摘要：后端 test/package 通过（Maven 110 项测试，0 failure/error，8 项 skipped）；前端 typecheck、test、lint、format check 和 build 通过（23 个文件、60 项测试）；Compose 配置校验和 `deploy/smoke-test.sh` 通过。真实 HTTP 已验证 Bearer profile/routes、在线用户、登录日志、操作日志、SQL 监控和 Redis 请求为 200，缺失/未知 `clientId` 返回 400，注销后旧 Bearer 返回 401；文件存储 local/MinIO 闭环已有验证。用户已于 2026-07-31 完成 1440x900、1024x768、390x844 浏览器验收。强模型已完成安全、兼容和范围复核，结论为 PASS。
 
-当前边界：P1-13 任务已达到可提交状态，但 G1/G2 尚未整体放行；G2-M01/M02/M03 等未完成人工项，以及 G1 用户确认和 G2 5.9 用户明确确认第一期完成项，仍保持未完成，不构成阶段放行。
+当前边界：G1/G2 已放行，P1-13 已完成。第二期仍须经 P2-00 以单能力触发：必须先明确真实问题、收益指标、回退方案并取得用户确认；未触发的能力不实施。
+
+状态同步证据：AuthControllerTests 覆盖 clientId 缺失/未知、同 client 重复登录后旧 token 失效和跨 client 会话并存；真实 HTTP 覆盖缺失/未知 clientId 返回 400、logout 后旧 Bearer 返回 401。OnlineSessionControllerTests、BearerTokenHttpIntegrationTests、日志/SQL/文件相关测试以及 P1-13 强模型复核均已通过。用户于 2026-08-01 确认测试通过并确认第一期验收完成。
 
 **执行步骤**
 
