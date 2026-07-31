@@ -7,6 +7,19 @@
 - 当前 workspace 是单一 Git 仓库：`alpha-web` 为 Vue 3 管理端，`alpha-server` 为 Spring Boot 服务，`deploy` 为本地部署与 smoke test，`docs` 为规范、设计和运维文档。
 - 项目特有 Rule 和 Skill 只维护在 `.project-agent`；需要更新三端投影时运行 AFK `sync`，不得直接编辑生成文件或 AFK 框架源仓库。
 
+## Git / 分支约定
+
+- 生产分支：main
+- 预发分支：无
+- 测试分支：无
+- 集成分支：main
+- 功能分支：codex/<slug>
+- 修复分支：codex/fix-<slug>
+- release 分支：无
+- hotfix 分支：无
+- 合入偏好：优先 PR
+- `<slug>`：kebab-case 英文短名；阶段任务可沿用 `p<阶段>-<序号>-<主题>`，并尽量与需求文档 slug 一致。
+
 ## 规范入口
 
 - 跨层编码与交付约束以 `docs/conventions.md` 为准。
