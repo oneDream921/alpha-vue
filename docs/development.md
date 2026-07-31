@@ -14,6 +14,7 @@
 | 变量                                    | 默认值                         | 用途                                       |
 | --------------------------------------- | ------------------------------ | ------------------------------------------ |
 | `SERVER_PORT`                           | `8080`                         | 后端端口                                   |
+| `APP_TIME_ZONE`                         | `Asia/Shanghai`                | 应用与数据库连接会话时区                   |
 | `CAPTCHA_ENABLED`                       | dev 为 `false`，prod 为 `true` | 登录图形验证码                             |
 | `FILE_STORAGE_PROVIDER`                 | `local`                        | `local` 或 `minio`                         |
 | `FILE_LOCAL_ROOT`                       | `uploads`                      | 本地文件目录                               |
@@ -36,6 +37,7 @@
 | `SQL_SLOW_THRESHOLD_MS`                 | dev: `500`，prod: `1000`          | 慢 SQL 判断阈值                         |
 | `SQL_LOG_RETENTION_MS`                  | `1800000`                        | SQL 摘要最长保留时间；仅保留进程内数据 |
 | `SQL_LOG_MAX_SQL_LENGTH`                | `4096`                           | 单条 SQL 摘要最大字符数                |
+| `AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK` | `false`                         | 是否在审计日志中记录自定义业务异常堆栈 |
 | `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Redisson 最大连接池大小                   |
 | `REDIS_POOL_MAX_WAIT`                   | `1s`                           | Redis 连接耗尽时最大等待时间               |
 | `REDIS_DATABASE`                         | `0`                            | Redisson 独立 Client 使用的 Redis DB       |

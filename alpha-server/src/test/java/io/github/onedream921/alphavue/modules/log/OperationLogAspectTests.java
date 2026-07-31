@@ -4,6 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.log.aspect.OperationLogAspect;
+import io.github.onedream921.alphavue.modules.log.config.AuditLogProperties;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +40,7 @@ class OperationLogAspectTests {
         when(request.getRequestURI()).thenReturn("/api/test");
         when(joinPoint.proceed()).thenThrow(exception);
         OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
-                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class));
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class), new AuditLogProperties());
 
         try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
             stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
@@ -69,7 +70,7 @@ class OperationLogAspectTests {
         when(request.getRequestURI()).thenReturn("/api/test/image");
         when(joinPoint.proceed()).thenThrow(exception);
         OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
-                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class));
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class), new AuditLogProperties());
 
         try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
             stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
@@ -99,7 +100,7 @@ class OperationLogAspectTests {
         when(request.getRequestURI()).thenReturn("/api/test");
         when(joinPoint.proceed()).thenThrow(exception);
         OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
-                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class));
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class), new AuditLogProperties());
 
         try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
             stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
@@ -111,6 +112,66 @@ class OperationLogAspectTests {
                     eq(BusinessType.UPDATE), eq("PUT"), eq("/api/test"), eq(500), eq(false), isNull(), anyLong(),
                     isNull(), isNull(), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionStack.getValue()).contains("IllegalStateException: unexpected failure");
+        }
+    }
+
+    @Test
+    void doesNotCaptureBusinessExceptionStack() throws Throwable {
+        AuditLogService auditLogService = mock(AuditLogService.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+        OperationLog operationLog = mock(OperationLog.class);
+        BusinessException exception = new BusinessException(403, PublicErrorMessage.FORBIDDEN, "权限校验拒绝");
+        when(operationLog.module()).thenReturn("Test");
+        when(operationLog.operation()).thenReturn("Forbidden request");
+        when(operationLog.type()).thenReturn(BusinessType.OTHER);
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/api/test");
+        when(joinPoint.proceed()).thenThrow(exception);
+        OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class), new AuditLogProperties());
+
+        try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
+            stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
+
+            assertThatThrownBy(() -> aspect.record(joinPoint, operationLog)).isSameAs(exception);
+
+            ArgumentCaptor<String> exceptionSummary = ArgumentCaptor.forClass(String.class);
+            verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Forbidden request"),
+                    eq(BusinessType.OTHER), eq("GET"), eq("/api/test"), eq(403), eq(false), isNull(), anyLong(),
+                    isNull(), eq(403), exceptionSummary.capture(), isNull(), isNull(), isNull(), isNull());
+            assertThat(exceptionSummary.getValue()).isEqualTo("权限校验拒绝");
+            assertThat(exceptionSummary.getValue()).doesNotContain("BusinessException");
+        }
+    }
+
+    @Test
+    void capturesBusinessExceptionStackWhenEnabled() throws Throwable {
+        AuditLogService auditLogService = mock(AuditLogService.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+        OperationLog operationLog = mock(OperationLog.class);
+        BusinessException exception = new BusinessException(400, PublicErrorMessage.INVALID_REQUEST);
+        when(operationLog.module()).thenReturn("Test");
+        when(operationLog.operation()).thenReturn("Capture request");
+        when(operationLog.type()).thenReturn(BusinessType.UPDATE);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/test");
+        when(joinPoint.proceed()).thenThrow(exception);
+        AuditLogProperties properties = new AuditLogProperties();
+        properties.setCaptureBusinessExceptionStack(true);
+        OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class), properties);
+
+        try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
+            stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
+            assertThatThrownBy(() -> aspect.record(joinPoint, operationLog)).isSameAs(exception);
+
+            ArgumentCaptor<String> exceptionStack = ArgumentCaptor.forClass(String.class);
+            verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Capture request"),
+                    eq(BusinessType.UPDATE), eq("POST"), eq("/api/test"), eq(400), eq(false), isNull(), anyLong(),
+                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
+            assertThat(exceptionStack.getValue()).contains("BusinessException: 请求参数错误");
         }
     }
 }

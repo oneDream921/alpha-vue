@@ -71,3 +71,5 @@ alpha:
   monitor:
     redis:
       mask-values: ${REDIS_MASK_VALUES:true}
+  log:
+    capture-business-exception-stack: ${AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK:false}

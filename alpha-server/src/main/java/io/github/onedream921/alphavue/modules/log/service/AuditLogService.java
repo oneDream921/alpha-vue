@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuditLogService {
 
+    private static final int EXCEPTION_SUMMARY_LIMIT = 32_000;
+
     private final SysLoginLogMapper loginLogMapper;
     private final SysOperLogMapper operLogMapper;
     private final IpLocationService ipLocationService;
@@ -81,7 +83,7 @@ public class AuditLogService {
         log.setDurationMs(durationMs);
         log.setTraceId(traceId);
         log.setErrorCode(errorCode);
-        log.setExceptionStack(limit(exceptionStack, 8_000));
+        log.setExceptionStack(limit(exceptionStack, EXCEPTION_SUMMARY_LIMIT));
         log.setHandled(0);
         log.setHandlingStatus(0);
         try { operLogMapper.insert(log); } catch (RuntimeException ignored) { }

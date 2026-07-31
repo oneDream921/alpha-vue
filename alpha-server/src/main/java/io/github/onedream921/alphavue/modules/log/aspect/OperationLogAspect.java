@@ -5,6 +5,7 @@ import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
 import io.github.onedream921.alphavue.framework.web.ClientAddressResolver;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
+import io.github.onedream921.alphavue.modules.log.config.AuditLogProperties;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
@@ -27,19 +28,24 @@ import java.io.StringWriter;
 @Order
 public class OperationLogAspect {
 
+    private static final int UNEXPECTED_EXCEPTION_STACK_LIMIT = 32_000;
+
     private final AuditLogService auditLogService;
     private final SysUserMapper userMapper;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final ClientAddressResolver clientAddressResolver;
+    private final AuditLogProperties auditLogProperties;
 
     public OperationLogAspect(AuditLogService auditLogService, SysUserMapper userMapper,
-            HttpServletRequest request, HttpServletResponse response, ClientAddressResolver clientAddressResolver) {
+            HttpServletRequest request, HttpServletResponse response, ClientAddressResolver clientAddressResolver,
+            AuditLogProperties auditLogProperties) {
         this.auditLogService = auditLogService;
         this.userMapper = userMapper;
         this.request = request;
         this.response = response;
         this.clientAddressResolver = clientAddressResolver;
+        this.auditLogProperties = auditLogProperties;
     }
 
     /**
@@ -61,7 +67,8 @@ public class OperationLogAspect {
         } catch (BusinessException exception) {
             responseCode = exception.code();
             errorCode = exception.code();
-            exceptionStack = safeBusinessSummary(exception);
+            exceptionStack = auditLogProperties.isCaptureBusinessExceptionStack()
+                    ? stackTrace(exception) : safeBusinessSummary(exception);
             throw exception;
         } catch (Throwable exception) {
             exceptionStack = stackTrace(exception);
@@ -111,7 +118,8 @@ public class OperationLogAspect {
         exception.printStackTrace(new PrintWriter(writer));
         String value = writer.toString()
                 .replaceAll("(?i)(password|token|cookie|secret|authorization|captcha|api[-_]?key)\\s*[:=]\\s*[^,\\s]+", "$1=[redacted]");
-        return value.length() <= 8_000 ? value : value.substring(0, 8_000);
+        return value.length() <= UNEXPECTED_EXCEPTION_STACK_LIMIT
+                ? value : value.substring(0, UNEXPECTED_EXCEPTION_STACK_LIMIT);
     }
 
     /**
