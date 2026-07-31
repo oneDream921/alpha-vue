@@ -2,6 +2,7 @@ package io.github.onedream921.alphavue.modules.auth.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;
+import cn.dev33.satoken.stp.parameter.enums.SaReplacedRange;
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginRequest;
@@ -34,16 +35,19 @@ public class AuthService {
     private final CaptchaService captchaService;
     private final FileService fileService;
     private final ClientRegistryService clientRegistryService;
+    private final LoginSessionCoordinator loginSessionCoordinator;
 
     public AuthService(SysUserMapper userMapper, LoginFailureStore loginFailureStore, AuditLogService auditLogService,
                        CaptchaService captchaService, FileService fileService,
-                       ClientRegistryService clientRegistryService) {
+                       ClientRegistryService clientRegistryService,
+                       LoginSessionCoordinator loginSessionCoordinator) {
         this.userMapper = userMapper;
         this.loginFailureStore = loginFailureStore;
         this.auditLogService = auditLogService;
         this.captchaService = captchaService;
         this.fileService = fileService;
         this.clientRegistryService = clientRegistryService;
+        this.loginSessionCoordinator = loginSessionCoordinator;
     }
 
     /**
@@ -67,11 +71,16 @@ public class AuthService {
         long timeout = Boolean.TRUE.equals(request.rememberMe())
                 ? REMEMBERED_SESSION_TIMEOUT_SECONDS : SESSION_TIMEOUT_SECONDS;
         SaLoginParameter loginParameter = SaLoginParameter.create().setTimeout(timeout)
-                .setDevice("pc-admin")
+                .setDevice(client.clientId())
                 .setDeviceId(request.deviceId())
+                .setIsConcurrent(false)
+                .setReplacedRange(SaReplacedRange.CURR_DEVICE_TYPE)
                 .setExtra("clientId", client.clientId())
                 .setExtra("deviceName", request.deviceName());
-        StpUtil.login(account.id(), loginParameter);
+        loginSessionCoordinator.execute(account.id(), client.clientId(), () -> {
+            StpUtil.login(account.id(), loginParameter);
+            return null;
+        });
         auditLogService.recordLogin(account.username(), account.id(), true, ipAddress);
         return new LoginResponse(StpUtil.getTokenValue(), "Bearer", timeout);
     }

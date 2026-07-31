@@ -94,6 +94,30 @@ class AuthControllerTests {
     }
 
     @Test
+    void replacesOnlyThePreviousSessionForTheSameClient() throws Exception {
+        String firstToken = login("admin", "admin123", "pc-admin");
+        String secondToken = login("admin", "admin123", "pc-admin");
+
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", "Bearer " + firstToken))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", "Bearer " + secondToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username").value("admin"));
+    }
+
+    @Test
+    void keepsSessionsForDifferentClients() throws Exception {
+        jdbcTemplate.update("INSERT INTO sys_client (client_id, name) VALUES ('mobile-app', '移动端')");
+        String pcToken = login("admin", "admin123", "pc-admin");
+        String mobileToken = login("admin", "admin123", "mobile-app");
+
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", "Bearer " + pcToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/auth/profile").header("Authorization", "Bearer " + mobileToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void distinguishesIncorrectCurrentPasswordFromReusingTheCurrentPassword() throws Exception {
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,5 +229,16 @@ class AuthControllerTests {
     }
 
     private record OperationAudit(Long userId, String username) {
+    }
+
+    private String login(String username, String password, String clientId) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + username + "\",\"password\":\"" + password
+                                + "\",\"clientId\":\"" + clientId + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return result.getResponse().getContentAsString()
+                .replaceFirst("(?s).*\\\"token\\\"\\s*:\\s*\\\"([^\\\"]+)\\\".*", "$1");
     }
 }
