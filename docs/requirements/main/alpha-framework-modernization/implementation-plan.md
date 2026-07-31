@@ -506,11 +506,12 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 **执行状态**
 
-状态：`ACCEPTED_UNCOMMITTED`
+状态：`ACCEPTED_COMMITTED`
 任务分支：`codex/p1-10-sql-monitor`
-实现提交：未提交
+实现提交：`4408446`
 验证摘要：补充共享 SQL 摘要清洗、固定容量与保留时间清理、单条摘要长度上限；保留运行时启停、Mapper 排除、慢 SQL 阈值和权限边界。后端聚焦测试 8 项通过；后端全量测试 104 项通过、8 项因环境条件跳过，`package` 和 `git diff --check` 通过。
-下一动作：完成 P1-10 提交后，进入 P1-11 存储 Provider 基线整理。
+人工验收：用户已确认测试无问题，P1-10 验收完成。
+下一动作：进入 P1-11 存储 Provider 基线整理。
 
 ### P1-11 存储 Provider 基线整理
 
