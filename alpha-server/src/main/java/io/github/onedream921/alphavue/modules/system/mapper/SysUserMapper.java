@@ -3,6 +3,7 @@ package io.github.onedream921.alphavue.modules.system.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
 import io.github.onedream921.alphavue.modules.system.vo.UserSummaryVo;
+import io.github.onedream921.alphavue.modules.system.vo.OnlineUserSummaryVo;
 import io.github.onedream921.alphavue.modules.system.vo.RouteVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -30,6 +31,8 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
      * 根据用户 ID 批量查询可展示的用户信息
      */
     List<UserSummaryVo> selectActiveSummariesByIds(@Param("ids") Collection<Long> ids);
+
+    List<OnlineUserSummaryVo> selectActiveOnlineSummariesByIds(@Param("ids") Collection<Long> ids);
 
     /**
      * 统计指定用户 ID 是否仍为启用且未删除状态

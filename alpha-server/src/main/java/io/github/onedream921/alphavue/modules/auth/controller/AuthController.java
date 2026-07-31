@@ -44,7 +44,7 @@ public class AuthController extends BaseController {
      */
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
-        return success(authService.login(request, clientIp(servletRequest)), servletRequest);
+        return success(authService.login(request, clientIp(servletRequest), servletRequest.getHeader("User-Agent")), servletRequest);
     }
 
     /**

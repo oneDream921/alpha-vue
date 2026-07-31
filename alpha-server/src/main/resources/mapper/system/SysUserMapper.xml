@@ -50,6 +50,18 @@
         </foreach>
     </select>
 
+    <select id="selectActiveOnlineSummariesByIds" resultType="io.github.onedream921.alphavue.modules.system.vo.OnlineUserSummaryVo">
+        SELECT u.id, u.username, u.nickname, d.name AS dept_name
+        FROM sys_user u
+        LEFT JOIN sys_dept d ON d.id = u.dept_id AND d.deleted = 0
+        WHERE u.deleted = 0
+          AND u.status = 1
+          AND u.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
     <select id="countActiveById" resultType="int">
         SELECT COUNT(*)
         FROM sys_user

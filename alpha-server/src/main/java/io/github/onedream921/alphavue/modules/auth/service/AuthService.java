@@ -53,7 +53,7 @@ public class AuthService {
     /**
      * 校验验证码和密码，登录成功后签发会话 Token
      */
-    public LoginResponse login(LoginRequest request, String ipAddress) {
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
         Client client = clientRegistryService.requireEnabled(request.clientId());
         captchaService.validate(request.captchaId(), request.captcha());
         if (!loginFailureStore.reserveAttempt(request.username(), ipAddress)) {
@@ -75,8 +75,10 @@ public class AuthService {
                 .setDeviceId(request.deviceId())
                 .setIsConcurrent(false)
                 .setReplacedRange(SaReplacedRange.CURR_DEVICE_TYPE)
-                .setExtra("clientId", client.clientId())
-                .setExtra("deviceName", request.deviceName());
+                .setTerminalExtra("clientId", client.clientId())
+                .setTerminalExtra("deviceName", request.deviceName())
+                .setTerminalExtra("ipAddress", ipAddress)
+                .setTerminalExtra("userAgent", userAgent);
         loginSessionCoordinator.execute(account.id(), client.clientId(), () -> {
             StpUtil.login(account.id(), loginParameter);
             return null;

@@ -21,6 +21,7 @@
 | 文件     | `GET /files`、`POST /files/upload`、`DELETE /files/{id}`          |
 | 日志     | `GET /logs/operations`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |
 | Redis 管理 | `GET /monitor/redis/overview`、`GET /monitor/redis/keys`、`GET/DELETE /monitor/redis/key` |
+| 在线用户 | `GET /monitor/online-users`、`DELETE /monitor/online-users/{userId}/sessions/{terminalIndex}` |
 | SQL 监控 | `GET /monitor/sql/logs`、`DELETE /monitor/sql/logs`、`GET/PUT /monitor/sql/settings` |
 
 文件上传支持 `txt`、`pdf`、`doc/docx`、`xls/xlsx` 与 `png/jpg/jpeg/gif/webp`。文件响应中的 `publicUrl` 表示当前可访问 URL：默认 `FILE_PUBLIC_ACCESS=false` 时返回短期 HMAC 签名的 `/api/files/{id}/content` 地址；仅显式启用公开访问时，本地存储返回 `/uploads/<uuid>.<ext>`，MinIO 返回配置的公开对象 URL。图片访问 URL 可直接用于预览和头像展示。
@@ -36,6 +37,8 @@ HTTP 状态与响应 `code` 一致：参数错误 400、未登录 401、无权�
 定义为 `DATA_ONLY` 时仅保存受控业务数据，不自动绑定应用行为。动态定义只允许使用已实现的文件运行时绑定：单文件上传大小、允许扩展名和私有文件访问期限；其定义必须保持已发布。值写入在事务提交后才发布或失效 Redis 缓存；禁用值会回退到定义默认值。未注册、未发布、类型或范围不合法的值一律返回 400“请求参数错误”，不会返回配置值、数据库错误或内部异常信息。
 
 Redis 管理接受可选前缀筛选、键名关键词与 `SCAN` 游标（`cursor`、`count=1..100`），空前缀表示查询全库键空间。接口返回键名、分类、类型、TTL、大小估计和值预览；超出展示上限时通过 `valueTruncated` 标记。删除接口仅返回确认文本，不回显键名。
+
+在线用户按 Sa-Token 受控会话索引分页返回，每行对应一个登录终端，包含账号、部门、clientId、设备、IP、浏览器、操作系统、登录时间、最后访问时间和不可逆 token 摘要。查询页大小限制为 100；定向下线需要 `monitor:online:kickout` 权限，只影响指定用户的指定终端。
 
 SQL 监控返回当前进程内最近 SQL 摘要，支持 `limit=1..200`、`type=SELECT|INSERT|UPDATE|DELETE|UNKNOWN`、`keyword` 和 `slowOnly` 筛选。SQL 文本只保留 MyBatis 占位符，不渲染真实参数值；清空接口仅清空内存队列，不影响数据库或审计日志。采集设置接口返回当前全局采集状态、已发现的 MyBatis statement 和排除列表；更新设置需要 `monitor:sql:control` 权限，重启后恢复默认“开启 + 全部记录”。连接池运行指标通过受控的 `/actuator/prometheus` 观测。
 

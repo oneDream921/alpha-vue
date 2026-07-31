@@ -10,6 +10,7 @@ import {
     MenuOutlined,
     SafetyOutlined,
     SettingOutlined,
+    TeamOutlined,
     UserOutlined,
 } from '@ant-design/icons-vue'
 
@@ -121,6 +122,13 @@ const managedNavigationMeta = [
         title: 'SQL 日志',
         icon: FileSearchOutlined,
         permission: 'monitor:sql:list',
+    },
+    {
+        componentId: 'monitor/online-users',
+        path: '/monitor/online-users',
+        title: '在线用户',
+        icon: TeamOutlined,
+        permission: 'monitor:online:list',
     },
     {
         componentId: 'files/index',

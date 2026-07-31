@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 
 import { authStore, type AuthStore } from '@/stores/auth'
 
@@ -8,6 +8,36 @@ export interface ApiResponse<T> {
     message: string
     data: T
     traceId: string
+}
+
+let unauthorizedPromptOpen = false
+
+function promptLogin() {
+    if (unauthorizedPromptOpen) {
+        return
+    }
+
+    unauthorizedPromptOpen = true
+    Modal.confirm({
+        title: '请先登录',
+        content: '当前登录已失效，请重新登录后继续操作。',
+        okText: '前往登录',
+        cancelText: '取消',
+        okType: 'primary',
+        closable: false,
+        maskClosable: false,
+        onOk: async () => {
+            unauthorizedPromptOpen = false
+            const { default: router } = await import('@/router')
+            await router.replace({
+                name: 'login',
+                query: { redirect: router.currentRoute.value.fullPath },
+            })
+        },
+        onCancel: () => {
+            unauthorizedPromptOpen = false
+        },
+    })
 }
 
 export function createHttpClient(store: AuthStore): AxiosInstance {
@@ -30,6 +60,7 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 401) {
                     store.clearAuth()
+                    promptLogin()
                 }
                 const errorMessage = error.response?.data?.message
                 message.error(

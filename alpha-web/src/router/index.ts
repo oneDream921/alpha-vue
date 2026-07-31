@@ -89,6 +89,16 @@ const managementRouteDefinitions = [
         },
     },
     {
+        path: 'monitor/online-users',
+        name: 'online-users',
+        componentId: 'monitor/online-users',
+        component: () => import('@/views/monitor/online-users.vue'),
+        meta: {
+            title: '在线用户',
+            permission: 'monitor:online:list',
+        },
+    },
+    {
         path: 'files',
         name: 'files',
         componentId: 'files/index',

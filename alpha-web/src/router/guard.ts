@@ -12,15 +12,21 @@ function requestLogin(redirect: string): Promise<false | RouteLocationRaw> {
 
     loginPromptOpen = true
     return new Promise((resolve) => {
-        Modal.warning({
+        Modal.confirm({
             title: '请先登录',
             content: '访问该页面需要登录账号。',
             okText: '前往登录',
+            cancelText: '取消',
+            okType: 'primary',
             closable: false,
             maskClosable: false,
             onOk: () => {
                 loginPromptOpen = false
                 resolve({ name: 'login', query: { redirect } })
+            },
+            onCancel: () => {
+                loginPromptOpen = false
+                resolve(false)
             },
         })
     })
