@@ -32,6 +32,15 @@
 - **Skill**：承载可复用的具体工作流，说明何时使用、前置条件、执行步骤、完成条件和验证 / 汇报方式。
 - **Hook**：只承载可确定执行的安全拦截或检查；不要把规划、反思、重试或记忆判断等模型决策放入 Hook。
 
+## AFK 投影闭环
+
+当修改 `agent.yaml`、`.project-agent/rules/`、`.project-agent/skills/` 或其它 AFK 用户源资产时，必须把同步投影视为同一任务的一部分：
+
+1. 先运行 `agent sync --workspace . --dry-run`，检查将要创建 / 替换 / 删除 / 保留 / 冲突 / 警告的路径。
+2. dry-run 无冲突后运行 `agent sync --workspace .`。
+3. 再检查 Git diff，确认源资产和三端投影（Codex `.agents` / `AGENTS.md`、Claude `.claude` / `CLAUDE.md`、Cursor `.cursor`）一致进入同一变更。
+4. 若当前环境没有 `agent` 命令，先定位项目已使用的 AFK CLI 或明确报告无法同步；不要只改 `.project-agent` 后声称已完成。
+
 ### git
 
 # Git 约定

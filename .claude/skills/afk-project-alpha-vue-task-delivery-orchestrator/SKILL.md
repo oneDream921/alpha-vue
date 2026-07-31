@@ -22,6 +22,8 @@ Identify one entry mode:
 - `NEW`: approved task, no implementation started.
 - `RESUME`: continue the current task with existing worktree changes.
 - `REMEDIATION`: fix only accepted findings for the current task.
+- `CLOSEOUT`: implementation is already merged or accepted; only reconcile plan, acceptance, and
+  index status from verified evidence.
 
 Read `AGENTS.md`, the named plan and acceptance sections, applicable formal docs, relevant code and
 tests, and only the project Skills required by scope. Inspect branch, HEAD, worktrees, worktree
@@ -41,6 +43,11 @@ tasks. If a required capability is unavailable, use `alpha-vue-generate-task-pro
 prompt for that phase and stop. Never present self-review as independent review or a standard model
 as a strong model.
 
+If an auxiliary agent fails for transient platform reasons such as rate limiting, record the failure
+as missing independent evidence. Continue only when the remaining work is low-risk documentation or
+status reconciliation backed by local command evidence; for implementation, security/session changes,
+data semantics, or required strong review, stop or generate a handoff prompt instead.
+
 ## 2. Lightweight state machine
 
 Use these states in order:
@@ -55,10 +62,16 @@ INIT -> PLANNING -> PLAN_READY -> IMPLEMENTING -> IMPLEMENTATION_COMPLETE
 Stop on `BLOCKED` or `USER_DECISION`. Do not infer completion from an agent summary when Git, command,
 or user evidence is missing.
 
+Before any file write after a user reply, long-running command, validation batch, or context
+transition, re-run a read-only branch, HEAD, and worktree check. If the branch has changed or is now
+protected for the intended write, stop and ask the user to migrate again.
+
 ## 3. Strong planning agent
 
 For `NEW`, create one read-only strong planning agent. For `RESUME`, create it only when no approved
 task execution plan exists or the current implementation materially diverges from that plan.
+For `CLOSEOUT`, skip the planning agent unless the evidence conflicts or the closeout would change
+scope; build a brief local closeout plan from the named plan and acceptance sections.
 
 Give the planner the named task, current Git evidence, approved design boundaries, relevant code,
 tests, and documentation. Require exactly one conclusion:
@@ -127,6 +140,10 @@ Select task-level checks by scope:
 Dependency replacement also requires dependency-tree, packaged-runtime, configuration, class, and
 effective-residual checks. Historical requirement text is not a runtime residual.
 
+When recording validation counts, prefer raw reports such as Surefire XML, Vitest JSON, or build
+summaries saved by the tool over truncated terminal excerpts. If counts differ between sources, cite
+the source used instead of silently choosing one.
+
 ## 6. Startup and HTTP acceptance
 
 Do not reconstruct startup, environment loading, port cleanup, Maven, pnpm, or Compose commands.
@@ -186,6 +203,10 @@ Wait for the exact phrase `测试通过`. Do not mark manual acceptance before i
 one standard-capability status agent. It may update only the current task execution block in
 `implementation-plan.md` and evidence-supported checks in `acceptance.md`. It must not modify
 production code, start the next task, infer unsupported checks, or commit documentation.
+
+For `CLOSEOUT`, update only evidence-supported plan, acceptance, and index status. Keep remaining
+stage gates explicit, especially formal documentation, user acceptance, and stage-release
+confirmation. Do not convert a task closeout into a stage pass or the start of the next numbered task.
 
 ## 9. Git gates and final handoff
 
