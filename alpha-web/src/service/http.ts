@@ -10,36 +10,6 @@ export interface ApiResponse<T> {
     traceId: string
 }
 
-let unauthorizedPromptOpen = false
-
-function promptLogin() {
-    if (unauthorizedPromptOpen) {
-        return
-    }
-
-    unauthorizedPromptOpen = true
-    Modal.confirm({
-        title: '请先登录',
-        content: '当前登录已失效，请重新登录后继续操作。',
-        okText: '前往登录',
-        cancelText: '取消',
-        okType: 'primary',
-        closable: false,
-        maskClosable: false,
-        onOk: async () => {
-            unauthorizedPromptOpen = false
-            const { default: router } = await import('@/router')
-            await router.replace({
-                name: 'login',
-                query: { redirect: router.currentRoute.value.fullPath },
-            })
-        },
-        onCancel: () => {
-            unauthorizedPromptOpen = false
-        },
-    })
-}
-
 export function createHttpClient(store: AuthStore): AxiosInstance {
     const client = axios.create({
         baseURL: '/api',
@@ -60,14 +30,35 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 401) {
                     store.clearAuth()
-                    promptLogin()
+                    void import('@/router').then(({ default: router }) => {
+                        if (router.currentRoute.value.name === 'login') {
+                            return
+                        }
+                        Modal.warning({
+                            title: '需要登录',
+                            content: '当前登录状态已失效，请重新登录。',
+                            okText: '去登录',
+                            closable: false,
+                            maskClosable: false,
+                            onOk: () =>
+                                router.replace({
+                                    name: 'login',
+                                    query: {
+                                        redirect:
+                                            router.currentRoute.value.fullPath,
+                                    },
+                                }),
+                        })
+                    })
                 }
-                const errorMessage = error.response?.data?.message
-                message.error(
-                    typeof errorMessage === 'string' && errorMessage
-                        ? errorMessage
-                        : '请求失败，请确认后端服务已启动后重试',
-                )
+                if (error.response?.status !== 401) {
+                    const errorMessage = error.response?.data?.message
+                    message.error(
+                        typeof errorMessage === 'string' && errorMessage
+                            ? errorMessage
+                            : '请求失败，请确认后端服务已启动后重试',
+                    )
+                }
             }
             return Promise.reject(error)
         },

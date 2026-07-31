@@ -1,6 +1,5 @@
 import type { NavigationGuard, RouteLocationRaw } from 'vue-router'
 import { Modal } from 'ant-design-vue'
-
 import { authStore } from '@/stores/auth'
 
 let loginPromptOpen = false
@@ -9,27 +8,20 @@ function requestLogin(redirect: string): Promise<false | RouteLocationRaw> {
     if (loginPromptOpen) {
         return Promise.resolve(false)
     }
-
     loginPromptOpen = true
-    return new Promise((resolve) => {
-        Modal.confirm({
-            title: '请先登录',
-            content: '访问该页面需要登录账号。',
-            okText: '前往登录',
-            cancelText: '取消',
-            okType: 'primary',
+    return new Promise((resolve) =>
+        Modal.warning({
+            title: '需要登录',
+            content: '当前页面需要登录后才能访问。',
+            okText: '去登录',
             closable: false,
             maskClosable: false,
             onOk: () => {
                 loginPromptOpen = false
                 resolve({ name: 'login', query: { redirect } })
             },
-            onCancel: () => {
-                loginPromptOpen = false
-                resolve(false)
-            },
-        })
-    })
+        }),
+    )
 }
 
 export const authGuard: NavigationGuard = (to) => {
