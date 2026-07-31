@@ -9,8 +9,6 @@ import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.file.entity.SysFile;
 import io.github.onedream921.alphavue.modules.file.mapper.SysFileMapper;
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
-import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
-import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.StorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import io.github.onedream921.alphavue.modules.system.config.RuntimeConfigBinding;
@@ -22,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -33,31 +32,36 @@ import java.util.stream.Collectors;
 @Service
 public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
 
+    private static final Set<String> AVATAR_EXTENSIONS = Set.of("png", "jpg", "jpeg", "gif", "webp");
+
     private final FileStorageProperties properties;
     private final Map<String, StorageProvider> providers;
     private final SysUserMapper userMapper;
     private final FileAccessTokenService accessTokenService;
     private final ConfigService configService;
 
-    public FileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
-                       MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
+    public FileService(FileStorageProperties properties, List<StorageProvider> storageProviders,
+                       SysUserMapper userMapper,
                        FileAccessTokenService accessTokenService, ConfigService configService) {
         this.properties = properties;
         this.userMapper = userMapper;
         this.accessTokenService = accessTokenService;
         this.configService = configService;
-        this.providers = Map.of(
-                LocalStorageProvider.NAME, localStorageProvider,
-                MinioStorageProvider.NAME, minioStorageProvider);
+        this.providers = storageProviders.stream().collect(Collectors.toUnmodifiableMap(
+                provider -> normalizeProvider(provider.name()), provider -> provider));
     }
 
     /**
      * 校验并上传文件，成功后保存文件元数据
      */
     public FileView upload(MultipartFile file, long uploaderId) {
+        return upload(file, uploaderId, null);
+    }
+
+    private FileView upload(MultipartFile file, long uploaderId, Set<String> extensionOverride) {
         String originalName = requireOriginalName(file);
         String extension = extensionOf(originalName);
-        String contentType = validateUpload(file, extension);
+        String contentType = validateUpload(file, extension, extensionOverride);
         StorageProvider provider = providerFor(properties.getProvider());
         String key = UUID.randomUUID() + "." + extension;
         try (var input = file.getInputStream()) {
@@ -94,10 +98,10 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
      */
     public FileView uploadAvatar(MultipartFile file, long uploaderId) {
         String originalName = requireOriginalName(file);
-        if (!Set.of("png", "jpg", "jpeg", "gif", "webp").contains(extensionOf(originalName))) {
+        if (!AVATAR_EXTENSIONS.contains(extensionOf(originalName))) {
             throw invalidRequest();
         }
-        return upload(file, uploaderId);
+        return upload(file, uploaderId, AVATAR_EXTENSIONS);
     }
 
     /**
@@ -168,21 +172,26 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
         }
     }
 
-    private String validateUpload(MultipartFile file, String extension) {
-        if (file == null || file.isEmpty() || file.getSize() > maxSizeBytes()
-                || !allowedExtensions().contains(extension)) {
-            throw invalidRequest();
+    private String validateUpload(MultipartFile file, String extension, Set<String> extensionOverride) {
+        if (file == null || file.isEmpty()) {
+            throw invalidRequest("上传文件不能为空");
+        }
+        if (file.getSize() > maxSizeBytes()) {
+            throw invalidRequest("文件大小超过上传限制");
+        }
+        if (!(extensionOverride == null ? allowedExtensions() : extensionOverride).contains(extension)) {
+            throw invalidRequest("文件扩展名不在允许范围内");
         }
         String contentType = properties.safeContentTypeForExtension(extension);
         if (contentType == null || !contentType.equalsIgnoreCase(file.getContentType())) {
-            throw invalidRequest();
+            throw invalidRequest("文件类型与扩展名不匹配");
         }
         validateImageSignature(file, extension);
         return contentType;
     }
 
     private static void validateImageSignature(MultipartFile file, String extension) {
-        if (!Set.of("png", "jpg", "jpeg", "gif", "webp").contains(extension)) {
+        if (!AVATAR_EXTENSIONS.contains(extension)) {
             return;
         }
         try (InputStream input = file.getInputStream()) {
@@ -197,10 +206,10 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
                 default -> false;
             };
             if (!valid) {
-                throw invalidRequest();
+                throw invalidRequest("图片内容签名校验失败");
             }
         } catch (IOException exception) {
-            throw invalidRequest();
+            throw invalidRequest("图片内容读取失败");
         }
     }
 
@@ -265,6 +274,10 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
 
     private static BusinessException invalidRequest() {
         return new BusinessException(400, PublicErrorMessage.INVALID_REQUEST);
+    }
+
+    private static BusinessException invalidRequest(String auditSummary) {
+        return new BusinessException(400, PublicErrorMessage.INVALID_REQUEST, auditSummary);
     }
 
     private static BusinessException storageFailure(Exception cause) {

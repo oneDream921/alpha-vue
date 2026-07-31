@@ -30,6 +30,11 @@ public class MinioStorageProvider implements StorageProvider {
         this.properties = fileProperties.getMinio();
     }
 
+    @Override
+    public String name() {
+        return NAME;
+    }
+
     /**
      * 将对象内容写入 MinIO
      */

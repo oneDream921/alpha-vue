@@ -30,6 +30,11 @@ public class LocalStorageProvider implements StorageProvider {
         this.publicUrlBase = trimTrailingSlash(properties.getLocalPublicUrl());
     }
 
+    @Override
+    public String name() {
+        return NAME;
+    }
+
     /**
      * 将对象内容写入本地安全路径
      */

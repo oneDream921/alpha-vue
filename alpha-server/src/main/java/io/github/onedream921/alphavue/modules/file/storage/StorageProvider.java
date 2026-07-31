@@ -9,6 +9,11 @@ import java.io.InputStream;
 public interface StorageProvider {
 
     /**
+     * 返回稳定的配置和元数据标识。
+     */
+    String name();
+
+    /**
      * 保存对象内容
      */
     void store(String key, InputStream input, String contentType) throws IOException;

@@ -38,6 +38,10 @@ public class FileStorageProperties {
      */
     @PostConstruct
     public void validateForActiveProvider() {
+        if (!LocalStorageProvider.NAME.equalsIgnoreCase(provider)
+                && !MinioStorageProvider.NAME.equalsIgnoreCase(provider)) {
+            throw new IllegalStateException("FILE_STORAGE_PROVIDER must be local or minio");
+        }
         if (LocalStorageProvider.NAME.equalsIgnoreCase(provider)) {
             localPublicPathPattern();
         }

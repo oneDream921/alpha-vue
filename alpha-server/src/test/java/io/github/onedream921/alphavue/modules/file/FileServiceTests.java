@@ -6,6 +6,7 @@ import io.github.onedream921.alphavue.modules.file.service.FileService;
 import io.github.onedream921.alphavue.modules.file.service.FileAccessTokenService;
 import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
+import io.github.onedream921.alphavue.modules.file.storage.StorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 import io.minio.MinioClient;
@@ -28,6 +29,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -169,6 +171,19 @@ class FileServiceTests {
     }
 
     @Test
+    void avatarImageRemainsAllowedWhenOrdinaryFileAllowListExcludesPng() throws Exception {
+        jdbcTemplate.update("UPDATE sys_config SET config_value = 'jpg' WHERE config_key = 'file.upload.allowed-extensions'");
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.png", MediaType.IMAGE_PNG_VALUE,
+                new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+
+        FileService.FileView uploaded = fileService.uploadAvatar(file, 1L);
+
+        assertThat(uploaded.contentType()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_file WHERE object_key = ?", Integer.class,
+                uploaded.objectKey())).isEqualTo(1);
+    }
+
+    @Test
     void rejectsAWebpImageWithoutTheRiffWebpSignature() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "avatar.webp", "image/webp",
                 "not-a-webp".getBytes());
@@ -281,6 +296,16 @@ class FileServiceTests {
     }
 
     @Test
+    void rejectsUnknownStorageProvider() {
+        FileStorageProperties properties = new FileStorageProperties();
+        properties.setProvider("s3");
+
+        assertThatThrownBy(properties::validateForActiveProvider)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("FILE_STORAGE_PROVIDER must be local or minio");
+    }
+
+    @Test
     void reconcilesMetadataWhenTheNormalSoftDeleteReportsNoUpdatedRow() throws Exception {
         String key = "reconcile.txt";
         Files.createDirectories(STORAGE_ROOT);
@@ -290,8 +315,8 @@ class FileServiceTests {
                 VALUES ('local', 'reconcile.txt', 'reconcile.txt', 4)
                 """);
         long id = jdbcTemplate.queryForObject("SELECT id FROM sys_file WHERE object_key = ?", Long.class, key);
-        FileService service = new FailedSoftDeleteFileService(fileStorageProperties, localStorageProvider,
-                minioStorageProvider, userMapper, fileAccessTokenService, configService);
+        FileService service = new FailedSoftDeleteFileService(fileStorageProperties,
+                List.of(localStorageProvider, minioStorageProvider), userMapper, fileAccessTokenService, configService);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", fileService.getBaseMapper());
 
         assertThatThrownBy(() -> service.delete(id))
@@ -321,10 +346,10 @@ class FileServiceTests {
     }
 
     private static final class FailedSoftDeleteFileService extends FileService {
-        private FailedSoftDeleteFileService(FileStorageProperties properties, LocalStorageProvider localStorageProvider,
-                                            MinioStorageProvider minioStorageProvider, SysUserMapper userMapper,
+        private FailedSoftDeleteFileService(FileStorageProperties properties, List<StorageProvider> storageProviders,
+                                            SysUserMapper userMapper,
                                             FileAccessTokenService fileAccessTokenService, ConfigService configService) {
-            super(properties, localStorageProvider, minioStorageProvider, userMapper, fileAccessTokenService, configService);
+            super(properties, storageProviders, userMapper, fileAccessTokenService, configService);
         }
 
         @Override
