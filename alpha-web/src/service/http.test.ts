@@ -1,6 +1,23 @@
 import AxiosMockAdapter from 'axios-mock-adapter'
 import { describe, expect, it, vi } from 'vitest'
 
+const { warning, router } = vi.hoisted(() => ({
+    warning: vi.fn((options: { onOk?: () => unknown }) => {
+        void options.onOk?.()
+    }),
+    router: {
+        currentRoute: { value: { name: 'dashboard', fullPath: '/dashboard' } },
+        replace: vi.fn(),
+    },
+}))
+
+vi.mock('ant-design-vue', () => ({
+    message: { error: vi.fn() },
+    Modal: { warning },
+}))
+
+vi.mock('@/router', () => ({ default: router }))
+
 import { createHttpClient } from './http'
 
 describe('createHttpClient', () => {
@@ -41,5 +58,29 @@ describe('createHttpClient', () => {
             response: { status: 401 },
         })
         expect(auth.clearAuth).toHaveBeenCalledOnce()
+    })
+
+    it('opens only one login prompt for concurrent unauthorized responses', async () => {
+        warning.mockClear()
+        const auth = {
+            getToken: () => 'session-token',
+            clearAuth: vi.fn(),
+        }
+        const client = createHttpClient(auth)
+        const mock = new AxiosMockAdapter(client)
+
+        mock.onGet('/profile').reply(401, {
+            code: 401,
+            message: 'Unauthorized',
+        })
+
+        await Promise.allSettled([
+            client.get('/profile'),
+            client.get('/profile'),
+            client.get('/profile'),
+        ])
+        await new Promise((resolve) => setTimeout(resolve, 0))
+
+        expect(warning).toHaveBeenCalledOnce()
     })
 })

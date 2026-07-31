@@ -10,6 +10,8 @@ export interface ApiResponse<T> {
     traceId: string
 }
 
+let loginPromptOpen = false
+
 export function createHttpClient(store: AuthStore): AxiosInstance {
     const client = axios.create({
         baseURL: '/api',
@@ -31,23 +33,29 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
                 if (error.response?.status === 401) {
                     store.clearAuth()
                     void import('@/router').then(({ default: router }) => {
-                        if (router.currentRoute.value.name === 'login') {
+                        if (
+                            loginPromptOpen ||
+                            router.currentRoute.value.name === 'login'
+                        ) {
                             return
                         }
+                        loginPromptOpen = true
                         Modal.warning({
                             title: '需要登录',
                             content: '当前登录状态已失效，请重新登录。',
                             okText: '去登录',
                             closable: false,
                             maskClosable: false,
-                            onOk: () =>
-                                router.replace({
+                            onOk: () => {
+                                loginPromptOpen = false
+                                return router.replace({
                                     name: 'login',
                                     query: {
                                         redirect:
                                             router.currentRoute.value.fullPath,
                                     },
-                                }),
+                                })
+                            },
                         })
                     })
                 }
