@@ -16,6 +16,7 @@ import {
     type SqlLogSettings,
     type SqlLogStatement,
 } from '@/service/sqlMonitor'
+import { parseDateTime } from '@/utils/dateTime'
 
 const rows = ref<SqlLogEntry[]>([])
 const loading = ref(false)
@@ -68,7 +69,7 @@ function formatTime(value: string) {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-    }).format(new Date(value))
+    }).format(parseDateTime(value))
 }
 
 async function loadSettings() {

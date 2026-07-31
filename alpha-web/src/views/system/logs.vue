@@ -11,6 +11,7 @@ import { onMounted, reactive, ref } from 'vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { logApi, type LoginLog, type OperationLog } from '@/service/logs'
 import { authStore } from '@/stores/auth'
+import { formatDateTime } from '@/utils/dateTime'
 
 const operationRows = ref<OperationLog[]>([])
 const loginRows = ref<LoginLog[]>([])
@@ -93,11 +94,7 @@ function changeExceptionPage(pagination: { current?: number }) {
     exceptionPage.value = pagination.current ?? 1
     void loadExceptions()
 }
-function formatTime(value: string) {
-    return value
-        ? new Date(value).toLocaleString('zh-CN', { hour12: false })
-        : '-'
-}
+const formatTime = formatDateTime
 function handlingStatusLabel(status: 0 | 1 | 2) {
     return ({ 0: '未处理', 1: '已处理', 2: '已忽略' } as const)[status]
 }

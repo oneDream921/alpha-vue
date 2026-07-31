@@ -11,6 +11,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import { fileApi, type StoredFile } from '@/service/files'
+import { formatDateTime } from '@/utils/dateTime'
 
 const rows = ref<StoredFile[]>([])
 const loading = ref(false)
@@ -75,11 +76,7 @@ function formatSize(bytes: number) {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
-function formatTime(value: string) {
-    return value
-        ? new Date(value).toLocaleString('zh-CN', { hour12: false })
-        : '-'
-}
+const formatTime = formatDateTime
 onMounted(load)
 </script>
 

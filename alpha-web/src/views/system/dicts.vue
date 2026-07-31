@@ -18,6 +18,7 @@ import {
     type DictTypeSave,
 } from '@/service/system'
 import { dictStore } from '@/stores/dict'
+import { parseDateTime } from '@/utils/dateTime'
 import {
     dictPageFromTableChange,
     itemPageForTypeSelection,
@@ -195,7 +196,7 @@ function changeSelectedItems(keys: (string | number)[]) {
 }
 function formatTime(value?: string) {
     if (!value) return '-'
-    const date = new Date(value)
+    const date = parseDateTime(value)
     if (Number.isNaN(date.getTime())) return '-'
     const pad = (part: number) => String(part).padStart(2, '0')
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(

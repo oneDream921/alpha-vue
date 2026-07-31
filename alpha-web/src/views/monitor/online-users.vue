@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue'
 
 import { onlineApi, type OnlineSession } from '@/service/online'
 import { authStore } from '@/stores/auth'
+import { formatDateTime } from '@/utils/dateTime'
 
 const rows = ref<OnlineSession[]>([])
 const loading = ref(false)
@@ -12,11 +13,7 @@ const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 
-function formatTime(value: string) {
-    return value
-        ? new Date(value).toLocaleString('zh-CN', { hour12: false })
-        : '-'
-}
+const formatTime = formatDateTime
 
 async function load() {
     loading.value = true
