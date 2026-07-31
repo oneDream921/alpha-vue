@@ -53,17 +53,19 @@ public class AuthService {
     /**
      * 校验验证码和密码，登录成功后签发会话 Token
      */
-    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent, String traceId) {
         Client client = clientRegistryService.requireEnabled(request.clientId());
         captchaService.validate(request.captchaId(), request.captcha());
         if (!loginFailureStore.reserveAttempt(request.username(), ipAddress)) {
-            auditLogService.recordLogin(request.username(), null, false, ipAddress);
+            auditLogService.recordLogin(request.username(), null, false, ipAddress, userAgent, request.clientId(),
+                    request.deviceId(), request.deviceName(), traceId, 429, "Login temporarily locked");
             throw new BusinessException(429, PublicErrorMessage.LOGIN_TEMPORARILY_LOCKED);
         }
 
         UserAccount account = findAccount(request.username());
         if (account == null || !BCrypt.checkpw(request.password(), account.passwordHash())) {
-            auditLogService.recordLogin(request.username(), null, false, ipAddress);
+            auditLogService.recordLogin(request.username(), null, false, ipAddress, userAgent, request.clientId(),
+                    request.deviceId(), request.deviceName(), traceId, 401, "Invalid credentials");
             throw new BusinessException(401, PublicErrorMessage.INVALID_CREDENTIALS);
         }
 
@@ -83,7 +85,8 @@ public class AuthService {
             StpUtil.login(account.id(), loginParameter);
             return null;
         });
-        auditLogService.recordLogin(account.username(), account.id(), true, ipAddress);
+        auditLogService.recordLogin(account.username(), account.id(), true, ipAddress, userAgent, client.clientId(),
+                request.deviceId(), request.deviceName(), traceId, null, null);
         return new LoginResponse(StpUtil.getTokenValue(), "Bearer", timeout);
     }
 

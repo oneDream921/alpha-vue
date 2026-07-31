@@ -3,6 +3,7 @@ package io.github.onedream921.alphavue.modules.log.aspect;
 import cn.dev33.satoken.stp.StpUtil;
 import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
+import io.github.onedream921.alphavue.framework.web.ClientAddressResolver;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
@@ -30,13 +31,15 @@ public class OperationLogAspect {
     private final SysUserMapper userMapper;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
+    private final ClientAddressResolver clientAddressResolver;
 
     public OperationLogAspect(AuditLogService auditLogService, SysUserMapper userMapper,
-            HttpServletRequest request, HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse response, ClientAddressResolver clientAddressResolver) {
         this.auditLogService = auditLogService;
         this.userMapper = userMapper;
         this.request = request;
         this.response = response;
+        this.clientAddressResolver = clientAddressResolver;
     }
 
     /**
@@ -49,6 +52,7 @@ public class OperationLogAspect {
         boolean succeeded = false;
         int responseCode = 500;
         String exceptionStack = null;
+        Integer errorCode = null;
         try {
             Object result = joinPoint.proceed();
             succeeded = true;
@@ -56,6 +60,7 @@ public class OperationLogAspect {
             return result;
         } catch (BusinessException exception) {
             responseCode = exception.code();
+            errorCode = exception.code();
             exceptionStack = stackTrace(exception);
             throw exception;
         } catch (Throwable exception) {
@@ -72,10 +77,20 @@ public class OperationLogAspect {
                     request.getRequestURI(),
                     responseCode,
                     succeeded,
-                    request.getRemoteAddr(),
+                    clientAddressResolver.resolve(request),
                     (System.nanoTime() - startedAt) / 1_000_000,
-                    (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE), exceptionStack);
+                    (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE), errorCode, exceptionStack,
+                    request.getHeader("User-Agent"), terminalExtra("clientId"), terminalExtra("deviceId"),
+                    terminalExtra("deviceName"));
         }
+    }
+
+    private String terminalExtra(String key) {
+        try {
+            Object value = StpUtil.getExtra(key, null);
+            return value == null ? null : value.toString();
+        }
+        catch (RuntimeException ignored) { return null; }
     }
 
     private LoginPrincipal currentPrincipal() {
@@ -94,7 +109,8 @@ public class OperationLogAspect {
     private static String stackTrace(Throwable exception) {
         StringWriter writer = new StringWriter();
         exception.printStackTrace(new PrintWriter(writer));
-        String value = writer.toString();
+        String value = writer.toString()
+                .replaceAll("(?i)(password|token|cookie|secret|authorization|captcha|api[-_]?key)\\s*[:=]\\s*[^,\\s]+", "$1=[redacted]");
         return value.length() <= 8_000 ? value : value.substring(0, 8_000);
     }
 }

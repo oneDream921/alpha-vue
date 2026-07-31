@@ -31,3 +31,5 @@ Redis 管理台用于在故障排查时按 `SCAN` 游标分批检查键空间，
 ## 边缘代理责任
 
 应用只设置通用 API 安全头。Nginx/Ingress/API 网关必须负责 TLS、HSTS、CSP、限流、请求体上限、日志脱敏、Actuator 内网限制与可信代理头清洗。只有代理已清洗外部转发头时，应用才可依赖客户端 IP 头进行安全判断。
+
+审计日志使用 `TRUSTED_PROXY_ADDRESSES` 配置受信代理对端；未配置时应用只记录 socket 对端 IP。内网地址标记为“内网 IP”，外部地址使用 `IP_LOCATION_XDB` 指向的 ip2region 离线 XDB 查询，未配置或查询失败时显示“未知”。

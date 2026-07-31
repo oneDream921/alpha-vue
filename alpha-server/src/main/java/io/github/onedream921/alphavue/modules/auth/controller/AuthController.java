@@ -2,6 +2,7 @@ package io.github.onedream921.alphavue.modules.auth.controller;
 
 import io.github.onedream921.alphavue.common.api.ApiResponse;
 import io.github.onedream921.alphavue.framework.web.BaseController;
+import io.github.onedream921.alphavue.framework.web.ClientAddressResolver;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginRequest;
 import io.github.onedream921.alphavue.modules.auth.dto.LoginResponse;
 import io.github.onedream921.alphavue.modules.auth.dto.ProfileRequests;
@@ -34,9 +35,11 @@ import java.util.List;
 public class AuthController extends BaseController {
 
     private final AuthService authService;
+    private final ClientAddressResolver clientAddressResolver;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ClientAddressResolver clientAddressResolver) {
         this.authService = authService;
+        this.clientAddressResolver = clientAddressResolver;
     }
 
     /**
@@ -44,7 +47,8 @@ public class AuthController extends BaseController {
      */
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
-        return success(authService.login(request, clientIp(servletRequest), servletRequest.getHeader("User-Agent")), servletRequest);
+        return success(authService.login(request, clientAddressResolver.resolve(servletRequest), servletRequest.getHeader("User-Agent"),
+                traceId(servletRequest)), servletRequest);
     }
 
     /**

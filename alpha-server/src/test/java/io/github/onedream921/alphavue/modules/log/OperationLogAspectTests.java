@@ -39,7 +39,7 @@ class OperationLogAspectTests {
         when(request.getRequestURI()).thenReturn("/api/test");
         when(joinPoint.proceed()).thenThrow(exception);
         OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
-                mock(HttpServletResponse.class));
+                mock(HttpServletResponse.class), mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class));
 
         try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
             stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
@@ -49,7 +49,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionStack = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Reject request"),
                     eq(BusinessType.UPDATE), eq("PUT"), eq("/api/test"), eq(400), eq(false), isNull(), anyLong(),
-                    isNull(), exceptionStack.capture());
+                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionStack.getValue()).contains("BusinessException: 请求参数错误");
         }
     }

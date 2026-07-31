@@ -50,6 +50,9 @@ springdoc:
   enable-javadoc: false
 
 alpha:
+  web:
+    trusted-proxies: ${TRUSTED_PROXY_ADDRESSES:}
+    ip-location-xdb: ${IP_LOCATION_XDB:}
   file:
     provider: ${FILE_STORAGE_PROVIDER:local}
     allowed-extensions: ${FILE_ALLOWED_EXTENSIONS:txt,pdf,png,jpg,jpeg,gif,webp,doc,docx,xls,xlsx}

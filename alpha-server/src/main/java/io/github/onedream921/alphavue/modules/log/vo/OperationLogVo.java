@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
  */
 public record OperationLogVo(long id, Long userId, String username, String module, String operation, String businessType,
                              String method, String requestUri, Integer responseCode, int status,
-                             String ipAddress, Long durationMs, String traceId, int handlingStatus,
+                             String ipAddress, String location, String clientId, String deviceId, String deviceName, String browser,
+                             String operatingSystem, Long durationMs, String traceId, Integer errorCode, int handlingStatus,
                              Long handledBy, LocalDateTime handledAt, LocalDateTime createdAt,
                              String exceptionStack) {
     /**
@@ -18,7 +19,8 @@ public record OperationLogVo(long id, Long userId, String username, String modul
     public static OperationLogVo from(SysOperLog log) {
         return new OperationLogVo(log.getId(), log.getUserId(), log.getUsername(), log.getModule(),
                 log.getOperation(), log.getBusinessType(), log.getMethod(), log.getRequestUri(), log.getResponseCode(),
-                log.getStatus(), log.getIpAddress(), log.getDurationMs(), log.getTraceId(),
+                log.getStatus(), log.getIpAddress(), log.getLocation(), log.getClientId(), log.getDeviceId(), log.getDeviceName(),
+                log.getBrowser(), log.getOperatingSystem(), log.getDurationMs(), log.getTraceId(), log.getErrorCode(),
                 log.getHandlingStatus(), log.getHandledBy(), log.getHandledAt(), log.getCreatedAt(),
                 log.getExceptionStack());
     }

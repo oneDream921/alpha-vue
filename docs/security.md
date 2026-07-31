@@ -8,6 +8,9 @@
 - `SUPER_ADMIN` 是唯一全权限绕过角色且不可删除；其他访问由后端权限校验决定。
 - 禁用或软删除账号后，已签发 Token 的下一次请求立即失效；管理员可主动踢下线。
 - 操作审计异步写入，仅记录元数据。密码、Token、Cookie、验证码、请求体、上传正文及 secret/key 字段不落审计库。
+- 登录和操作日志保存有界的 clientId、设备摘要、User-Agent 解析结果、traceId、业务错误码、IP 与地点快照；异常摘要会限制长度并脱敏密码、Token、Cookie、验证码、secret/key 等字段。
+- 客户端 IP 默认取 socket 对端地址；只有 `TRUSTED_PROXY_ADDRESSES` 明确列出的代理对端才允许使用 `X-Forwarded-For` 的首个地址，未配置时不信任转发头。
+- 外部 IP 地点使用 `IP_LOCATION_XDB` 指向的 ip2region 离线 XDB 查询；XDB 未配置或查询失败时返回“未知”，不影响业务请求。
 - 参数配置只允许定义目录中已发布的 `file.*` 业务键。敏感定义仅可作为数据存储，默认值和实际值不进入普通响应、请求审计或应用日志；动态定义只能使用代码已有的文件业务绑定，不能绑定 Spring、Server、数据源、Redis、存储提供者、Sa-Token、连接信息或诊断开关。
 - 上传使用 UUID 对象键，校验扩展名、MIME、图片签名、大小和安全路径；删除顺序为先对象后元数据。
 - 文件默认私有：本地静态映射和 MinIO 匿名读取默认关闭，接口返回短期 HMAC 签名 URL。必须配置 `FILE_ACCESS_TOKEN_SECRET`；仅在明确设置 `FILE_PUBLIC_ACCESS=true` 时才允许公开读取。

@@ -31,8 +31,15 @@ public class SysOperLog {
 
     private Integer status;
     private String ipAddress;
+    private String location;
+    private String clientId;
+    private String deviceId;
+    private String deviceName;
+    private String browser;
+    private String operatingSystem;
     private Long durationMs;
     private String traceId;
+    private Integer errorCode;
     private String exceptionStack;
     private Integer handled;
     private Integer handlingStatus;

@@ -27,8 +27,16 @@ public class SysLoginLog {
     private Integer status;
 
     private String ipAddress;
+    private String location;
 
     private String userAgent;
+    private String clientId;
+    private String deviceId;
+    private String deviceName;
+    private String browser;
+    private String operatingSystem;
+    private String traceId;
+    private String errorMessage;
 
     private String message;
 

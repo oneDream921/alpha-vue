@@ -498,6 +498,24 @@ onMounted(refreshLogs)
                     >{{ selectedOperation.method }}
                     {{ selectedOperation.requestUri }}</a-descriptions-item
                 >
+                <a-descriptions-item label="客户端">{{
+                    selectedOperation.clientId || '-'
+                }}</a-descriptions-item>
+                <a-descriptions-item label="地点 / IP"
+                    >{{ selectedOperation.location || '-' }} /
+                    {{
+                        selectedOperation.ipAddress || '-'
+                    }}</a-descriptions-item
+                >
+                <a-descriptions-item label="浏览器 / 系统"
+                    >{{ selectedOperation.browser || '-' }} /
+                    {{
+                        selectedOperation.operatingSystem || '-'
+                    }}</a-descriptions-item
+                >
+                <a-descriptions-item label="业务错误码">{{
+                    selectedOperation.errorCode ?? '-'
+                }}</a-descriptions-item>
                 <a-descriptions-item label="状态">{{
                     handlingStatusLabel(selectedOperation.handlingStatus)
                 }}</a-descriptions-item>

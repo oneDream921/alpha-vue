@@ -12,6 +12,13 @@ export interface OperationLog {
     responseCode?: number
     status: number
     ipAddress?: string
+    location?: string
+    clientId?: string
+    deviceId?: string
+    deviceName?: string
+    browser?: string
+    operatingSystem?: string
+    errorCode?: number
     durationMs?: number
     traceId?: string
     exceptionStack?: string
@@ -27,6 +34,14 @@ export interface LoginLog {
     loginType: string
     status: number
     ipAddress?: string
+    location?: string
+    clientId?: string
+    deviceId?: string
+    deviceName?: string
+    browser?: string
+    operatingSystem?: string
+    traceId?: string
+    errorMessage?: string
     userAgent?: string
     message?: string
     createdAt: string
