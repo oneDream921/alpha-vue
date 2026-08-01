@@ -212,8 +212,12 @@ confirmation. Do not convert a task closeout into a stage pass or the start of t
 
 Follow repository Git rules exactly:
 
-- only the exact phrase `确认提交` authorizes selective staging and commit;
-- never use `git add -A` when unrelated changes exist;
+- use the Core `git-handoff` Skill for every submission request, including `提交`, `commit`, `帮我提交`,
+  `确认提交`, or a submission option selected by the user;
+- inspect status and diffs read-only, group files by concern, and output complete selective
+  `git add ... && git commit -m ...` commands for the user to run locally;
+- never execute `git add`, `git commit`, or `git commit --amend`, and never use `git add -A` when
+  unrelated changes exist;
 - never execute push, pull, merge, rebase, reset, checkout, stash, branch deletion, or other forbidden
   operations; provide user commands when needed;
 - after the user merges, perform read-only branch, worktree, ancestry, and divergence verification;

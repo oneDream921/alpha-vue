@@ -88,7 +88,7 @@ Every prompt must be directly copyable and include:
 6. ordered work or review steps;
 7. focused and complete validation or review requirements;
 8. security, sensitive-data and unrelated-change boundaries;
-9. exact Git authorization boundary;
+9. exact Git handoff boundary;
 10. required final evidence and stop condition.
 
 Do not include unresolved placeholders. Do not silently expand the approved scope.
@@ -96,8 +96,9 @@ Do not include unresolved placeholders. Do not silently expand the approved scop
 ### EXECUTION
 
 Require the worker to inspect actual state before editing, preserve unrelated changes, implement only
-the named task, run the required validations, and return evidence without committing unless the user
-has explicitly authorized a commit.
+the named task, run the required validations, and return evidence without executing `git add` or
+`git commit`. When submission is requested, it must use the Core `git-handoff` Skill and return
+complete commands for the user to run locally.
 
 For behavior that a user can observe or operate, require the worker to finish automated checks first
 and then provide a user test checklist. Each item must contain prerequisites, exact actions, expected

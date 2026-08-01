@@ -2,6 +2,8 @@ const DANGEROUS_SUBCOMMANDS = new Set([
   "checkout", "cherry-pick", "clean", "merge", "pull", "push", "rebase", "reset", "restore", "revert", "stash", "switch",
 ]);
 
+const LOCAL_WRITE_SUBCOMMANDS = new Set(["add", "commit"]);
+
 const OPTIONS_WITH_VALUE = new Set(["-c", "-C", "--exec-path", "--git-dir", "--namespace", "--super-prefix", "--work-tree"]);
 
 function splitShellCommands(command) {
@@ -62,4 +64,8 @@ function gitSubcommands(command) {
 
 export function findBlockedGitSubcommand(command) {
   return gitSubcommands(command).find((subcommand) => DANGEROUS_SUBCOMMANDS.has(subcommand));
+}
+
+export function findLocalGitWriteSubcommand(command) {
+  return gitSubcommands(command).find((subcommand) => LOCAL_WRITE_SUBCOMMANDS.has(subcommand));
 }
