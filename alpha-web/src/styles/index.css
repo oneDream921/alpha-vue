@@ -727,14 +727,12 @@ body {
     padding-block: 12px !important;
     background: #f5f7fa !important;
     border-bottom-color: #e4e7ec !important;
-    text-align: left;
 }
 
 .ant-table-wrapper .ant-table-tbody > tr > td {
     padding-block: 13px !important;
     background: #fff;
     border-bottom-color: #eef2f6 !important;
-    text-align: left;
 }
 
 .ant-table-wrapper .ant-table-tbody > tr.ant-table-measure-row > td {
@@ -866,6 +864,7 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
+    width: 100%;
     min-width: 0;
 }
 

@@ -3,6 +3,7 @@ import { DisconnectOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { onMounted, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import { onlineApi, type OnlineSession } from '@/service/online'
 import { authStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/dateTime'
@@ -60,81 +61,91 @@ onMounted(load)
                 ><ReloadOutlined />刷新</a-button
             >
         </div>
-        <a-table
-            row-key="terminalIndex"
-            :data-source="rows"
-            :loading="loading"
-            :scroll="{ x: 1280 }"
-            :pagination="{
-                current: page,
-                pageSize: size,
-                total,
-                showSizeChanger: true,
-            }"
-            @change="changePage"
-        >
-            <a-table-column title="账号" width="150">
-                <template #default="{ record }">
-                    {{ record.user?.username ?? '-' }}
-                    <span class="table-secondary">{{
-                        record.user?.nickname
-                    }}</span>
-                </template>
-            </a-table-column>
-            <a-table-column title="客户端" data-index="clientId" width="130" />
-            <a-table-column title="设备" width="180">
-                <template #default="{ record }">
-                    {{
-                        record.deviceName ||
-                        record.deviceId ||
-                        [record.browser, record.operatingSystem]
-                            .filter((value) => value && value !== '未知')
-                            .join(' / ') ||
-                        '-'
-                    }}
-                </template>
-            </a-table-column>
-            <a-table-column title="网络" width="170">
-                <template #default="{ record }">
-                    {{ record.ipAddress || '-' }}
-                    <span class="table-secondary"
-                        >{{ record.browser }} /
-                        {{ record.operatingSystem }}</span
-                    >
-                </template>
-            </a-table-column>
-            <a-table-column title="登录时间" width="180">
-                <template #default="{ record }">{{
-                    formatTime(record.loginTime)
-                }}</template>
-            </a-table-column>
-            <a-table-column title="最后访问" width="180">
-                <template #default="{ record }">{{
-                    formatTime(record.lastActiveTime)
-                }}</template>
-            </a-table-column>
-            <a-table-column
-                title="会话标识"
-                data-index="tokenSummary"
-                width="150"
-            />
-            <a-table-column
-                title="操作"
-                fixed="right"
-                width="110"
-                align="center"
+        <AlphaTableCard :loading="loading">
+            <a-table
+                row-key="terminalIndex"
+                :data-source="rows"
+                :loading="loading"
+                :scroll="{ x: 1280 }"
+                :pagination="{
+                    current: page,
+                    pageSize: size,
+                    total,
+                    showSizeChanger: true,
+                }"
+                @change="changePage"
             >
-                <template #default="{ record }">
-                    <a-button
-                        v-if="authStore.hasPermission('monitor:online:kickout')"
-                        type="link"
-                        danger
-                        @click="kickout(record)"
-                        ><DisconnectOutlined />下线</a-button
-                    >
-                </template>
-            </a-table-column>
-        </a-table>
+                <a-table-column title="账号" width="150">
+                    <template #default="{ record }">
+                        {{ record.user?.username ?? '-' }}
+                        <span class="table-secondary">{{
+                            record.user?.nickname
+                        }}</span>
+                    </template>
+                </a-table-column>
+                <a-table-column
+                    title="客户端"
+                    data-index="clientId"
+                    width="130"
+                />
+                <a-table-column title="设备" width="180">
+                    <template #default="{ record }">
+                        {{
+                            record.deviceName ||
+                            record.deviceId ||
+                            [record.browser, record.operatingSystem]
+                                .filter((value) => value && value !== '未知')
+                                .join(' / ') ||
+                            '-'
+                        }}
+                    </template>
+                </a-table-column>
+                <a-table-column title="网络" width="170">
+                    <template #default="{ record }">
+                        {{ record.ipAddress || '-' }}
+                        <span class="table-secondary"
+                            >{{ record.browser }} /
+                            {{ record.operatingSystem }}</span
+                        >
+                    </template>
+                </a-table-column>
+                <a-table-column title="登录时间" width="180">
+                    <template #default="{ record }">{{
+                        formatTime(record.loginTime)
+                    }}</template>
+                </a-table-column>
+                <a-table-column title="最后访问" width="180">
+                    <template #default="{ record }">{{
+                        formatTime(record.lastActiveTime)
+                    }}</template>
+                </a-table-column>
+                <a-table-column
+                    title="会话标识"
+                    data-index="tokenSummary"
+                    width="150"
+                />
+                <a-table-column
+                    title="操作"
+                    fixed="right"
+                    width="110"
+                    align="center"
+                >
+                    <template #default="{ record }">
+                        <a-button
+                            v-if="
+                                authStore.hasPermission(
+                                    'monitor:online:kickout',
+                                )
+                            "
+                            type="link"
+                            danger
+                            @click="kickout(record)"
+                            ><DisconnectOutlined />下线</a-button
+                        >
+                    </template>
+                </a-table-column>
+            </a-table>
+        </AlphaTableCard>
     </section>
 </template>
 

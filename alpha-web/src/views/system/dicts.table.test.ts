@@ -6,10 +6,12 @@ const dictionaryPage = readFileSync('src/views/system/dicts.vue', 'utf8')
 
 describe('dictionary item table', () => {
     it('uses a reference-style management table and remains horizontally scrollable', () => {
-        expect(dictionaryPage).toContain(':scroll="{ x: 860 }"')
-        expect(dictionaryPage).toContain('title="字典标签"')
-        expect(dictionaryPage).toContain('title="备注"')
-        expect(dictionaryPage).toContain('title="创建时间"')
+        expect(dictionaryPage).not.toContain("from 'vxe-table'")
+        expect(dictionaryPage).toContain('<a-table')
+        expect(dictionaryPage).not.toContain('TableColumnSetting')
+        expect(dictionaryPage).toContain("title: '字典标签'")
+        expect(dictionaryPage).toContain("title: '备注'")
+        expect(dictionaryPage).toContain("title: '创建时间'")
         expect(dictionaryPage).toContain('formatTime(record.createdAt)')
         expect(dictionaryPage).toContain("padStart(2, '0')")
     })

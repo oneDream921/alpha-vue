@@ -7,6 +7,7 @@ import {
 import { message } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     redisApi,
@@ -533,61 +534,65 @@ onMounted(refresh)
                                     <h3>Top 10 命令</h3>
                                     <span>仅展示安全命令名与统计摘要</span>
                                 </div>
-                                <a-table
-                                    row-key="command"
-                                    :data-source="topCommands"
-                                    :pagination="false"
-                                    :scroll="{ x: 760 }"
-                                    size="small"
-                                >
-                                    <a-table-column
-                                        title="命令"
-                                        data-index="command"
-                                        width="180"
-                                    />
-                                    <a-table-column
-                                        title="调用次数"
-                                        width="130"
+                                <AlphaTableCard :loading="metricsLoading">
+                                    <a-table
+                                        row-key="command"
+                                        :data-source="topCommands"
+                                        :pagination="false"
+                                        :scroll="{ x: 760 }"
+                                        size="small"
                                     >
-                                        <template #default="{ record }">
-                                            {{ formatCount(record.calls) }}
-                                        </template>
-                                    </a-table-column>
-                                    <a-table-column
-                                        title="每秒调用"
-                                        width="130"
-                                    >
-                                        <template #default="{ record }">
-                                            {{
-                                                formatDecimal(
-                                                    record.callsPerSecond,
-                                                )
-                                            }}
-                                        </template>
-                                    </a-table-column>
-                                    <a-table-column
-                                        title="失败次数"
-                                        width="130"
-                                    >
-                                        <template #default="{ record }">
-                                            {{
-                                                formatCount(record.failedCalls)
-                                            }}
-                                        </template>
-                                    </a-table-column>
-                                    <a-table-column
-                                        title="平均耗时（微秒）"
-                                        width="180"
-                                    >
-                                        <template #default="{ record }">
-                                            {{
-                                                formatDecimal(
-                                                    record.usecPerCall,
-                                                )
-                                            }}
-                                        </template>
-                                    </a-table-column>
-                                </a-table>
+                                        <a-table-column
+                                            title="命令"
+                                            data-index="command"
+                                            width="180"
+                                        />
+                                        <a-table-column
+                                            title="调用次数"
+                                            width="130"
+                                        >
+                                            <template #default="{ record }">
+                                                {{ formatCount(record.calls) }}
+                                            </template>
+                                        </a-table-column>
+                                        <a-table-column
+                                            title="每秒调用"
+                                            width="130"
+                                        >
+                                            <template #default="{ record }">
+                                                {{
+                                                    formatDecimal(
+                                                        record.callsPerSecond,
+                                                    )
+                                                }}
+                                            </template>
+                                        </a-table-column>
+                                        <a-table-column
+                                            title="失败次数"
+                                            width="130"
+                                        >
+                                            <template #default="{ record }">
+                                                {{
+                                                    formatCount(
+                                                        record.failedCalls,
+                                                    )
+                                                }}
+                                            </template>
+                                        </a-table-column>
+                                        <a-table-column
+                                            title="平均耗时（微秒）"
+                                            width="180"
+                                        >
+                                            <template #default="{ record }">
+                                                {{
+                                                    formatDecimal(
+                                                        record.usecPerCall,
+                                                    )
+                                                }}
+                                            </template>
+                                        </a-table-column>
+                                    </a-table>
+                                </AlphaTableCard>
                             </div>
                         </template>
                         <a-empty
@@ -682,91 +687,97 @@ onMounted(refresh)
                             @change="changeQuery"
                         />
                     </div>
-                    <a-table
-                        row-key="key"
-                        :data-source="rows"
-                        :loading="loading"
-                        :pagination="false"
-                        :scroll="{ x: 1160 }"
-                    >
-                        <a-table-column
-                            title="键名"
-                            data-index="key"
-                            width="420"
+                    <AlphaTableCard :loading="loading">
+                        <a-table
+                            row-key="key"
+                            :data-source="rows"
+                            :loading="loading"
+                            :pagination="false"
+                            :scroll="{ x: 1160 }"
                         >
-                            <template #default="{ text }">
-                                <a-tooltip
-                                    :title="text"
-                                    overlay-class-name="redis-key-tooltip"
-                                >
-                                    <span class="redis-key-cell">{{
-                                        text
-                                    }}</span>
-                                </a-tooltip>
-                            </template>
-                        </a-table-column>
-                        <a-table-column
-                            title="分类"
-                            data-index="category"
-                            width="160"
-                        />
-                        <a-table-column
-                            title="类型"
-                            data-index="type"
-                            width="120"
-                        />
-                        <a-table-column
-                            title="TTL（秒）"
-                            data-index="ttlSeconds"
-                            width="130"
-                        />
-                        <a-table-column
-                            title="大小估计（字节）"
-                            data-index="sizeBytes"
-                            width="170"
-                        />
-                        <a-table-column
-                            title="值预览"
-                            data-index="value"
-                            width="220"
-                        >
-                            <template #default="{ record }">
-                                <span
-                                    class="redis-value-cell"
-                                    :title="record.value || ''"
-                                    >{{ record.value || '-' }}</span
-                                >
-                                <a-tag v-if="record.valueTruncated" class="ml-2"
-                                    >已截断</a-tag
-                                >
-                            </template>
-                        </a-table-column>
-                        <a-table-column
-                            title="操作"
-                            width="88"
-                            fixed="right"
-                            align="center"
-                        >
-                            <template #default="{ record }">
-                                <TableActionMenu aria-label="Redis 键操作">
-                                    <a-menu-item
-                                        key="metadata"
-                                        @click="inspect(record)"
+                            <a-table-column
+                                title="键名"
+                                data-index="key"
+                                width="420"
+                            >
+                                <template #default="{ text }">
+                                    <a-tooltip
+                                        :title="text"
+                                        overlay-class-name="redis-key-tooltip"
                                     >
-                                        <EyeOutlined />元数据
-                                    </a-menu-item>
-                                    <a-menu-item
-                                        key="delete"
-                                        v-permission="'monitor:redis:delete'"
-                                        data-testid="delete-redis-key"
-                                        danger
-                                        @click="openDelete(record)"
-                                        ><DeleteOutlined />删除</a-menu-item
+                                        <span class="redis-key-cell">{{
+                                            text
+                                        }}</span>
+                                    </a-tooltip>
+                                </template>
+                            </a-table-column>
+                            <a-table-column
+                                title="分类"
+                                data-index="category"
+                                width="160"
+                            />
+                            <a-table-column
+                                title="类型"
+                                data-index="type"
+                                width="120"
+                            />
+                            <a-table-column
+                                title="TTL（秒）"
+                                data-index="ttlSeconds"
+                                width="130"
+                            />
+                            <a-table-column
+                                title="大小估计（字节）"
+                                data-index="sizeBytes"
+                                width="170"
+                            />
+                            <a-table-column
+                                title="值预览"
+                                data-index="value"
+                                width="220"
+                            >
+                                <template #default="{ record }">
+                                    <span
+                                        class="redis-value-cell"
+                                        :title="record.value || ''"
+                                        >{{ record.value || '-' }}</span
                                     >
-                                </TableActionMenu>
-                            </template>
-                        </a-table-column>
-                    </a-table>
+                                    <a-tag
+                                        v-if="record.valueTruncated"
+                                        class="ml-2"
+                                        >已截断</a-tag
+                                    >
+                                </template>
+                            </a-table-column>
+                            <a-table-column
+                                title="操作"
+                                width="88"
+                                fixed="right"
+                                align="center"
+                            >
+                                <template #default="{ record }">
+                                    <TableActionMenu aria-label="Redis 键操作">
+                                        <a-menu-item
+                                            key="metadata"
+                                            @click="inspect(record)"
+                                        >
+                                            <EyeOutlined />元数据
+                                        </a-menu-item>
+                                        <a-menu-item
+                                            key="delete"
+                                            v-permission="
+                                                'monitor:redis:delete'
+                                            "
+                                            data-testid="delete-redis-key"
+                                            danger
+                                            @click="openDelete(record)"
+                                            ><DeleteOutlined />删除</a-menu-item
+                                        >
+                                    </TableActionMenu>
+                                </template>
+                            </a-table-column>
+                        </a-table>
+                    </AlphaTableCard>
                     <div class="redis-result-bar">
                         <span>{{ querySummary }}</span>
                         <a-button

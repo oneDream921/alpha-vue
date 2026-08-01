@@ -9,6 +9,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import { authApi } from '@/service/auth'
 import { ensureManagementRoutes } from '@/router'
 import { menuApi, type Menu } from '@/service/system'
@@ -109,6 +110,9 @@ const filteredTreeRows = computed(() => {
         .map(include)
         .filter((item): item is MenuRow => item !== null)
 })
+function menuTypeLabel(value: Menu['menuType']) {
+    return { DIRECTORY: '目录', MENU: '菜单', BUTTON: '按钮' }[value]
+}
 
 async function load() {
     loading.value = true
@@ -118,12 +122,6 @@ async function load() {
     } finally {
         loading.value = false
     }
-}
-function updateExpanded(expanded: boolean, record: Menu) {
-    const keys = new Set(expandedRowKeys.value)
-    if (expanded) keys.add(record.id)
-    else keys.delete(record.id)
-    expandedRowKeys.value = [...keys]
 }
 function openCreate() {
     editingId.value = undefined
@@ -140,6 +138,62 @@ function expandAll() {
 }
 function collapseAll() {
     expandedRowKeys.value = []
+}
+type MenuTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+}
+const menuTableColumns: MenuTableColumn[] = [
+    { key: 'title', dataIndex: 'title', title: '名称', minWidth: 180 },
+    {
+        key: 'menuType',
+        dataIndex: 'menuType',
+        title: '类型',
+        width: 110,
+        align: 'center',
+    },
+    { key: 'path', dataIndex: 'path', title: '路由', minWidth: 160 },
+    {
+        key: 'component',
+        dataIndex: 'component',
+        title: '组件',
+        minWidth: 180,
+    },
+    {
+        key: 'permission',
+        dataIndex: 'permission',
+        title: '权限编码',
+        minWidth: 220,
+    },
+    {
+        key: 'sortOrder',
+        dataIndex: 'sortOrder',
+        title: '排序',
+        width: 80,
+        align: 'center',
+    },
+    {
+        key: 'status',
+        dataIndex: 'status',
+        title: '状态',
+        width: 90,
+        align: 'center',
+    },
+    { key: 'operate', title: '操作', width: 150, align: 'center' },
+]
+function handleTableExpand(expanded: boolean, row: unknown) {
+    const record = row as MenuRow
+    const next = new Set(expandedRowKeys.value)
+    if (expanded) next.add(record.id)
+    else next.delete(record.id)
+    expandedRowKeys.value = [...next]
+}
+function menuRecord(record: unknown) {
+    return record as Menu
 }
 function openEdit(row: Menu) {
     editingId.value = row.id
@@ -226,93 +280,74 @@ onMounted(load)
             />
             <a-button @click="keyword = ''">重置</a-button>
         </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredTreeRows"
-            :loading="loading"
-            :pagination="false"
-            :scroll="{ x: 1050 }"
-            :expanded-row-keys="expandedRowKeys"
-            @expand="updateExpanded"
-        >
-            <a-table-column title="名称" data-index="title" width="160" />
-            <a-table-column
-                title="类型"
-                data-index="menuType"
-                width="110"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-tag>{{
-                        { DIRECTORY: '目录', MENU: '菜单', BUTTON: '按钮' }[
-                            text as Menu['menuType']
-                        ]
-                    }}</a-tag></template
-                ></a-table-column
+        <AlphaTableCard :loading="loading">
+            <a-table
+                row-key="id"
+                :data-source="filteredTreeRows"
+                :columns="menuTableColumns"
+                :pagination="false"
+                :expanded-row-keys="expandedRowKeys"
+                :scroll="{ x: 'max-content' }"
+                @expand="handleTableExpand"
             >
-            <a-table-column title="路由" data-index="path" width="160"
-                ><template #default="{ text }">{{
-                    text || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column title="组件" data-index="component" width="180"
-                ><template #default="{ text }">{{
-                    text || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column title="权限编码" data-index="permission" width="220"
-                ><template #default="{ text }"
-                    ><a-typography-text v-if="text" code>{{
-                        text
-                    }}</a-typography-text
-                    ><span v-else>-</span></template
-                ></a-table-column
-            >
-            <a-table-column
-                title="排序"
-                data-index="sortOrder"
-                width="80"
-                align="center"
-            />
-            <a-table-column
-                title="状态"
-                data-index="status"
-                width="90"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-badge
-                        :status="text === 1 ? 'success' : 'default'"
-                        :text="text === 1 ? '启用' : '停用'" /></template
-            ></a-table-column>
-            <a-table-column title="操作" width="150" align="center"
-                ><template #default="{ record }"
-                    ><a-space :size="4">
-                        <a-button
-                            v-permission="'system:menu:create'"
-                            type="text"
-                            size="small"
-                            title="新增子菜单"
-                            @click.stop="openCreateChild(record)"
-                            ><PlusOutlined
-                        /></a-button>
-                        <a-button
-                            v-permission="'system:menu:update'"
-                            type="text"
-                            size="small"
-                            title="编辑菜单"
-                            @click.stop="openEdit(record)"
-                            ><EditOutlined
-                        /></a-button>
-                        <a-button
-                            v-permission="'system:menu:delete'"
-                            type="text"
-                            danger
-                            size="small"
-                            title="删除菜单"
-                            @click.stop="remove(record)"
-                            ><DeleteOutlined
-                        /></a-button> </a-space></template
-            ></a-table-column>
-        </a-table>
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'menuType'">
+                        <a-tag>{{ menuTypeLabel(record.menuType) }}</a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'path'">
+                        {{ record.path || '-' }}
+                    </template>
+                    <template v-else-if="column.key === 'component'">
+                        {{ record.component || '-' }}
+                    </template>
+                    <template v-else-if="column.key === 'permission'">
+                        <a-typography-text v-if="record.permission" code>{{
+                            record.permission
+                        }}</a-typography-text>
+                        <span v-else>-</span>
+                    </template>
+                    <template v-else-if="column.key === 'status'">
+                        <a-badge
+                            :status="
+                                record.status === 1 ? 'success' : 'default'
+                            "
+                            :text="record.status === 1 ? '启用' : '停用'"
+                        />
+                    </template>
+                    <template v-else-if="column.key === 'operate'">
+                        <a-space :size="4">
+                            <a-button
+                                v-permission="'system:menu:create'"
+                                type="text"
+                                size="small"
+                                title="新增子菜单"
+                                @click.stop="
+                                    openCreateChild(menuRecord(record))
+                                "
+                                ><PlusOutlined
+                            /></a-button>
+                            <a-button
+                                v-permission="'system:menu:update'"
+                                type="text"
+                                size="small"
+                                title="编辑菜单"
+                                @click.stop="openEdit(menuRecord(record))"
+                                ><EditOutlined
+                            /></a-button>
+                            <a-button
+                                v-permission="'system:menu:delete'"
+                                type="text"
+                                danger
+                                size="small"
+                                title="删除菜单"
+                                @click.stop="remove(menuRecord(record))"
+                                ><DeleteOutlined
+                            /></a-button>
+                        </a-space>
+                    </template>
+                </template>
+            </a-table>
+        </AlphaTableCard>
         <a-modal
             v-model:open="editorOpen"
             :title="editingId ? '编辑菜单' : '新建菜单'"

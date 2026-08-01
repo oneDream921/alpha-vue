@@ -10,6 +10,7 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import {
     sqlMonitorApi,
     type SqlLogEntry,
@@ -275,7 +276,7 @@ function checkedKeyArray(value: unknown) {
                 @search="loadLogs"
             />
         </div>
-        <div class="sql-table-wrap">
+        <AlphaTableCard class="sql-table-wrap" :loading="loading">
             <a-table
                 row-key="id"
                 :data-source="rows"
@@ -361,7 +362,7 @@ function checkedKeyArray(value: unknown) {
                     </template>
                 </a-table-column>
             </a-table>
-        </div>
+        </AlphaTableCard>
         <a-modal
             v-model:open="sqlDetailOpen"
             title="SQL 详情"
@@ -441,11 +442,6 @@ function checkedKeyArray(value: unknown) {
 
 .sql-table-wrap {
     width: 100%;
-    overflow: hidden;
-    background: var(--alpha-surface);
-    border: 1px solid #e4e7ec;
-    border-radius: var(--alpha-radius);
-    box-shadow: 0 1px 2px rgb(16 24 40 / 4%);
 }
 
 .sql-table-wrap :deep(.ant-table-content) {

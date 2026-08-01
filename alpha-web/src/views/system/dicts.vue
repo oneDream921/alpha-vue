@@ -10,6 +10,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import {
     dictApi,
     type DictItem,
@@ -191,9 +192,39 @@ function changeItemPage(pagination: { current?: number; pageSize?: number }) {
     itemPageSize.value = next.pageSize
     void loadItems()
 }
-function changeSelectedItems(keys: (string | number)[]) {
-    selectedItemKeys.value = keys
+type DictItemTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
 }
+const itemTableColumns: DictItemTableColumn[] = [
+    { key: 'label', dataIndex: 'label', title: '字典标签', minWidth: 160 },
+    { key: 'value', dataIndex: 'value', title: '字典键值', minWidth: 200 },
+    {
+        key: 'sortOrder',
+        dataIndex: 'sortOrder',
+        title: '字典排序',
+        width: 80,
+        align: 'center',
+    },
+    { key: 'remark', dataIndex: 'remark', title: '备注', minWidth: 180 },
+    {
+        key: 'createdAt',
+        dataIndex: 'createdAt',
+        title: '创建时间',
+        minWidth: 180,
+    },
+    { key: 'operate', title: '操作', width: 108, align: 'center' },
+]
+const itemRowSelection = computed(() => ({
+    selectedRowKeys: selectedItemKeys.value,
+    onChange: (keys: (string | number)[]) => {
+        selectedItemKeys.value = keys
+    },
+}))
 function formatTime(value?: string) {
     if (!value) return '-'
     const date = parseDateTime(value)
@@ -274,6 +305,9 @@ function openItemEdit(item: DictItem) {
     })
     itemEditorOpen.value = true
 }
+function openItemEditRecord(record: unknown) {
+    openItemEdit(record as DictItem)
+}
 async function saveItem() {
     if (!selectedType.value) return
     try {
@@ -304,6 +338,9 @@ function removeItem(item: DictItem) {
             await loadItems()
         },
     })
+}
+function removeItemRecord(record: unknown) {
+    removeItem(record as DictItem)
 }
 function removeSelectedItems() {
     const count = selectedItemKeys.value.length
@@ -486,81 +523,71 @@ onMounted(loadTypes)
                             class="dict-item-empty"
                             description="请从左侧选择一个字典类型"
                         />
-                        <a-table
-                            v-else
-                            row-key="id"
-                            :data-source="filteredItemRows"
-                            :loading="itemLoading"
-                            :row-selection="{
-                                selectedRowKeys: selectedItemKeys,
-                                onChange: changeSelectedItems,
-                            }"
-                            :scroll="{ x: 860 }"
-                            :pagination="{
-                                current: itemPage,
-                                pageSize: itemPageSize,
-                                total: itemTotal,
-                                showSizeChanger: true,
-                                showTotal: (count: number) => `共 ${count} 条`,
-                            }"
-                            @change="changeItemPage"
-                        >
-                            <a-table-column
-                                title="字典标签"
-                                data-index="label"
-                                width="160"
-                            /><a-table-column
-                                title="字典键值"
-                                data-index="value"
-                                width="200"
-                                ellipsis
-                            /><a-table-column
-                                title="字典排序"
-                                data-index="sortOrder"
-                                width="80"
-                                align="center"
-                            /><a-table-column
-                                title="备注"
-                                data-index="remark"
-                                width="180"
-                                ellipsis
-                            />
-                            <a-table-column
-                                title="创建时间"
-                                data-index="createdAt"
-                                width="180"
-                                ellipsis
-                                ><template #default="{ record }">{{
-                                    formatTime(record.createdAt)
-                                }}</template></a-table-column
+                        <AlphaTableCard v-else :loading="itemLoading">
+                            <a-table
+                                row-key="id"
+                                :data-source="filteredItemRows"
+                                :columns="itemTableColumns"
+                                :row-selection="itemRowSelection"
+                                :pagination="false"
+                                :scroll="{ x: 'max-content' }"
                             >
-                            <a-table-column
-                                title="操作"
-                                width="108"
-                                align="center"
-                                ><template #default="{ record }"
-                                    ><a-space :size="8">
-                                        <a-button
-                                            v-permission="'system:dict:update'"
-                                            type="text"
-                                            size="small"
-                                            aria-label="编辑字典项"
-                                            title="编辑字典项"
-                                            @click="openItemEdit(record)"
-                                            ><EditOutlined
-                                        /></a-button>
-                                        <a-button
-                                            v-permission="'system:dict:delete'"
-                                            type="text"
-                                            danger
-                                            size="small"
-                                            aria-label="删除字典项"
-                                            title="删除字典项"
-                                            @click="removeItem(record)"
-                                            ><DeleteOutlined
-                                        /></a-button> </a-space></template
-                            ></a-table-column>
-                        </a-table>
+                                <template #bodyCell="{ column, record }">
+                                    <template v-if="column.key === 'createdAt'">
+                                        {{ formatTime(record.createdAt) }}
+                                    </template>
+                                    <template
+                                        v-else-if="column.key === 'operate'"
+                                    >
+                                        <a-space :size="8">
+                                            <a-button
+                                                v-permission="
+                                                    'system:dict:update'
+                                                "
+                                                type="text"
+                                                size="small"
+                                                aria-label="编辑字典项"
+                                                title="编辑字典项"
+                                                @click="
+                                                    openItemEditRecord(record)
+                                                "
+                                                ><EditOutlined
+                                            /></a-button>
+                                            <a-button
+                                                v-permission="
+                                                    'system:dict:delete'
+                                                "
+                                                type="text"
+                                                danger
+                                                size="small"
+                                                aria-label="删除字典项"
+                                                title="删除字典项"
+                                                @click="
+                                                    removeItemRecord(record)
+                                                "
+                                                ><DeleteOutlined
+                                            /></a-button>
+                                        </a-space>
+                                    </template>
+                                </template>
+                            </a-table>
+                            <template #footer>
+                                <a-pagination
+                                    :current="itemPage"
+                                    :page-size="itemPageSize"
+                                    :total="itemTotal"
+                                    show-size-changer
+                                    :show-total="(count) => `共 ${count} 条`"
+                                    @change="
+                                        (current, pageSize) =>
+                                            changeItemPage({
+                                                current,
+                                                pageSize,
+                                            })
+                                    "
+                                />
+                            </template>
+                        </AlphaTableCard>
                     </section>
                 </div>
             </a-col>

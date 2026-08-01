@@ -21,7 +21,7 @@ Alpha Vue 继续采用“业务单体 + 可选运维扩展”：
 3. **单体优先**：只有独立故障域或独立运行价值明确时才增加进程。
 4. **领域拥有状态**：Redis、缓存、配置和日志由所属领域通过端口访问，不提供万能静态工具。
 5. **安全默认收紧**：敏感内容缺少策略或解析失败时必须隐藏，不得失败时返回原文。
-6. **试点先于平台化**：VXE、ECharts、跨设备偏好等能力先在代表性场景验证。
+6. **试点先于平台化**：ECharts 等能力先在代表性场景验证；跨设备用户偏好不纳入当前规划。
 7. **当前规范描述当前行为**：目标文档不能提前替换现行运维和安全事实。
 8. **不为未来需求预写空实现**：保留接口和边界，不创建 OSS、多数据源、任务等空壳代码。
 
@@ -100,8 +100,9 @@ src/
 └── views/                        # 按领域组织页面
 ```
 
-二期先在真实页面验证查询、表格、弹窗和确认操作。只有同一种重复规则已经在至少两个
-真实页面稳定出现，才允许逐个抽取公共组件并单独评审命名和契约。不得预先建设
+当前已在多个真实页面验证查询、表格、弹窗和确认操作，并抽取了
+`AlphaTableCard` 与 `TableColumnSetting` 两个轻量组件。后续只有同一种重复规则继续稳定出现，
+才允许扩展公共组件并单独评审命名和契约。不得预先建设
 `AlphaGrid` 等整套抽象，也不得演变为 JSON Schema 页面生成器或通用 CRUD DSL。
 
 ## 6. 阶段依赖图
@@ -147,7 +148,7 @@ flowchart TD
 | Spring Boot Admin | Server/Client 与 Boot 4 Actuator 注册、认证、健康读取 | 延期或仅保留 Actuator/Prometheus |
 | SnailJob | Server 与 Boot 4 Client 注册、手动执行、日志和失败重试 | 延期，不以测试任务替代兼容结论 |
 | Lock4j | Boot 4 启动、Redisson Executor、并发互斥、超时和异常处理 | 出现真实锁场景时直接封装 Redisson 或寻找替代 |
-| VXE Table | 与当前 Vue、Ant Design Vue、UnoCSS 共存，桌面与移动端可用 | 继续使用 Ant Table，不建设 AlphaGrid |
+| VXE Table | 已完成兼容性评估，但当前列表需求由 Ant Design Vue Table 满足 | 不引入 VXE，继续使用 Ant Table |
 
 Spike 结果使用：
 

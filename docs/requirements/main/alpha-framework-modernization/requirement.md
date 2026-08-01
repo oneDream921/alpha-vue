@@ -4,7 +4,7 @@
 
 Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceId、Redis 运维、SQL 摘要监控和响应式管理端等基础能力，但技术基线仍包含 Druid、Lettuce、RedisTemplate、Knife4j 等计划替换的实现。项目希望学习 RuoYi-Vue-Plus 与 Vben5 的成熟做法，同时保持“开发快、运行快、简单通用、规范但不复杂”的轻量单体定位。
 
-本需求位于 `main` 分支，采用长期蓝图与分阶段交付分离的方式：第一期完成基础设施瘦身和 `clientId` 会话闭环；较重的运维平台、数据网格和跨设备偏好能力在兼容性与试点验证后逐步引入。
+本需求位于 `main` 分支，采用长期蓝图与分阶段交付分离的方式：第一期完成基础设施瘦身和 `clientId` 会话闭环；较重的运维平台和数据网格能力按需评估，跨设备用户偏好不纳入当前规划。
 
 配套文档：
 
@@ -29,7 +29,7 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 - 使用 `traceId` 关联请求、应用日志、操作日志和 SQL 摘要；补充 IP、归属地、浏览器、操作系统和客户端快照。
 - 建立类型化 `sys_config` 注册机制，只有代码登记、类型明确、范围受控的运行时策略才能动态生效。
 - 前端继续使用 Vue 3、TypeScript、Vite、Ant Design Vue、UnoCSS、Pinia、Vue Router 和 Axios；借鉴 Vben5 的布局、密度和交互，不复制其 Monorepo。
-- 第二期通过单页试点验证 VXE Table、Redis ECharts、跨设备用户偏好和更丰富的操作日志详情，再决定推广范围。
+- 第二期按真实收益增强管理体验：统一 Ant Table 列表、轻量列设置、Redis ECharts 和更丰富的操作日志详情；VXE Table 与跨设备用户偏好不采用。
 - AFK 核心体系保持不变，只更新或扩展 Alpha 项目专属规则与 Skill。
 - 提供普通执行模型可按步骤完成的详细任务单，并为安全、数据、会话和依赖迁移设置强模型复核点。
 
@@ -39,7 +39,7 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 | --- | --- | --- |
 | 阶段 0 | 兼容性与当前基线 | 当前测试基线；候选依赖 Spike；`GO/DEFER/REPLACE` 决策；规范冲突清单 |
 | 一期 | 基础瘦身与认证闭环 | Hikari；SpringDoc 基线；Redisson 干净迁移；Spring Cache；类型化配置注册；完整 `clientId` 会话；在线用户；增强日志元数据；存储 Provider 整理；前端认证与领域 API 整理 |
-| 二期 | 管理体验增强 | 各能力按真实收益单独触发和确认：VXE 单页试点；Redis 详细监控与 ECharts；普通缓存三级展示策略；跨设备用户偏好；经安全评审的操作日志参数详情；Spring Boot Admin；未触发项记 `N/A` |
+| 二期 | 管理体验增强 | 各能力按真实收益单独触发和确认：Ant Table 列表与列设置；Redis 详细监控与 ECharts；普通缓存三级展示策略；经安全评审的操作日志参数详情；Spring Boot Admin；未触发项记 `N/A` |
 | 三期 | 任务与投产能力 | 应用内受控定时清理；生产验证；投产前 ID 决策与数据重建/迁移；SnailJob、Lock4j 仅在触发条件满足并重新评审为 `GO` 后采用 |
 | 长期 | 按业务需求扩展 | 微信小程序客户端；OSS/COS/S3 Provider；文件迁移；孤儿文件报告；第二数据源 |
 
@@ -48,7 +48,7 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 以下内容不进入一期实现：
 
 - Spring Boot Admin Server、SnailJob Server、Lock4j 和自动日志清理。
-- VXE Table 全量替换、Redis ECharts、跨设备用户偏好和普通缓存明文查看。
+- VXE Table 引入、Redis ECharts、跨设备用户偏好和普通缓存明文查看。
 - 普通操作日志完整请求体或完整响应体持久化。
 - Snowflake ID 强制切换和历史 ID 原地迁移。
 - OSS、COS、S3 的具体 Provider 实现。
@@ -112,21 +112,8 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 
 ### 二期数据变化
 
-只有跨设备用户偏好能力被单独触发并通过方案评审时，才新增
-`sys_user_preference`。VXE 单页试点默认使用前端本地、带版本的列设置，不依赖该表：
-
-| 字段 | 语义 |
-| --- | --- |
-| `id` | 主键 |
-| `user_id` | 用户 |
-| `client_id` | 客户端 |
-| `category` | `grid`、`theme` 等受控类别 |
-| `preference_key` | 表格或偏好稳定键 |
-| `schema_version` | 结构版本 |
-| `value_json` | 经结构校验且有大小上限的 JSON |
-| `created_at` / `updated_at` | 审计时间 |
-
-唯一约束为 `user_id + client_id + category + preference_key`。
+当前不新增用户偏好表。列设置使用前端本地、带版本的 `localStorage`，不依赖数据库，
+也不规划跨设备同步接口。
 
 ### 接口变化
 
@@ -140,7 +127,6 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 
 二期：
 
-- 增加用户偏好批量读取、保存和重置接口。
 - 普通业务缓存可按登记的缓存定义配置 `HIDDEN/MASKED/PLAIN`；安全命名空间永久 `HIDDEN`。
 - 操作日志详情可按注解和全局策略保存经过强制清理与截断的参数摘要。
 
@@ -153,11 +139,11 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 | `framework/redis`、`framework/cache` | Redisson Codec、命名空间、缓存管理和领域 Adapter 基础 |
 | `modules/auth` | `clientId` 校验、会话绑定、并发规则和在线会话 |
 | `modules/log` | 安全日志事件、设备/IP 地点快照和 traceId 关联 |
-| `modules/system` | 客户端管理、类型化配置注册；二期用户偏好 |
+| `modules/system` | 客户端管理、类型化配置注册 |
 | `modules/file` | Provider 自动发现、开发 local 与 Compose/生产 MinIO |
 | `alpha-web/src/service` | 按领域拆分 API，保持迁移期兼容出口 |
 | `alpha-web/src/stores` | 只持久化 Token、clientId 和存储模式，刷新时重取资料与菜单 |
-| `alpha-web` 列表页 | 一期维持 Ant Table；二期选择高复杂页面试点 VXE |
+| `alpha-web` 列表页 | 统一使用 Ant Table；按页面需要提供本地列设置 |
 | `.project-agent` | 只更新项目专属规则与 Skill，不修改 AFK 核心 |
 
 详细顺序见 [实施计划](./implementation-plan.md)。
@@ -170,7 +156,7 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 - `clientId` 会话不是 DTO 小改，需要明确 Sa-Token device、Token 元数据、指定会话踢下线和审计行为。
 - 日志参数持久化存在敏感数据泄露风险；一期只做摘要，二期必须先完成安全评审与递归清理测试。
 - 类型化配置注册表完成前，不得继续把技术开关或密钥塞入 `sys_config`。
-- VXE、ECharts 和跨设备偏好均需先证明收益，不得以长期目标为由全量改造现有页面。
+- VXE 和跨设备偏好不纳入当前规划；ECharts 仍需先证明收益，不得以长期目标为由全量改造现有页面。
 - IP 归属地仅是离线数据库估算；内网、代理和移动网络可能不准确。
 - 开发环境默认 local 是为了启动速度；MinIO 必须通过 Compose 与真实 smoke 保持可用。
 - 当前正式规范描述现状。每个阶段实现完成后，必须同步更新 `docs/conventions.md`、`docs/security.md`、`docs/api.md`、`docs/development.md` 和 `docs/operations.md`，不能提前把目标写成已实现事实。
@@ -195,7 +181,7 @@ Alpha Vue 当前已经具备登录、RBAC、文件管理、审计日志、traceI
 | `clientId` 会话 | 在同客户端和不同客户端重复登录并强制下线 | 跨客户端并存，同客户端旧会话失效，可下线指定会话 | |
 | 日志定位 | 执行成功和失败操作，用 traceId 联查日志 | 可看到安全元数据、IP/地点/设备，不出现敏感内容 | |
 | 文件存储 | 分别使用 local 和 MinIO 上传、预览、删除 | 两种 Provider 均可用，切换后历史文件仍按原 Provider 访问 | |
-| 二期 VXE 试点 | 调整列布局并在桌面、平板、手机操作 | 功能完整、无重叠；未证明收益时不推广 | |
+| 二期表格体验 | 调整列显示、顺序和对齐方式，并在桌面、平板、手机操作 | 功能完整、无重叠；设置可在同一浏览器恢复 | 通过，2026-08-02（用户人工验收） |
 | 二期缓存监控 | 查看 INFO、图表和不同保护级别缓存 | 安全命名空间始终隐藏，明文查看受权限和审计保护 | |
 | 最终回归 | 执行完整自动化、Docker、HTTP 和 Playwright 验收 | 所有门槛通过，正式规范与实现一致 | |
 

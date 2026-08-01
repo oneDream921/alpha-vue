@@ -11,6 +11,10 @@ import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
+import TableColumnSetting, {
+    type TableColumnSettingItem,
+} from '@/components/TableColumnSetting.vue'
 import { menuApi, roleApi, type Menu, type Role } from '@/service/system'
 import {
     buildRolePermissionTree,
@@ -31,6 +35,15 @@ const formRef = ref()
 const assigningRole = ref<Role>()
 const selectedMenuIds = ref<Array<number | string>>([])
 const expandedMenuIds = ref<number[]>([])
+const columnSettings = ref<TableColumnSettingItem[]>([
+    { field: 'name', title: '角色名称', visible: true, align: 'left' },
+    { field: 'code', title: '编码', visible: true, align: 'left' },
+    { field: 'sortOrder', title: '排序', visible: true, align: 'center' },
+    { field: 'status', title: '状态', visible: true, align: 'center' },
+    { field: 'remark', title: '备注', visible: true, align: 'left' },
+    { field: 'operate', title: '操作', visible: true, align: 'center' },
+])
+const tableSettingsKey = 'alpha-vue:table:system-roles:v1'
 const emptyForm = () => ({
     name: '',
     code: '',
@@ -84,6 +97,45 @@ function changePage(pagination: { current?: number; pageSize?: number }) {
     page.value = pagination.current ?? 1
     size.value = pagination.pageSize ?? 10
     void load()
+}
+type RoleTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+}
+const roleTableColumns = computed<RoleTableColumn[]>(() =>
+    columnSettings.value
+        .filter((column) => column.visible)
+        .map((column) => ({
+            key: column.field,
+            dataIndex: column.field === 'operate' ? undefined : column.field,
+            title: column.title,
+            width:
+                column.field === 'sortOrder' || column.field === 'status'
+                    ? 90
+                    : column.field === 'operate'
+                      ? 88
+                      : undefined,
+            minWidth:
+                column.field === 'name' || column.field === 'code'
+                    ? 180
+                    : column.field === 'remark'
+                      ? 220
+                      : undefined,
+            align: column.align,
+        })),
+)
+function editRoleRecord(record: unknown) {
+    openEdit(record as Role)
+}
+function removeRoleRecord(record: unknown) {
+    remove(record as Role)
+}
+function openPermissionsRecord(record: unknown) {
+    openPermissions(record as Role)
 }
 function openCreate() {
     editingId.value = undefined
@@ -195,75 +247,77 @@ onMounted(async () => {
             />
             <a-button @click="keyword = ''">重置</a-button>
         </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredRows"
-            :loading="loading"
-            :pagination="{
-                current: page,
-                pageSize: size,
-                total,
-                showSizeChanger: true,
-            }"
-            :scroll="{ x: 800 }"
-            @change="changePage"
-        >
-            <a-table-column title="角色名称" data-index="name" width="180" />
-            <a-table-column title="编码" data-index="code" width="180"
-                ><template #default="{ text }"
-                    ><a-typography-text code>{{
-                        text
-                    }}</a-typography-text></template
-                ></a-table-column
+        <AlphaTableCard :loading="loading">
+            <template #toolbar>
+                <TableColumnSetting
+                    v-model="columnSettings"
+                    control="align"
+                    :storage-key="tableSettingsKey"
+                />
+            </template>
+            <a-table
+                row-key="id"
+                :data-source="filteredRows"
+                :columns="roleTableColumns"
+                :pagination="false"
+                :scroll="{ x: 'max-content' }"
             >
-            <a-table-column
-                title="排序"
-                data-index="sortOrder"
-                width="90"
-                align="center"
-            />
-            <a-table-column
-                title="状态"
-                data-index="status"
-                width="90"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-badge
-                        :status="text === 1 ? 'success' : 'default'"
-                        :text="text === 1 ? '启用' : '停用'" /></template
-            ></a-table-column>
-            <a-table-column title="备注" data-index="remark" width="220"
-                ><template #default="{ text }">{{
-                    text || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column title="操作" width="88" align="center"
-                ><template #default="{ record }"
-                    ><TableActionMenu aria-label="角色操作">
-                        <a-menu-item
-                            key="edit"
-                            v-permission="'system:role:update'"
-                            @click="openEdit(record)"
-                            ><EditOutlined />编辑</a-menu-item
-                        >
-                        <a-menu-item
-                            key="permissions"
-                            v-permission="'system:role:assign'"
-                            @click="openPermissions(record)"
-                            ><SafetyOutlined />权限</a-menu-item
-                        >
-                        <a-menu-item
-                            v-if="record.code !== 'SUPER_ADMIN'"
-                            key="delete"
-                            v-permission="'system:role:delete'"
-                            danger
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        >
-                    </TableActionMenu></template
-                ></a-table-column
-            >
-        </a-table>
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'code'">
+                        <a-typography-text code>{{
+                            record.code
+                        }}</a-typography-text>
+                    </template>
+                    <template v-else-if="column.key === 'status'">
+                        <a-badge
+                            :status="
+                                record.status === 1 ? 'success' : 'default'
+                            "
+                            :text="record.status === 1 ? '启用' : '停用'"
+                        />
+                    </template>
+                    <template v-else-if="column.key === 'remark'">
+                        {{ record.remark || '-' }}
+                    </template>
+                    <template v-else-if="column.key === 'operate'">
+                        <TableActionMenu aria-label="角色操作">
+                            <a-menu-item
+                                key="edit"
+                                v-permission="'system:role:update'"
+                                @click="editRoleRecord(record)"
+                                ><EditOutlined />编辑</a-menu-item
+                            >
+                            <a-menu-item
+                                key="permissions"
+                                v-permission="'system:role:assign'"
+                                @click="openPermissionsRecord(record)"
+                                ><SafetyOutlined />权限</a-menu-item
+                            >
+                            <a-menu-item
+                                v-if="record.code !== 'SUPER_ADMIN'"
+                                key="delete"
+                                v-permission="'system:role:delete'"
+                                danger
+                                @click="removeRoleRecord(record)"
+                                ><DeleteOutlined />删除</a-menu-item
+                            >
+                        </TableActionMenu>
+                    </template>
+                </template>
+            </a-table>
+            <template #footer>
+                <a-pagination
+                    :current="page"
+                    :page-size="size"
+                    :total="total"
+                    show-size-changer
+                    :show-total="(count) => `共 ${count} 条`"
+                    @change="
+                        (current, pageSize) => changePage({ current, pageSize })
+                    "
+                />
+            </template>
+        </AlphaTableCard>
         <a-modal
             v-model:open="editorOpen"
             :title="editingId ? '编辑角色' : '新建角色'"

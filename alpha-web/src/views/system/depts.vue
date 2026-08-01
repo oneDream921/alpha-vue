@@ -9,6 +9,7 @@ import { message, Modal } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import { deptApi, type Dept } from '@/service/system'
 
 const rows = ref<Dept[]>([])
@@ -104,12 +105,6 @@ async function load() {
         loading.value = false
     }
 }
-function updateExpanded(expanded: boolean, record: Dept) {
-    const keys = new Set(expandedRowKeys.value)
-    if (expanded) keys.add(record.id)
-    else keys.delete(record.id)
-    expandedRowKeys.value = [...keys]
-}
 function openCreate() {
     editingId.value = undefined
     Object.assign(form, emptyForm())
@@ -120,11 +115,47 @@ function openCreateChild(row: Dept) {
     Object.assign(form, { ...emptyForm(), parentId: row.id })
     editorOpen.value = true
 }
+function openCreateChildRecord(record: unknown) {
+    openCreateChild(record as Dept)
+}
 function expandAll() {
     expandedRowKeys.value = rows.value.map((item) => item.id)
 }
 function collapseAll() {
     expandedRowKeys.value = []
+}
+type DeptTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+}
+const deptTableColumns: DeptTableColumn[] = [
+    { key: 'name', dataIndex: 'name', title: '部门名称', minWidth: 240 },
+    {
+        key: 'sortOrder',
+        dataIndex: 'sortOrder',
+        title: '排序',
+        width: 100,
+        align: 'center',
+    },
+    {
+        key: 'status',
+        dataIndex: 'status',
+        title: '状态',
+        width: 100,
+        align: 'center',
+    },
+    { key: 'operate', title: '操作', width: 150, align: 'center' },
+]
+function handleTableExpand(expanded: boolean, row: unknown) {
+    const record = row as DeptRow
+    const next = new Set(expandedRowKeys.value)
+    if (expanded) next.add(record.id)
+    else next.delete(record.id)
+    expandedRowKeys.value = [...next]
 }
 function openEdit(row: Dept) {
     editingId.value = row.id
@@ -135,6 +166,9 @@ function openEdit(row: Dept) {
         status: row.status,
     })
     editorOpen.value = true
+}
+function openEditRecord(record: unknown) {
+    openEdit(record as Dept)
 }
 function setParentId(value: string | number | null | undefined) {
     form.parentId = value == null ? undefined : Number(value)
@@ -168,6 +202,9 @@ function remove(row: Dept) {
         },
     })
 }
+function removeRecord(record: unknown) {
+    remove(record as Dept)
+}
 onMounted(load)
 </script>
 
@@ -198,62 +235,57 @@ onMounted(load)
             />
             <a-button @click="keyword = ''">重置</a-button>
         </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredTreeRows"
-            :loading="loading"
-            :pagination="false"
-            :scroll="{ x: 680 }"
-            :expanded-row-keys="expandedRowKeys"
-            @expand="updateExpanded"
-        >
-            <a-table-column title="部门名称" data-index="name" width="240" />
-            <a-table-column
-                title="排序"
-                data-index="sortOrder"
-                width="100"
-                align="center"
-            />
-            <a-table-column
-                title="状态"
-                data-index="status"
-                width="100"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-badge
-                        :status="text === 1 ? 'success' : 'default'"
-                        :text="text === 1 ? '启用' : '停用'" /></template
-            ></a-table-column>
-            <a-table-column title="操作" width="150" align="center"
-                ><template #default="{ record }"
-                    ><a-space :size="4">
-                        <a-button
-                            v-permission="'system:dept:create'"
-                            type="text"
-                            size="small"
-                            title="新增子部门"
-                            @click="openCreateChild(record)"
-                            ><PlusOutlined
-                        /></a-button>
-                        <a-button
-                            v-permission="'system:dept:update'"
-                            type="text"
-                            size="small"
-                            title="编辑部门"
-                            @click="openEdit(record)"
-                            ><EditOutlined
-                        /></a-button>
-                        <a-button
-                            v-permission="'system:dept:delete'"
-                            type="text"
-                            danger
-                            size="small"
-                            title="删除部门"
-                            @click="remove(record)"
-                            ><DeleteOutlined
-                        /></a-button> </a-space></template
-            ></a-table-column>
-        </a-table>
+        <AlphaTableCard :loading="loading">
+            <a-table
+                row-key="id"
+                :data-source="filteredTreeRows"
+                :columns="deptTableColumns"
+                :pagination="false"
+                :expanded-row-keys="expandedRowKeys"
+                :scroll="{ x: 'max-content' }"
+                @expand="handleTableExpand"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'status'">
+                        <a-badge
+                            :status="
+                                record.status === 1 ? 'success' : 'default'
+                            "
+                            :text="record.status === 1 ? '启用' : '停用'"
+                        />
+                    </template>
+                    <template v-else-if="column.key === 'operate'">
+                        <a-space :size="4">
+                            <a-button
+                                v-permission="'system:dept:create'"
+                                type="text"
+                                size="small"
+                                title="新增子部门"
+                                @click="openCreateChildRecord(record)"
+                                ><PlusOutlined
+                            /></a-button>
+                            <a-button
+                                v-permission="'system:dept:update'"
+                                type="text"
+                                size="small"
+                                title="编辑部门"
+                                @click="openEditRecord(record)"
+                                ><EditOutlined
+                            /></a-button>
+                            <a-button
+                                v-permission="'system:dept:delete'"
+                                type="text"
+                                danger
+                                size="small"
+                                title="删除部门"
+                                @click="removeRecord(record)"
+                                ><DeleteOutlined
+                            /></a-button>
+                        </a-space>
+                    </template>
+                </template>
+            </a-table>
+        </AlphaTableCard>
         <a-modal
             v-model:open="editorOpen"
             :title="editingId ? '编辑部门' : '新建部门'"

@@ -10,6 +10,10 @@ import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
+import TableColumnSetting, {
+    type TableColumnSettingItem,
+} from '@/components/TableColumnSetting.vue'
 import { fileApi, type StoredFile } from '@/service/files'
 import { formatDateTime } from '@/utils/dateTime'
 
@@ -20,6 +24,16 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(10)
 const keyword = ref('')
+const columnSettings = ref<TableColumnSettingItem[]>([
+    { field: 'originalName', title: '文件名', visible: true, align: 'left' },
+    { field: 'contentType', title: '类型', visible: true, align: 'left' },
+    { field: 'sizeBytes', title: '大小', visible: true, align: 'center' },
+    { field: 'storageProvider', title: '存储', visible: true, align: 'center' },
+    { field: 'uploaderName', title: '上传者', visible: true, align: 'center' },
+    { field: 'createdAt', title: '上传时间', visible: true, align: 'left' },
+    { field: 'operate', title: '操作', visible: true, align: 'center' },
+])
+const tableSettingsKey = 'alpha-vue:table:files:v1'
 const filteredRows = computed(() => {
     const value = keyword.value.trim().toLowerCase()
     return value
@@ -30,7 +44,6 @@ const filteredRows = computed(() => {
           )
         : rows.value
 })
-
 async function load() {
     loading.value = true
     try {
@@ -45,6 +58,49 @@ function changePage(pagination: { current?: number; pageSize?: number }) {
     page.value = pagination.current ?? 1
     size.value = pagination.pageSize ?? 10
     void load()
+}
+type FileTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+}
+const fileTableColumns = computed<FileTableColumn[]>(() =>
+    columnSettings.value
+        .filter((column) => column.visible)
+        .map((column) => ({
+            key: column.field,
+            dataIndex: column.field === 'operate' ? undefined : column.field,
+            title: column.title,
+            width:
+                column.field === 'sizeBytes'
+                    ? 110
+                    : column.field === 'storageProvider'
+                      ? 100
+                      : column.field === 'uploaderName'
+                        ? 120
+                        : column.field === 'operate'
+                          ? 88
+                          : undefined,
+            minWidth:
+                column.field === 'originalName'
+                    ? 300
+                    : column.field === 'contentType'
+                      ? 170
+                      : column.field === 'createdAt'
+                        ? 190
+                        : undefined,
+            align: column.align,
+        })),
+)
+function fileNameJustify(align?: FileTableColumn['align']) {
+    return align === 'center'
+        ? 'center'
+        : align === 'right'
+          ? 'flex-end'
+          : 'flex-start'
 }
 async function upload(file: File) {
     uploading.value = true
@@ -70,6 +126,9 @@ function remove(row: StoredFile) {
             await load()
         },
     })
+}
+function removeRecord(record: unknown) {
+    remove(record as StoredFile)
 }
 function formatSize(bytes: number) {
     if (bytes < 1024) return `${bytes} B`
@@ -105,100 +164,100 @@ onMounted(load)
                 v-model:value="keyword"
                 allow-clear
                 placeholder="搜索文件名、类型或上传者"
-            />
-            <a-button @click="keyword = ''">重置</a-button>
+            /><a-button @click="keyword = ''">重置</a-button>
         </div>
-        <a-table
-            row-key="id"
-            :data-source="filteredRows"
-            :loading="loading"
-            :pagination="{
-                current: page,
-                pageSize: size,
-                total,
-                showSizeChanger: true,
-            }"
-            :scroll="{ x: 920 }"
-            @change="changePage"
-        >
-            <a-table-column title="文件名" data-index="originalName" width="300"
-                ><template #default="{ record }"
-                    ><div class="file-name-cell">
-                        <a-image
-                            v-if="
-                                record.publicUrl &&
-                                record.contentType.startsWith('image/')
-                            "
-                            :src="record.publicUrl"
-                            :width="40"
-                            :height="40"
-                            :preview="true"
-                            class="file-thumbnail"
-                        />
-                        <div v-else class="file-type-icon" aria-hidden="true">
-                            <FileTextOutlined />
-                        </div>
-                        <span
-                            class="file-name-text"
-                            :title="record.originalName"
-                            >{{ record.originalName }}</span
+        <AlphaTableCard :loading="loading">
+            <template #toolbar>
+                <TableColumnSetting
+                    v-model="columnSettings"
+                    control="align"
+                    :storage-key="tableSettingsKey"
+                />
+            </template>
+            <a-table
+                row-key="id"
+                :data-source="filteredRows"
+                :columns="fileTableColumns"
+                :pagination="false"
+                :scroll="{ x: 'max-content' }"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'originalName'">
+                        <div
+                            class="file-name-cell"
+                            :style="{
+                                justifyContent: fileNameJustify(column.align),
+                            }"
                         >
-                    </div></template
-                ></a-table-column
-            >
-            <a-table-column title="类型" data-index="contentType" width="170" />
-            <a-table-column
-                title="大小"
-                data-index="sizeBytes"
-                width="110"
-                align="center"
-                ><template #default="{ text }">{{
-                    formatSize(text)
-                }}</template></a-table-column
-            >
-            <a-table-column
-                title="存储"
-                data-index="storageProvider"
-                width="100"
-                align="center"
-                ><template #default="{ text }"
-                    ><a-tag>{{ text }}</a-tag></template
-                ></a-table-column
-            >
-            <a-table-column
-                title="上传者"
-                data-index="uploaderName"
-                width="120"
-                align="center"
-                ><template #default="{ text }">{{
-                    text || '-'
-                }}</template></a-table-column
-            >
-            <a-table-column title="上传时间" data-index="createdAt" width="190"
-                ><template #default="{ text }">{{
-                    formatTime(text)
-                }}</template></a-table-column
-            >
-            <a-table-column title="操作" width="88" align="center"
-                ><template #default="{ record }"
-                    ><TableActionMenu aria-label="文件操作"
-                        ><a-menu-item
-                            v-if="record.publicUrl"
-                            key="preview"
-                            :href="record.publicUrl"
-                            target="_blank"
-                            rel="noopener"
-                            ><EyeOutlined />预览</a-menu-item
-                        ><a-menu-item
-                            key="delete"
-                            v-permission="'file:delete'"
-                            danger
-                            @click="remove(record)"
-                            ><DeleteOutlined />删除</a-menu-item
-                        ></TableActionMenu
-                    ></template
-                ></a-table-column
-            >
-        </a-table>
+                            <a-image
+                                v-if="
+                                    record.publicUrl &&
+                                    record.contentType.startsWith('image/')
+                                "
+                                :src="record.publicUrl"
+                                :width="40"
+                                :height="40"
+                                :preview="true"
+                                class="file-thumbnail"
+                            />
+                            <div
+                                v-else
+                                class="file-type-icon"
+                                aria-hidden="true"
+                            >
+                                <FileTextOutlined />
+                            </div>
+                            <span
+                                class="file-name-text"
+                                :title="record.originalName"
+                                >{{ record.originalName }}</span
+                            >
+                        </div>
+                    </template>
+                    <template v-else-if="column.key === 'sizeBytes'">
+                        {{ formatSize(record.sizeBytes) }}
+                    </template>
+                    <template v-else-if="column.key === 'storageProvider'">
+                        <a-tag>{{ record.storageProvider }}</a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'uploaderName'">
+                        {{ record.uploaderName || '-' }}
+                    </template>
+                    <template v-else-if="column.key === 'createdAt'">
+                        {{ formatTime(record.createdAt) }}
+                    </template>
+                    <template v-else-if="column.key === 'operate'">
+                        <TableActionMenu aria-label="文件操作">
+                            <a-menu-item
+                                v-if="record.publicUrl"
+                                key="preview"
+                                :href="record.publicUrl"
+                                target="_blank"
+                                rel="noopener"
+                                ><EyeOutlined />预览</a-menu-item
+                            ><a-menu-item
+                                key="delete"
+                                v-permission="'file:delete'"
+                                danger
+                                @click="removeRecord(record)"
+                                ><DeleteOutlined />删除</a-menu-item
+                            >
+                        </TableActionMenu>
+                    </template>
+                </template>
+            </a-table>
+            <template #footer>
+                <a-pagination
+                    :current="page"
+                    :page-size="size"
+                    :total="total"
+                    show-size-changer
+                    :show-total="(count) => `共 ${count} 条`"
+                    @change="
+                        (current, pageSize) => changePage({ current, pageSize })
+                    "
+                />
+            </template>
+        </AlphaTableCard>
     </section>
 </template>

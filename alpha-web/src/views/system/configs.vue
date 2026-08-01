@@ -3,17 +3,17 @@ import {
     DeleteOutlined,
     EditOutlined,
     PlusOutlined,
-    PushpinOutlined,
     ReloadOutlined,
     SettingOutlined,
 } from '@ant-design/icons-vue'
 import { message, Modal, type FormInstance } from 'ant-design-vue'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
-import VxeUITable from 'vxe-table'
-import 'vxe-table/lib/style.css'
-import type { VxeTableDefines } from 'vxe-table'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
+import TableColumnSetting, {
+    type TableColumnSettingItem,
+} from '@/components/TableColumnSetting.vue'
 import {
     configApi,
     type Config,
@@ -26,11 +26,6 @@ import {
     validateConfigValue,
     validateDefinitionRules,
 } from './configs.validation'
-
-const { VxeColumn, VxeTable } = VxeUITable
-
-const CONFIG_TABLE_SETTINGS_KEY = 'alpha-vue:table:system-configs:v1'
-const CONFIG_TABLE_SETTINGS_VERSION = 1
 
 const rows = ref<Config[]>([])
 const total = ref(0)
@@ -46,32 +41,16 @@ const definitionEditorOpen = ref(false)
 const editingId = ref<number>()
 const editingDefinitionId = ref<number>()
 const selectedRowKeys = ref<number[]>([])
-const tableRef = ref<{
-    hideColumn?: (field: string) => Promise<void>
-    showColumn?: (field: string) => Promise<void>
-    setColumnFixed?: (field: string, fixed: 'left' | 'right') => Promise<void>
-    clearColumnFixed?: (field: string) => Promise<void>
-    setCustomStoreData?: (
-        data: VxeTableDefines.CustomStoreData,
-    ) => Promise<void>
-}>()
 const formRef = ref<FormInstance>()
 const definitionFormRef = ref<FormInstance>()
-const columnSettingsOpen = ref(false)
-type ConfigColumnSetting = {
-    field: string
-    title: string
-    visible: boolean
-    fixed?: 'left' | 'right'
-}
-const columnSettings = ref<ConfigColumnSetting[]>([
-    { field: 'configName', title: '参数名称', visible: true },
-    { field: 'configKey', title: '配置键', visible: true },
-    { field: 'dataType', title: '类型', visible: true },
-    { field: 'enabled', title: '状态', visible: true },
-    { field: 'configValue', title: '配置值', visible: true },
-    { field: 'updatedAt', title: '更新时间', visible: true },
-    { field: 'operate', title: '操作', visible: true, fixed: 'right' },
+const columnSettings = ref<TableColumnSettingItem[]>([
+    { field: 'configName', title: '参数名称', visible: true, align: 'left' },
+    { field: 'configKey', title: '配置键', visible: true, align: 'left' },
+    { field: 'dataType', title: '类型', visible: true, align: 'center' },
+    { field: 'enabled', title: '状态', visible: true, align: 'center' },
+    { field: 'configValue', title: '配置值', visible: true, align: 'left' },
+    { field: 'updatedAt', title: '更新时间', visible: true, align: 'left' },
+    { field: 'operate', title: '操作', visible: true, align: 'center' },
 ])
 
 const emptyForm = () => ({ configKey: '', configValue: '', enabled: true })
@@ -152,136 +131,51 @@ const isFiltering = computed(() => Boolean(keyword.value.trim()))
 const visibleTotal = computed(() =>
     isFiltering.value ? filteredRows.value.length : total.value,
 )
-const configTableHeight = computed(() =>
-    Math.min(Math.max(filteredRows.value.length * 48 + 48, 160), 440),
+type ConfigTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    fixed?: 'left' | 'right'
+    align?: 'left' | 'center' | 'right'
+    ellipsis?: boolean
+}
+const configTableColumns = computed<ConfigTableColumn[]>(() =>
+    columnSettings.value
+        .filter((column) => column.visible)
+        .map((column) => ({
+            key: column.field,
+            dataIndex: column.field === 'operate' ? undefined : column.field,
+            title: column.title,
+            width:
+                column.field === 'configName'
+                    ? 160
+                    : column.field === 'configKey'
+                      ? 190
+                      : column.field === 'dataType' ||
+                          column.field === 'enabled'
+                        ? 80
+                        : column.field === 'configValue'
+                          ? 150
+                          : column.field === 'updatedAt'
+                            ? 180
+                            : column.field === 'operate'
+                              ? 90
+                              : undefined,
+            align: column.align,
+            ellipsis:
+                column.field === 'configValue' || column.field === 'updatedAt',
+        })),
 )
-function syncSelection(records: Config[]) {
-    selectedRowKeys.value = records.map((record) => record.id)
-}
-function handleCheckboxChange(event: { records: Config[] }) {
-    syncSelection(event.records)
-}
-function persistColumnSettings() {
-    try {
-        window.localStorage.setItem(
-            CONFIG_TABLE_SETTINGS_KEY,
-            JSON.stringify({
-                version: CONFIG_TABLE_SETTINGS_VERSION,
-                columns: columnSettings.value,
-            }),
+type TableRowKey = number | string
+const configRowSelection = computed(() => ({
+    selectedRowKeys: selectedRowKeys.value,
+    onChange: (keys: TableRowKey[]) => {
+        selectedRowKeys.value = keys.filter(
+            (key): key is number => typeof key === 'number',
         )
-    } catch {
-        // Local storage can be unavailable in private browsing or test runtimes.
-    }
-}
-function restoreColumnSettings() {
-    try {
-        const raw = window.localStorage.getItem(CONFIG_TABLE_SETTINGS_KEY)
-        if (!raw) return
-        const parsed: unknown = JSON.parse(raw)
-        if (
-            !parsed ||
-            typeof parsed !== 'object' ||
-            !('version' in parsed) ||
-            parsed.version !== CONFIG_TABLE_SETTINGS_VERSION ||
-            !('columns' in parsed) ||
-            !Array.isArray(parsed.columns)
-        ) {
-            return
-        }
-        const saved = parsed.columns as ConfigColumnSetting[]
-        columnSettings.value = columnSettings.value.map(
-            (column) =>
-                saved.find((item) => item.field === column.field) || column,
-        )
-        const savedOrder = saved.map((item) => item.field)
-        columnSettings.value.sort(
-            (left, right) =>
-                savedOrder.indexOf(left.field) -
-                savedOrder.indexOf(right.field),
-        )
-    } catch {
-        // Invalid persisted settings fall back to the default column order.
-    }
-}
-async function applyColumnSettings() {
-    const table = tableRef.value
-    if (!table) return
-    await Promise.all(
-        columnSettings.value.map((column) =>
-            column.visible
-                ? table.showColumn?.(column.field)
-                : table.hideColumn?.(column.field),
-        ),
-    )
-    await Promise.all(
-        columnSettings.value.map((column) =>
-            column.fixed
-                ? table.setColumnFixed?.(column.field, column.fixed)
-                : table.clearColumnFixed?.(column.field),
-        ),
-    )
-    await table.setCustomStoreData?.({
-        sortData: columnSettings.value.map((column) => ({ k: column.field })),
-    })
-    persistColumnSettings()
-}
-function toggleColumn(column: ConfigColumnSetting, visible: boolean) {
-    const visibleCount = columnSettings.value.filter(
-        (item) => item.visible,
-    ).length
-    if (!visible && visibleCount <= 1) return
-    column.visible = visible
-    void applyColumnSettings()
-}
-function toggleAllColumns(checked: boolean) {
-    columnSettings.value.forEach((column) => {
-        column.visible = checked
-    })
-    if (!checked) columnSettings.value[0].visible = true
-    void applyColumnSettings()
-}
-function cycleColumnFixed(column: ConfigColumnSetting) {
-    column.fixed =
-        column.fixed === undefined
-            ? 'left'
-            : column.fixed === 'left'
-              ? 'right'
-              : undefined
-    void applyColumnSettings()
-}
-function moveColumn(field: string, targetField: string) {
-    const from = columnSettings.value.findIndex((item) => item.field === field)
-    const to = columnSettings.value.findIndex(
-        (item) => item.field === targetField,
-    )
-    if (from < 0 || to < 0 || from === to) return
-    const [column] = columnSettings.value.splice(from, 1)
-    columnSettings.value.splice(to, 0, column)
-    void applyColumnSettings()
-}
-function handleAllColumnChange(event: { target: { checked: boolean } }) {
-    toggleAllColumns(event.target.checked)
-}
-function handleColumnChange(
-    column: ConfigColumnSetting,
-    event: { target: { checked: boolean } },
-) {
-    toggleColumn(column, event.target.checked)
-}
-type ColumnDragEvent = {
-    dataTransfer?: {
-        setData: (format: string, data: string) => void
-        getData: (format: string) => string
-    } | null
-}
-function handleColumnDragStart(field: string, event: ColumnDragEvent) {
-    event.dataTransfer?.setData('text/plain', field)
-}
-function handleColumnDrop(targetField: string, event: ColumnDragEvent) {
-    moveColumn(event.dataTransfer?.getData('text/plain') || '', targetField)
-}
-
+    },
+}))
 async function load() {
     loading.value = true
     try {
@@ -316,6 +210,9 @@ function openEdit(row: Config) {
     })
     editorOpen.value = true
 }
+function openEditRecord(record: unknown) {
+    openEdit(record as Config)
+}
 async function submitForm() {
     try {
         await formRef.value?.validate()
@@ -344,6 +241,9 @@ function remove(row: Config) {
             await load()
         },
     })
+}
+function removeRecord(record: unknown) {
+    remove(record as Config)
 }
 function removeSelected() {
     const count = selectedRowKeys.value.length
@@ -433,10 +333,7 @@ function changePage(pagination: { current?: number; pageSize?: number }) {
     void load()
 }
 onMounted(() => {
-    restoreColumnSettings()
-    void Promise.all([load(), loadDefinitions()]).then(() =>
-        nextTick(applyColumnSettings),
-    )
+    void Promise.all([load(), loadDefinitions()])
 })
 </script>
 
@@ -456,234 +353,116 @@ onMounted(() => {
             />
             <a-button @click="keyword = ''">重置</a-button>
         </div>
-        <section class="config-table-workspace">
-            <div class="workspace-toolbar">
-                <div>
-                    <h2>参数列表</h2>
-                    <p>
-                        {{
-                            isFiltering
-                                ? `找到 ${visibleTotal} 条匹配结果`
-                                : `共 ${total} 条业务参数`
-                        }}
-                    </p>
+        <AlphaTableCard class="config-table-workspace" :loading="loading">
+            <template #toolbar>
+                <div class="workspace-toolbar">
+                    <div>
+                        <h2>参数列表</h2>
+                        <p>
+                            {{
+                                isFiltering
+                                    ? `找到 ${visibleTotal} 条匹配结果`
+                                    : `共 ${total} 条业务参数`
+                            }}
+                        </p>
+                    </div>
+                    <a-space :size="8" wrap>
+                        <a-button @click="load"
+                            ><ReloadOutlined />刷新数据</a-button
+                        >
+                        <a-button
+                            v-permission="'system:config:define'"
+                            @click="definitionDrawerOpen = true"
+                            ><SettingOutlined />配置定义</a-button
+                        >
+                        <a-button
+                            v-permission="'system:config:create'"
+                            type="primary"
+                            @click="openCreate"
+                            ><PlusOutlined />新增参数</a-button
+                        >
+                        <a-button
+                            v-permission="'system:config:delete'"
+                            danger
+                            ghost
+                            :disabled="!selectedRowKeys.length"
+                            @click="removeSelected"
+                            ><DeleteOutlined />批量删除</a-button
+                        >
+                        <TableColumnSetting
+                            v-model="columnSettings"
+                            control="align"
+                            storage-key="alpha-vue:table:system-configs:v1"
+                        />
+                    </a-space>
                 </div>
-                <a-space :size="8" wrap>
-                    <a-button @click="load"
-                        ><ReloadOutlined />刷新数据</a-button
-                    >
-                    <a-button
-                        v-permission="'system:config:define'"
-                        @click="definitionDrawerOpen = true"
-                        ><SettingOutlined />配置定义</a-button
-                    >
-                    <a-button
-                        v-permission="'system:config:create'"
-                        type="primary"
-                        @click="openCreate"
-                        ><PlusOutlined />新增参数</a-button
-                    >
-                    <a-button
-                        v-permission="'system:config:delete'"
-                        danger
-                        ghost
-                        :disabled="!selectedRowKeys.length"
-                        @click="removeSelected"
-                        ><DeleteOutlined />批量删除</a-button
-                    >
-                    <a-popover
-                        v-model:open="columnSettingsOpen"
-                        placement="bottomRight"
-                        trigger="click"
-                    >
-                        <template #content>
-                            <div class="column-setting-panel">
-                                <a-checkbox
-                                    :checked="
-                                        columnSettings.every(
-                                            (column) => column.visible,
-                                        )
-                                    "
-                                    :indeterminate="
-                                        columnSettings.some(
-                                            (column) => column.visible,
-                                        ) &&
-                                        !columnSettings.every(
-                                            (column) => column.visible,
-                                        )
-                                    "
-                                    @change="handleAllColumnChange"
-                                    >全选</a-checkbox
-                                >
-                                <a-divider />
-                                <div
-                                    v-for="column in columnSettings"
-                                    :key="column.field"
-                                    class="column-setting-item"
-                                    draggable="true"
-                                    @dragover.prevent
-                                    @drop="
-                                        handleColumnDrop(column.field, $event)
-                                    "
-                                    @dragstart="
-                                        handleColumnDragStart(
-                                            column.field,
-                                            $event,
-                                        )
-                                    "
-                                >
-                                    <span class="column-drag-handle">⋮⋮</span>
-                                    <a-checkbox
-                                        :checked="column.visible"
-                                        @change="
-                                            handleColumnChange(column, $event)
-                                        "
-                                        >{{ column.title }}</a-checkbox
-                                    >
-                                    <a-button
-                                        type="text"
-                                        size="small"
-                                        :disabled="!column.visible"
-                                        :title="
-                                            column.fixed === 'left'
-                                                ? '取消固定或固定到右侧'
-                                                : column.fixed === 'right'
-                                                  ? '取消固定'
-                                                  : '固定到左侧'
-                                        "
-                                        @click="cycleColumnFixed(column)"
-                                        ><PushpinOutlined
-                                            :class="{
-                                                'column-pin-active':
-                                                    column.fixed,
-                                            }"
-                                    /></a-button>
-                                </div>
-                            </div>
-                        </template>
-                        <a-button type="primary" ghost>
-                            <SettingOutlined />列设置
-                        </a-button>
-                    </a-popover>
-                </a-space>
-            </div>
-            <div class="config-table-frame">
-                <a-spin :spinning="loading">
-                    <VxeTable
-                        id="system-configs-table"
-                        ref="tableRef"
-                        class="configs-vxe-table"
-                        :border="false"
-                        auto-resize
-                        size="small"
-                        align="center"
-                        header-align="center"
-                        :row-config="{ keyField: 'id' }"
-                        :data="filteredRows"
-                        :height="configTableHeight"
-                        :scroll-x="{ enabled: true }"
-                        :scroll-y="{ enabled: true }"
-                        :custom-config="{ enabled: true }"
-                        :checkbox-config="{ checkRowKeys: selectedRowKeys }"
-                        @checkbox-change="handleCheckboxChange"
-                        @checkbox-all="handleCheckboxChange"
-                    >
-                        <VxeColumn type="checkbox" width="52" fixed="left" />
-                        <VxeColumn
-                            field="configName"
-                            title="参数名称"
-                            width="200"
-                            show-overflow
+            </template>
+            <a-table
+                id="system-configs-table"
+                row-key="id"
+                :data-source="filteredRows"
+                :columns="configTableColumns"
+                :row-selection="configRowSelection"
+                :pagination="false"
+                :scroll="{ x: 'max-content' }"
+                size="middle"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'configKey'">
+                        <span class="config-key-text">{{
+                            record.configKey
+                        }}</span>
+                    </template>
+                    <template v-else-if="column.key === 'dataType'">
+                        <a-tag>{{ record.dataType }}</a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'enabled'">
+                        <a-badge
+                            :status="record.enabled ? 'success' : 'default'"
+                            :text="record.enabled ? '启用' : '禁用'"
                         />
-                        <VxeColumn
-                            field="configKey"
-                            title="配置键"
-                            width="250"
-                            show-overflow
-                        >
-                            <template #default="{ row }">
-                                <a-typography-text code>{{
-                                    row.configKey
-                                }}</a-typography-text>
-                            </template>
-                        </VxeColumn>
-                        <VxeColumn field="dataType" title="类型" width="100">
-                            <template #default="{ row }"
-                                ><a-tag>{{ row.dataType }}</a-tag></template
+                    </template>
+                    <template v-else-if="column.key === 'configValue'">
+                        <span v-if="record.sensitive">已隐藏</span
+                        ><span v-else>{{ record.configValue }}</span>
+                    </template>
+                    <template v-else-if="column.key === 'operate'">
+                        <TableActionMenu aria-label="参数操作">
+                            <a-menu-item
+                                key="edit"
+                                v-permission="'system:config:update'"
+                                @click="openEditRecord(record)"
+                                ><EditOutlined />编辑</a-menu-item
                             >
-                        </VxeColumn>
-                        <VxeColumn
-                            field="enabled"
-                            title="状态"
-                            width="100"
-                            align="center"
-                        >
-                            <template #default="{ row }">
-                                <a-badge
-                                    :status="
-                                        row.enabled ? 'success' : 'default'
-                                    "
-                                    :text="row.enabled ? '启用' : '禁用'"
-                                />
-                            </template>
-                        </VxeColumn>
-                        <VxeColumn
-                            field="configValue"
-                            title="配置值"
-                            width="240"
-                            show-overflow
-                        >
-                            <template #default="{ row }">
-                                <span v-if="row.sensitive">已隐藏</span
-                                ><span v-else>{{ row.configValue }}</span>
-                            </template>
-                        </VxeColumn>
-                        <VxeColumn
-                            field="updatedAt"
-                            title="更新时间"
-                            width="180"
-                            show-overflow
-                        />
-                        <VxeColumn
-                            field="operate"
-                            title="操作"
-                            width="100"
-                            fixed="right"
-                            align="center"
-                        >
-                            <template #default="{ row }">
-                                <TableActionMenu aria-label="参数操作">
-                                    <a-menu-item
-                                        key="edit"
-                                        v-permission="'system:config:update'"
-                                        @click="openEdit(row)"
-                                        ><EditOutlined />编辑</a-menu-item
-                                    >
-                                    <a-menu-item
-                                        key="delete"
-                                        v-permission="'system:config:delete'"
-                                        danger
-                                        @click="remove(row)"
-                                        ><DeleteOutlined />删除</a-menu-item
-                                    >
-                                </TableActionMenu>
-                            </template>
-                        </VxeColumn>
-                    </VxeTable>
-                </a-spin>
-                <a-pagination
-                    class="config-table-pagination"
-                    :current="page"
-                    :page-size="pageSize"
-                    :total="visibleTotal"
-                    show-size-changer
-                    @change="
-                        (current: number, size: number) =>
-                            changePage({ current, pageSize: size })
-                    "
-                />
-            </div>
-        </section>
+                            <a-menu-item
+                                key="delete"
+                                v-permission="'system:config:delete'"
+                                danger
+                                @click="removeRecord(record)"
+                                ><DeleteOutlined />删除</a-menu-item
+                            >
+                        </TableActionMenu>
+                    </template>
+                </template>
+            </a-table>
+            <template #footer>
+                <div class="config-table-pagination">
+                    <span class="config-table-total"
+                        >共 {{ visibleTotal }} 条</span
+                    >
+                    <a-pagination
+                        :current="page"
+                        :page-size="pageSize"
+                        :total="visibleTotal"
+                        show-size-changer
+                        @change="
+                            (current: number, size: number) =>
+                                changePage({ current, pageSize: size })
+                        "
+                    />
+                </div>
+            </template>
+        </AlphaTableCard>
 
         <a-modal
             v-model:open="editorOpen"
@@ -943,13 +722,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.config-table-workspace {
-    margin-bottom: 16px;
-    overflow: hidden;
-    background: var(--alpha-surface);
-    border-radius: var(--alpha-radius);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
-}
 .workspace-toolbar,
 .definition-toolbar {
     display: flex;
@@ -1001,113 +773,30 @@ onMounted(() => {
 }
 .config-table-pagination {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
-    padding: 14px 16px 16px;
+    gap: 16px;
+    padding: 0 16px;
 }
-.config-table-frame {
-    margin: 0 16px 16px;
+.config-table-total {
+    margin-right: auto;
+    color: var(--alpha-muted);
+    font-size: 13px;
 }
-.config-table-frame :deep(.ant-spin-nested-loading) {
-    overflow: hidden;
-    background: var(--alpha-surface);
-    border: 1px solid #eef1f5;
-    border-radius: var(--alpha-radius);
+.config-key-text {
+    word-break: break-word;
 }
-.config-table-workspace :deep(.vxe-table) {
-    width: 100%;
+.config-table-workspace :deep(.ant-table) {
     color: var(--alpha-text);
-    border: 0;
-    --vxe-ui-table-header-background-color: #f8fafc;
-    --vxe-ui-table-border-color: #eef1f5;
-    --vxe-ui-table-fixed-scrolling-box-shadow-color: transparent;
-    --vxe-ui-table-row-hover-background-color: #f5f8ff;
-    --vxe-ui-table-row-height-small: 44px;
-    --vxe-ui-table-cell-padding-small: 10px;
 }
-.config-table-workspace :deep(.configs-vxe-table),
-.config-table-workspace :deep(.vxe-table--render-wrapper),
-.config-table-workspace :deep(.vxe-table--main-wrapper),
-.config-table-workspace :deep(.vxe-table--header-wrapper),
-.config-table-workspace :deep(.vxe-table--body-wrapper) {
-    width: 100%;
-}
-.config-table-workspace :deep(.vxe-table--render-wrapper) {
-    border: 0;
-    border-radius: inherit;
-    overflow: hidden;
-}
-.config-table-workspace :deep(.vxe-table--header-wrapper) {
-    background: #f8fafc;
-    font-weight: 600;
-}
-.config-table-workspace :deep(.vxe-header--column) {
+.config-table-workspace :deep(.ant-table-thead > tr > th) {
     color: #344054;
     font-size: 13px;
 }
-.config-table-workspace :deep(.vxe-body--column) {
+.config-table-workspace :deep(.ant-table-tbody > tr > td) {
     color: #475467;
     font-size: 13px;
-}
-.config-table-workspace :deep(.vxe-body--row.row--hover) {
-    background: #f5f8ff;
-}
-.config-table-workspace :deep(.vxe-body--row) {
-    transition: background-color 0.15s ease;
-}
-.config-table-workspace :deep(.vxe-header--column) {
-    border-bottom: 1px solid #eef1f5;
-}
-.config-table-workspace :deep(.vxe-body--column) {
-    border-bottom: 0.5px solid #eef1f5;
-}
-.config-table-workspace :deep(.vxe-body--row:last-child .vxe-body--column) {
-    border-bottom: 0;
-}
-.config-table-workspace :deep(.vxe-cell) {
-    line-height: 22px;
-}
-.config-table-workspace :deep(.vxe-table--border-line) {
-    display: none;
-}
-.config-table-workspace :deep(.vxe-table--scroll-x-handle-appearance) {
-    border-top: 0 !important;
-}
-.config-table-workspace :deep(.vxe-table--fixed-right-wrapper) {
-    box-shadow: none !important;
-}
-.config-table-frame .config-table-pagination {
-    padding: 14px 0 0;
-}
-.column-setting-panel {
-    width: 280px;
-    padding: 4px;
-}
-.column-setting-panel :deep(.ant-divider) {
-    margin: 8px 0;
-}
-.column-setting-item {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    min-height: 36px;
-    padding: 0 4px;
-    border-radius: 4px;
-}
-.column-setting-item:hover {
-    background: var(--alpha-primary-soft);
-}
-.column-setting-item :deep(.ant-checkbox-wrapper) {
-    flex: 1;
-    min-width: 0;
-}
-.column-drag-handle {
-    color: var(--alpha-muted);
-    cursor: grab;
-    letter-spacing: -2px;
-    user-select: none;
-}
-.column-pin-active {
-    color: var(--alpha-primary);
+    vertical-align: middle;
 }
 @media (max-width: 767px) {
     .workspace-toolbar,
@@ -1119,8 +808,13 @@ onMounted(() => {
     .form-grid {
         grid-template-columns: 1fr;
     }
-    .column-setting-panel {
-        width: min(280px, calc(100vw - 48px));
+    .config-table-pagination {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-inline: 12px;
+    }
+    .config-table-total {
+        flex: 0 0 auto;
     }
     .config-table-frame {
         margin: 0 10px 10px;

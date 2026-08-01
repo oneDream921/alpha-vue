@@ -630,7 +630,9 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 ### P2-05 跨设备用户偏好
 
-新增 `sys_user_preference`，只同步经过白名单注册的主题、密度、列布局等偏好。偏好必须有 schema 版本、大小限制和迁移策略。
+状态：`CANCELLED`（经用户确认不纳入需求）。
+
+当前列设置继续使用浏览器本地 `localStorage`，不新增 `sys_user_preference`，不建设跨设备同步接口。
 
 ### P2-06 审计详情增强
 

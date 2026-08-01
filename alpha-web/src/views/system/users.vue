@@ -14,6 +14,10 @@ import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
+import AlphaTableCard from '@/components/AlphaTableCard.vue'
+import TableColumnSetting, {
+    type TableColumnSettingItem,
+} from '@/components/TableColumnSetting.vue'
 import {
     deptApi,
     roleApi,
@@ -43,6 +47,15 @@ const resettingUser = ref<User>()
 const resetPasswordFormRef = ref()
 const resetPasswordForm = reactive({ newPassword: '', confirmPassword: '' })
 const formRef = ref()
+const columnSettings = ref<TableColumnSettingItem[]>([
+    { field: 'username', title: '账号', visible: true, align: 'left' },
+    { field: 'nickname', title: '昵称', visible: true, align: 'left' },
+    { field: 'email', title: '邮箱', visible: true, align: 'left' },
+    { field: 'deptId', title: '部门', visible: true, align: 'left' },
+    { field: 'status', title: '状态', visible: true, align: 'center' },
+    { field: 'operate', title: '操作', visible: true, align: 'center' },
+])
+const tableSettingsKey = 'alpha-vue:table:system-users:v1'
 const rules: Record<string, Rule[]> = {
     username: [
         { required: true, message: '请输入账号' },
@@ -123,6 +136,41 @@ function changePage(pagination: { current?: number; pageSize?: number }) {
     page.value = pagination.current ?? 1
     size.value = pagination.pageSize ?? 10
     void load()
+}
+type UserTableColumn = {
+    key: string
+    dataIndex?: string
+    title: string
+    width?: number
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+}
+const userTableColumns = computed<UserTableColumn[]>(() =>
+    columnSettings.value
+        .filter((column) => column.visible)
+        .map((column) => ({
+            key: column.field,
+            dataIndex: column.field === 'operate' ? undefined : column.field,
+            title: column.title,
+            width:
+                column.field === 'status'
+                    ? 90
+                    : column.field === 'operate'
+                      ? 88
+                      : undefined,
+            minWidth:
+                column.field === 'username' || column.field === 'nickname'
+                    ? 140
+                    : column.field === 'email'
+                      ? 210
+                      : column.field === 'deptId'
+                        ? 140
+                        : undefined,
+            align: column.align,
+        })),
+)
+function userRecord(record: unknown) {
+    return record as User
 }
 
 async function loadOptions() {
@@ -289,102 +337,110 @@ onMounted(async () => {
                         class="toolbar-search"
                     />
                 </div>
-                <a-table
-                    row-key="id"
-                    :data-source="filteredRows"
-                    :loading="loading"
-                    :pagination="{
-                        current: page,
-                        pageSize: size,
-                        total,
-                        showSizeChanger: true,
-                    }"
-                    :scroll="{ x: 940 }"
-                    @change="changePage"
-                >
-                    <a-table-column
-                        title="账号"
-                        data-index="username"
-                        width="140"
-                    />
-                    <a-table-column
-                        title="昵称"
-                        data-index="nickname"
-                        width="140"
-                    />
-                    <a-table-column title="邮箱" data-index="email" width="210"
-                        ><template #default="{ text }">{{
-                            text || '-'
-                        }}</template></a-table-column
+                <AlphaTableCard :loading="loading">
+                    <template #toolbar>
+                        <TableColumnSetting
+                            v-model="columnSettings"
+                            control="align"
+                            :storage-key="tableSettingsKey"
+                        />
+                    </template>
+                    <a-table
+                        row-key="id"
+                        :data-source="filteredRows"
+                        :columns="userTableColumns"
+                        :pagination="false"
+                        :scroll="{ x: 'max-content' }"
                     >
-                    <a-table-column title="部门" data-index="deptId" width="140"
-                        ><template #default="{ text }">{{
-                            depts.find((item) => item.id === text)?.name || '-'
-                        }}</template></a-table-column
-                    >
-                    <a-table-column
-                        title="状态"
-                        data-index="status"
-                        width="90"
-                        align="center"
-                        ><template #default="{ text }"
-                            ><a-badge
-                                :status="text === 1 ? 'success' : 'default'"
-                                :text="
-                                    text === 1 ? '启用' : '停用'
-                                " /></template
-                    ></a-table-column>
-                    <a-table-column
-                        title="操作"
-                        fixed="right"
-                        :width="88"
-                        align="center"
-                        ><template #default="{ record }"
-                            ><a-tag
-                                v-if="record.username === 'admin'"
-                                color="blue"
-                                >内置管理员</a-tag
-                            >
-                            <TableActionMenu v-else aria-label="用户操作">
-                                <a-menu-item
-                                    key="edit"
-                                    v-permission="'system:user:update'"
-                                    @click="openEdit(record)"
-                                    ><EditOutlined />编辑</a-menu-item
-                                >
-                                <a-menu-item
-                                    v-if="
-                                        record.id !==
-                                        authStore.state.profile?.id
+                        <template #bodyCell="{ column, record }">
+                            <template v-if="column.key === 'email'">
+                                {{ record.email || '-' }}
+                            </template>
+                            <template v-else-if="column.key === 'deptId'">
+                                {{
+                                    depts.find(
+                                        (item) => item.id === record.deptId,
+                                    )?.name || '-'
+                                }}
+                            </template>
+                            <template v-else-if="column.key === 'status'">
+                                <a-badge
+                                    :status="
+                                        record.status === 1
+                                            ? 'success'
+                                            : 'default'
                                     "
-                                    key="reset-password"
-                                    v-permission="'system:user:reset-password'"
-                                    @click="openResetPassword(record)"
-                                    ><KeyOutlined />重置密码</a-menu-item
+                                    :text="
+                                        record.status === 1 ? '启用' : '停用'
+                                    "
+                                />
+                            </template>
+                            <template v-else-if="column.key === 'operate'">
+                                <a-tag
+                                    v-if="record.username === 'admin'"
+                                    color="blue"
+                                    >内置管理员</a-tag
                                 >
-                                <a-menu-item
-                                    key="roles"
-                                    v-permission="'system:role:assign'"
-                                    @click="openRoles(record)"
-                                    ><SafetyOutlined />角色</a-menu-item
-                                >
-                                <a-menu-item
-                                    key="kickout"
-                                    v-permission="'system:user:update'"
-                                    @click="kickout(record)"
-                                    ><DisconnectOutlined />下线</a-menu-item
-                                >
-                                <a-menu-item
-                                    key="delete"
-                                    v-permission="'system:user:delete'"
-                                    danger
-                                    @click="remove(record)"
-                                    ><DeleteOutlined />删除</a-menu-item
-                                >
-                            </TableActionMenu></template
-                        ></a-table-column
-                    >
-                </a-table>
+                                <TableActionMenu v-else aria-label="用户操作">
+                                    <a-menu-item
+                                        key="edit"
+                                        v-permission="'system:user:update'"
+                                        @click="openEdit(userRecord(record))"
+                                        ><EditOutlined />编辑</a-menu-item
+                                    >
+                                    <a-menu-item
+                                        v-if="
+                                            record.id !==
+                                            authStore.state.profile?.id
+                                        "
+                                        key="reset-password"
+                                        v-permission="
+                                            'system:user:reset-password'
+                                        "
+                                        @click="
+                                            openResetPassword(
+                                                userRecord(record),
+                                            )
+                                        "
+                                        ><KeyOutlined />重置密码</a-menu-item
+                                    >
+                                    <a-menu-item
+                                        key="roles"
+                                        v-permission="'system:role:assign'"
+                                        @click="openRoles(userRecord(record))"
+                                        ><SafetyOutlined />角色</a-menu-item
+                                    >
+                                    <a-menu-item
+                                        key="kickout"
+                                        v-permission="'system:user:update'"
+                                        @click="kickout(userRecord(record))"
+                                        ><DisconnectOutlined />下线</a-menu-item
+                                    >
+                                    <a-menu-item
+                                        key="delete"
+                                        v-permission="'system:user:delete'"
+                                        danger
+                                        @click="remove(userRecord(record))"
+                                        ><DeleteOutlined />删除</a-menu-item
+                                    >
+                                </TableActionMenu>
+                            </template>
+                        </template>
+                    </a-table>
+                    <template #footer>
+                        <a-pagination
+                            :current="page"
+                            :page-size="size"
+                            :total="total"
+                            show-size-changer
+                            :show-total="(count) => `共 ${count} 条`"
+                            @change="
+                                (current, pageSize) =>
+                                    changePage({ current, pageSize })
+                            "
+                        />
+                    </template>
+                </AlphaTableCard>
             </div>
         </div>
 
