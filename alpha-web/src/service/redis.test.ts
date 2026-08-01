@@ -9,6 +9,12 @@ vi.mock('./http', () => ({
 import { redisApi } from './redis'
 
 describe('redisApi', () => {
+    it('requests Redis metrics without query parameters', () => {
+        redisApi.metrics()
+
+        expect(get).toHaveBeenCalledWith('/monitor/redis/metrics')
+    })
+
     it('uses the bounded cursor endpoint for a managed prefix', () => {
         redisApi.keys({
             prefix: 'auth:',

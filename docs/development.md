@@ -44,6 +44,10 @@
 | `REDIS_RETRY_INTERVAL`                   | `1s`                           | Redisson 命令重试间隔                      |
 | `REDIS_RETRY_ATTEMPTS`                   | `2`                            | Redisson 命令重试次数                      |
 | `REDIS_CACHE_TTL`                        | `10m`                          | P1-03 验证缓存默认 TTL                     |
+| `REDIS_METRICS_ENABLED`                  | `true`                         | 是否启用 Redis INFO 指标采样               |
+| `REDIS_METRICS_SAMPLE_INTERVAL_MS`       | `60000`                        | 指标采样间隔（毫秒）                       |
+| `REDIS_METRICS_RETENTION_MS`             | `86400000`                     | 成功样本进程内最长保留时间（毫秒）         |
+| `REDIS_METRICS_MAX_SAMPLES`              | `1440`                         | 成功样本进程内最大保留数量                 |
 
 项目使用直接 Redisson 4.6.1 Client 和 Spring Cache 集成，不使用
 `redisson-spring-boot-starter`。默认 Codec 是 `StringCodec`；缓存和 Sa-Token 对象边界使用代码登记的 Kryo5 白名单 Codec。验证码、登录失败、系统配置、系统字典、Sa-Token 会话和 Redis 监控均使用 Redisson，生产键统一为 `alpha:*`，不读取或清理旧前缀。
@@ -85,6 +89,8 @@ scripts/stop-dependencies.sh
 Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后端启动时自动迁移数据库，并使用独立连接执行迁移，不复用业务连接池；不手工修改已发布迁移。开发 profile 启用 SpringDoc 和 Swagger UI，可访问 `/swagger-ui/index.html` 及 `/v3/api-docs/{group}`；生产 profile 关闭文档相关路径。生产静态服务器需要为 Vue Router 配置 `index.html` 回退，但不得把 `/api` 或 `/uploads` 回退为前端页面。
 
 管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。Hikari 指标通过受控的 `/actuator/prometheus` 观测。SQL 日志的保留边界和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
+
+Redis 管理页的增强指标默认每分钟执行一次只读 `INFO ALL` 采样，最多在当前应用进程保留 24 小时或 1,440 个成功样本。设置 `REDIS_METRICS_ENABLED=false` 可关闭采样和增强面板，不影响原有 Redis 概览、受限 `SCAN` 和单键删除能力。
 
 ## 存储切换
 

@@ -6,9 +6,11 @@ import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery;
 import io.github.onedream921.alphavue.modules.monitor.service.RedisManagementService;
+import io.github.onedream921.alphavue.modules.monitor.service.RedisMetricsService;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
+import io.github.onedream921.alphavue.modules.monitor.vo.RedisMetricsVo;
 import io.github.onedream921.alphavue.modules.system.service.SystemAccessService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,10 +35,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/monitor/redis")
 public class RedisManagementController extends BaseController {
     private final RedisManagementService redisManagementService;
+    private final RedisMetricsService redisMetricsService;
     private final SystemAccessService access;
 
-    public RedisManagementController(RedisManagementService redisManagementService, SystemAccessService access) {
+    public RedisManagementController(RedisManagementService redisManagementService,
+                                     RedisMetricsService redisMetricsService, SystemAccessService access) {
         this.redisManagementService = redisManagementService;
+        this.redisMetricsService = redisMetricsService;
         this.access = access;
     }
 
@@ -47,6 +52,15 @@ public class RedisManagementController extends BaseController {
     public ApiResponse<RedisOverviewVo> overview(HttpServletRequest request) {
         access.require("monitor:redis:list");
         return success(redisManagementService.overview(), request);
+    }
+
+    /**
+     * 查询当前应用实例的 Redis 指标。
+     */
+    @GetMapping("/metrics")
+    public ApiResponse<RedisMetricsVo> metrics(HttpServletRequest request) {
+        access.require("monitor:redis:list");
+        return success(redisMetricsService.metrics(), request);
     }
 
     /**
