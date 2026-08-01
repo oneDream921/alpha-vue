@@ -120,6 +120,13 @@ public class ConfigService {
     public String value(RuntimeConfigBinding binding) {
         SysConfigDefinition definition = definitionMapper.selectPublishedByBinding(binding.name());
         if (definition == null) throw invalidRequest();
+        return value(definition.getConfigKey());
+    }
+
+    /** 按已发布定义读取受控业务配置。 */
+    public String value(String configKey) {
+        SysConfigDefinition definition = definitionMapper.selectPublishedByKey(configKey);
+        if (definition == null) throw invalidRequest();
         String cached = configCacheStore.get(definition.getConfigKey());
         if (cached != null) { validate(definition, cached); return cached; }
         SysConfig config = configMapper.selectActiveByConfigKey(definition.getConfigKey());

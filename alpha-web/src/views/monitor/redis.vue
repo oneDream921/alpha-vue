@@ -41,6 +41,14 @@ const deleteOpen = ref(false)
 const deleteConfirmation = ref('')
 
 const canDelete = computed(() => deleteConfirmation.value === '删除')
+function displayLevelLabel(level: RedisKeyMetadata['displayLevel']) {
+    return { HIDDEN: '完全隐藏', MASKED: '已脱敏', PLAIN: '明文' }[level]
+}
+
+function displayLevelColor(level: RedisKeyMetadata['displayLevel']) {
+    return { HIDDEN: 'red', MASKED: 'orange', PLAIN: 'green' }[level]
+}
+
 const discoveredKeyCount = computed(
     () => overview.value?.managedKeyCounts?.['全部 Redis 键'] || 0,
 )
@@ -737,16 +745,31 @@ onMounted(refresh)
                                 width="220"
                             >
                                 <template #default="{ record }">
-                                    <span
-                                        class="redis-value-cell"
-                                        :title="record.value || ''"
-                                        >{{ record.value || '-' }}</span
+                                    <a-tooltip
+                                        :title="
+                                            record.displayLevel === 'HIDDEN'
+                                                ? undefined
+                                                : record.value || ''
+                                        "
                                     >
+                                        <span class="redis-value-cell">{{
+                                            record.value || '-'
+                                        }}</span>
+                                    </a-tooltip>
                                     <a-tag
-                                        v-if="record.valueTruncated"
                                         class="ml-2"
-                                        >已截断</a-tag
+                                        :color="
+                                            displayLevelColor(
+                                                record.displayLevel,
+                                            )
+                                        "
                                     >
+                                        {{
+                                            displayLevelLabel(
+                                                record.displayLevel,
+                                            )
+                                        }}
+                                    </a-tag>
                                 </template>
                             </a-table-column>
                             <a-table-column
@@ -809,10 +832,20 @@ onMounted(refresh)
                     selected.ttlSeconds
                 }}</a-descriptions-item>
                 <a-descriptions-item label="值">
-                    <pre class="redis-value-preview">{{
-                        selected.value || '-'
-                    }}</pre>
-                    <a-tag v-if="selected.valueTruncated">已截断</a-tag>
+                    <a-tooltip
+                        :title="
+                            selected.displayLevel === 'HIDDEN'
+                                ? undefined
+                                : selected.value || ''
+                        "
+                    >
+                        <pre class="redis-value-preview">{{
+                            selected.value || '-'
+                        }}</pre>
+                    </a-tooltip>
+                    <a-tag :color="displayLevelColor(selected.displayLevel)">
+                        {{ displayLevelLabel(selected.displayLevel) }}
+                    </a-tag>
                 </a-descriptions-item>
             </a-descriptions>
         </a-drawer>

@@ -4,11 +4,15 @@ import io.github.onedream921.alphavue.common.exception.BusinessException;
 import io.github.onedream921.alphavue.common.exception.PublicErrorMessage;
 import io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery;
 import io.github.onedream921.alphavue.modules.monitor.config.RedisManagementProperties;
+import io.github.onedream921.alphavue.modules.monitor.config.RedisDisplayLevel;
+import io.github.onedream921.alphavue.modules.monitor.config.RedisDisplayPolicyRegistry;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,10 +27,20 @@ public class RedisManagementService {
 
     private final RedisKeyspace keyspace;
     private final RedisManagementProperties properties;
+    private final RedisDisplayPolicyRegistry policyRegistry;
+    private final ConfigService configService;
 
-    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
+    @Autowired
+    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties,
+                                  RedisDisplayPolicyRegistry policyRegistry, ConfigService configService) {
         this.keyspace = keyspace;
         this.properties = properties;
+        this.policyRegistry = policyRegistry;
+        this.configService = configService;
+    }
+
+    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
+        this(keyspace, properties, new RedisDisplayPolicyRegistry(), null);
     }
 
     /**
@@ -80,36 +94,33 @@ public class RedisManagementService {
 
     private RedisKeyMetadataVo toMetadata(RedisKeyMetadata metadata) {
         requireReadableKey(metadata.key());
-        boolean masked = properties.isMaskValues() || isSensitiveKey(metadata.key());
-        return new RedisKeyMetadataVo(metadata.key(), category(metadata.key()), metadata.type(), metadata.ttlSeconds(),
-                metadata.sizeBytes(), masked ? "[masked]" : metadata.value(), masked || metadata.valueTruncated());
+        RedisDisplayPolicyRegistry.Definition definition = policyRegistry.resolve(metadata.key());
+        RedisDisplayLevel level = effectiveLevel(definition, metadata.key());
+        boolean hidden = level == RedisDisplayLevel.HIDDEN;
+        boolean masked = hidden || level == RedisDisplayLevel.MASKED;
+        return new RedisKeyMetadataVo(metadata.key(), definition.category(), metadata.type(), metadata.ttlSeconds(),
+                metadata.sizeBytes(), masked ? "[masked]" : metadata.value(),
+                metadata.valueTruncated(), level.name());
+    }
+
+    private RedisDisplayLevel effectiveLevel(RedisDisplayPolicyRegistry.Definition definition, String key) {
+        if (isSensitiveKey(key) && !definition.sensitive()) return RedisDisplayLevel.HIDDEN;
+        RedisDisplayLevel configured = definition.defaultLevel();
+        try {
+            if (configService != null) {
+                configured = RedisDisplayLevel.valueOf(configService.value(policyRegistry.configKey(definition)));
+            }
+        } catch (RuntimeException exception) {
+            configured = definition.defaultLevel();
+        }
+        if (properties.isMaskValues() && configured != RedisDisplayLevel.HIDDEN) return RedisDisplayLevel.MASKED;
+        return configured;
     }
 
     private void requireReadableKey(String key) {
         if (key == null || key.isBlank()) {
             throw invalidRequest();
         }
-    }
-
-    private static String category(String key) {
-        if (key.startsWith("alpha:auth:captcha:") || key.startsWith("auth:captcha:")) {
-            return "验证码";
-        }
-        if (key.startsWith("alpha:auth:login-failure:") || key.startsWith("auth:login:failure:")) {
-            return "登录失败窗口";
-        }
-        if (key.startsWith("alpha:system:cache:dictionary") || key.startsWith("system:dict:")) {
-            return "数据字典缓存";
-        }
-        if (key.startsWith("alpha:sa-token:") || key.startsWith("satoken:")
-                || key.contains(":login:session:") || key.contains(":login:token:")
-                || key.contains(":login:last-active:")) {
-            return "Sa-Token 会话";
-        }
-        if (key.startsWith("spring:")) {
-            return "Spring 数据";
-        }
-        return "业务/缓存数据";
     }
 
     private static boolean isSensitiveKey(String key) {
@@ -120,6 +131,9 @@ public class RedisManagementService {
                 || normalized.startsWith("auth:captcha:")
                 || normalized.startsWith("auth:login:failure:")
                 || normalized.startsWith("satoken:")
+                || normalized.startsWith("authorization:")
+                || normalized.contains(":login:session:")
+                || normalized.contains(":login:token:")
                 || normalized.contains(":login:session:")
                 || normalized.contains(":login:token:")
                 || normalized.matches(".*(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key).*" );

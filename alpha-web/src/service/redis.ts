@@ -16,6 +16,7 @@ export interface RedisKeyMetadata {
     sizeBytes?: number
     value?: string
     valueTruncated: boolean
+    displayLevel: 'HIDDEN' | 'MASKED' | 'PLAIN'
 }
 
 export interface RedisKeyPage {

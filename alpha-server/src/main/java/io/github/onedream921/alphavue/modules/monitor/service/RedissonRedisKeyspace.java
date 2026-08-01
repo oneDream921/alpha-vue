@@ -62,7 +62,7 @@ class RedissonRedisKeyspace implements RedisKeyspace {
             var object = client.getBucket(key);
             Long size = object.sizeInMemory() >= 0 ? object.sizeInMemory() : null;
             Long ttl = object.remainTimeToLive();
-            String value = isSensitiveKey(key) ? "[masked]" : preview(key, typeName);
+            String value = preview(key, typeName);
             return new RedisKeyMetadata(key, typeName, ttl < 0 ? ttl : ttl / 1000, size, value,
                     value != null && value.length() >= VALUE_CHAR_LIMIT);
         } catch (Exception exception) {
@@ -118,11 +118,4 @@ class RedissonRedisKeyspace implements RedisKeyspace {
         catch (NumberFormatException exception) { return null; }
     }
 
-    private static boolean isSensitiveKey(String key) {
-        String normalized = key.toLowerCase(Locale.ROOT);
-        return normalized.startsWith("alpha:auth:captcha:")
-                || normalized.startsWith("alpha:auth:login-failure:")
-                || normalized.startsWith("alpha:sa-token:")
-                || normalized.matches(".*(?:password|passwd|secret|token|credential|private[-_]?key|api[-_]?key).*");
-    }
 }

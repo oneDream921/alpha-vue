@@ -18,7 +18,7 @@
 - API 响应设置 `nosniff`、拒绝 iframe、Referrer-Policy、Permissions-Policy 与 `Cache-Control: no-store`；CSP、TLS、HSTS 和限流由边缘反向代理统一配置。
 - 数据库连接池使用 Spring Boot BOM 默认 HikariCP，并通过受 Bearer 鉴权与网络边界保护的 Actuator/Micrometer 暴露 Hikari 指标；泄漏检测默认关闭，仅在受控诊断场景通过 `DB_POOL_LEAK_DETECTION_THRESHOLD_MS` 临时开启。Redis 连接池采用有限等待，Sa-Token 键检索使用带上限的 `SCAN`，禁止在生产路径使用 `KEYS`。
 - Redisson Client 默认使用 `StringCodec`；对象 Codec 按缓存和 Sa-Token 场景分别使用显式类白名单，不兼容读取旧 JDK 序列化数据。生产 Sa-Token DAO 使用 SHA-256 物理键映射和受控索引，完整实现对象、字符串、会话、TTL 与有界搜索。所有新业务键必须使用 `alpha:*`，不得与旧业务键双读或双写。
-- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，默认由 `REDIS_MASK_VALUES=true` 脱敏所有值；关闭后只显示非敏感值。会话、验证码和疑似密钥始终脱敏，且不反序列化 Redis 中的对象。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
+- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按代码注册的 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；`REDIS_MASK_VALUES=true` 时所有值至少按 `MASKED` 返回。验证码、失败计数和 Sa-Token 会话也可通过已注册配置切换展示级别，默认仍为 `HIDDEN`；未注册且命中密钥特征的键始终为 `HIDDEN`，且不反序列化 Redis 中的对象。展示级别配置只允许使用已发布的缓存定义，变更沿用参数配置权限、审计和恢复默认值能力。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
 - 在线用户页只读取 Sa-Token 的受控会话索引并限制单页数量，不执行无边界 Redis 扫描；token 只展示 SHA-256 摘要。定向下线按用户和终端索引执行，需 `monitor:online:kickout` 权限并记录审计，不影响其他 client 会话。
 - SQL 日志页只展示进程内最近 SQL 摘要，SQL 文本保留 `?` 占位符，禁止渲染或记录真实参数值、请求体、密码、Token、验证码和 secret/key 字段。采集开关和 Mapper 过滤是当前进程全局运行时设置，修改需要 `monitor:sql:control` 权限。SQL 日志页不得提供任意 SQL 执行能力；如需数据库诊断，只能生成供人工审核的脚本或通过受控运维流程执行。
 - SpringDoc OpenAPI 与 Swagger UI 仅在 `dev` profile 开启，认证登录和验证码在 OpenAPI 中显式标记为 `security: []`，其他业务接口继承 Bearer 鉴权。生产默认关闭文档端点；`/actuator/health/**` 可供存活/就绪探针访问，其他 Actuator 端点必须由网关或内部网络和应用鉴权共同保护。

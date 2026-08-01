@@ -70,7 +70,8 @@ class RedisManagementControllerTests {
                 .andExpect(jsonPath("$.data.records[0].type").value("string"))
                 .andExpect(jsonPath("$.data.records[0].ttlSeconds").value(120))
                 .andExpect(jsonPath("$.data.records[0].value").value("[masked]"))
-                .andExpect(jsonPath("$.data.records[0].valueTruncated").value(true))
+                .andExpect(jsonPath("$.data.records[0].displayLevel").value("HIDDEN"))
+                .andExpect(jsonPath("$.data.records[0].valueTruncated").value(false))
                 .andExpect(jsonPath("$.data.nextCursor").value("1"))
                 .andExpect(jsonPath("$.data.hasMore").value(true));
     }
