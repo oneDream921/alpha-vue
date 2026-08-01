@@ -162,6 +162,24 @@ class RedisManagementControllerTests {
                 .andExpect(jsonPath("$.data.info").doesNotExist());
     }
 
+    @Test
+    void metricsUsesExistingPermissionAndReturnsSafeDisabledState() throws Exception {
+        mockMvc.perform(get("/api/monitor/redis/metrics"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+
+        mockMvc.perform(get("/api/monitor/redis/metrics")
+                        .header("Authorization", bearer(login("admin"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.enabled").value(false))
+                .andExpect(jsonPath("$.data.status").value("DISABLED"))
+                .andExpect(jsonPath("$.data.current").doesNotExist())
+                .andExpect(jsonPath("$.data.commands").isArray())
+                .andExpect(jsonPath("$.data.trend").isArray())
+                .andExpect(jsonPath("$.data.info").doesNotExist())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("redis_version"))));
+    }
+
     private long insertUser() {
         jdbcTemplate.update("INSERT INTO sys_user (username, password, nickname, must_change_password) VALUES (?, ?, ?, 0)",
                 "redis-list-only", BCrypt.hashpw("password-123", BCrypt.gensalt()), "redis-list-only");

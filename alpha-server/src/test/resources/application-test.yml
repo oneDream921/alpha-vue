@@ -32,6 +32,8 @@ sa-token:
 
 alpha:
   monitor:
+    redis:
+      metrics-enabled: false
     sql:
       max-entries: 20
       slow-threshold-ms: 500

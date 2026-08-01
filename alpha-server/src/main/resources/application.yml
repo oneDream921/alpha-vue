@@ -71,5 +71,9 @@ alpha:
   monitor:
     redis:
       mask-values: ${REDIS_MASK_VALUES:true}
+      metrics-enabled: ${REDIS_METRICS_ENABLED:true}
+      metrics-sample-interval-ms: ${REDIS_METRICS_SAMPLE_INTERVAL_MS:60000}
+      metrics-retention-ms: ${REDIS_METRICS_RETENTION_MS:86400000}
+      metrics-max-samples: ${REDIS_METRICS_MAX_SAMPLES:1440}
   log:
     capture-business-exception-stack: ${AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK:false}
