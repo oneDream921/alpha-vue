@@ -23,4 +23,12 @@ export const fileApi = {
         return http.post<ApiResponse<StoredFile>>('/files/upload', data)
     },
     delete: (id: number) => http.delete<ApiResponse<null>>(`/files/${id}`),
+    content: (
+        url: string,
+        responseType: 'arraybuffer' | 'text' = 'arraybuffer',
+    ) =>
+        http.get<ArrayBuffer | string>(url, {
+            baseURL: '',
+            responseType,
+        }),
 }

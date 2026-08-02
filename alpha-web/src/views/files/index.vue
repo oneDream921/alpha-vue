@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
+import * as XLSX from 'xlsx'
 
 import TableActionMenu from '@/components/TableActionMenu.vue'
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
@@ -44,6 +45,143 @@ const filteredRows = computed(() => {
           )
         : rows.value
 })
+type PreviewKind = 'image' | 'pdf' | 'text' | 'spreadsheet' | 'unsupported'
+type PreviewColumn = {
+    title: string
+    dataIndex: string
+    key: string
+}
+const previewOpen = ref(false)
+const previewLoading = ref(false)
+const previewFile = ref<StoredFile | null>(null)
+const previewKind = ref<PreviewKind>('unsupported')
+const previewText = ref('')
+const previewUrl = ref('')
+const previewError = ref('')
+const previewColumns = ref<PreviewColumn[]>([])
+const previewRows = ref<Record<string, string>[]>([])
+
+function isContentType(file: StoredFile, type: string) {
+    return file.contentType.toLowerCase() === type
+}
+
+function isSpreadsheet(file: StoredFile) {
+    return (
+        isContentType(file, 'application/vnd.ms-excel') ||
+        isContentType(
+            file,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+    )
+}
+
+function isText(file: StoredFile) {
+    return isContentType(file, 'text/plain')
+}
+
+function clearPreviewUrl() {
+    if (previewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl.value)
+    }
+    previewUrl.value = ''
+}
+
+function closePreview() {
+    previewOpen.value = false
+    clearPreviewUrl()
+    previewFile.value = null
+    previewText.value = ''
+    previewError.value = ''
+    previewColumns.value = []
+    previewRows.value = []
+}
+
+function spreadsheetRows(data: unknown[][]) {
+    const source = data.slice(0, 200)
+    const width = Math.min(
+        50,
+        source.reduce((maximum, row) => Math.max(maximum, row.length), 0),
+    )
+    const columns = Array.from({ length: width }, (_, index) => ({
+        title: String(source[0]?.[index] || `列 ${index + 1}`),
+        dataIndex: `column_${index}`,
+        key: `column_${index}`,
+    }))
+    const rows = source
+        .slice(1)
+        .map((row) =>
+            Object.fromEntries(
+                columns.map((column, columnIndex) => [
+                    column.dataIndex,
+                    String(row[columnIndex] ?? ''),
+                ]),
+            ),
+        )
+    return {
+        columns,
+        rows: rows.map((row, index) => ({ ...row, key: `${index}` })),
+    }
+}
+
+async function preview(row: StoredFile) {
+    closePreview()
+    previewFile.value = row
+    previewOpen.value = true
+    previewLoading.value = true
+    previewKind.value = row.contentType.startsWith('image/')
+        ? 'image'
+        : isContentType(row, 'application/pdf')
+          ? 'pdf'
+          : isText(row)
+            ? 'text'
+            : isSpreadsheet(row)
+              ? 'spreadsheet'
+              : 'unsupported'
+    if (previewKind.value === 'image') {
+        previewUrl.value = row.publicUrl
+        previewLoading.value = false
+        return
+    }
+    if (previewKind.value === 'unsupported') {
+        previewLoading.value = false
+        return
+    }
+    try {
+        const response = await fileApi.content(
+            row.publicUrl,
+            previewKind.value === 'text' ? 'text' : 'arraybuffer',
+        )
+        if (previewKind.value === 'pdf') {
+            const blob = new Blob([response.data as ArrayBuffer], {
+                type: row.contentType,
+            })
+            previewUrl.value = URL.createObjectURL(blob)
+        } else if (previewKind.value === 'text') {
+            previewText.value = response.data as string
+        } else {
+            const workbook = XLSX.read(response.data as ArrayBuffer, {
+                type: 'array',
+                cellDates: true,
+            })
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0] ?? '']
+            if (!firstSheet) {
+                throw new Error('工作簿没有可预览的工作表')
+            }
+            const data = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, {
+                header: 1,
+                raw: false,
+                defval: '',
+            })
+            const parsed = spreadsheetRows(data)
+            previewColumns.value = parsed.columns
+            previewRows.value = parsed.rows
+        }
+    } catch {
+        previewError.value = '文件内容读取失败，请下载文件后查看。'
+    } finally {
+        previewLoading.value = false
+    }
+}
 async function load() {
     loading.value = true
     try {
@@ -231,10 +369,16 @@ onMounted(load)
                             <a-menu-item
                                 v-if="record.publicUrl"
                                 key="preview"
+                                @click="preview(record as StoredFile)"
+                                ><EyeOutlined />预览</a-menu-item
+                            ><a-menu-item
+                                v-if="record.publicUrl"
+                                key="download"
                                 :href="record.publicUrl"
                                 target="_blank"
                                 rel="noopener"
-                                ><EyeOutlined />预览</a-menu-item
+                                download
+                                ><FileTextOutlined />下载</a-menu-item
                             ><a-menu-item
                                 key="delete"
                                 v-permission="'file:delete'"
@@ -259,5 +403,78 @@ onMounted(load)
                 />
             </template>
         </AlphaTableCard>
+        <a-modal
+            :open="previewOpen"
+            :title="
+                previewFile ? `预览：${previewFile.originalName}` : '文件预览'
+            "
+            :width="previewKind === 'spreadsheet' ? 1000 : 860"
+            :footer="null"
+            destroy-on-close
+            @cancel="closePreview"
+        >
+            <a-spin :spinning="previewLoading">
+                <div v-if="previewError" class="preview-empty">
+                    {{ previewError }}
+                </div>
+                <img
+                    v-else-if="previewKind === 'image'"
+                    class="file-preview-image"
+                    :src="previewUrl"
+                    :alt="previewFile?.originalName"
+                />
+                <iframe
+                    v-else-if="previewKind === 'pdf'"
+                    class="file-preview-pdf"
+                    :src="previewUrl"
+                    title="PDF 文件预览"
+                />
+                <pre
+                    v-else-if="previewKind === 'text'"
+                    class="file-preview-text"
+                    >{{ previewText }}</pre>
+                <a-table
+                    v-else-if="previewKind === 'spreadsheet'"
+                    :columns="previewColumns"
+                    :data-source="previewRows"
+                    :pagination="{ pageSize: 20 }"
+                    :scroll="{ x: 'max-content', y: 520 }"
+                    size="small"
+                />
+                <div v-else class="preview-empty">
+                    当前文件类型不支持浏览器内预览，请下载后使用本地应用打开。
+                </div>
+            </a-spin>
+        </a-modal>
     </section>
 </template>
+
+<style scoped>
+.file-preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
+.file-preview-pdf {
+    width: 100%;
+    height: 70vh;
+    border: 0;
+}
+
+.file-preview-text {
+    max-height: 70vh;
+    margin: 0;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.preview-empty {
+    padding: 48px 16px;
+    color: var(--alpha-text-secondary);
+    text-align: center;
+}
+</style>
