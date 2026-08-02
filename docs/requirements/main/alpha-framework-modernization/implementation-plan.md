@@ -626,9 +626,9 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 ### P2-04 缓存展示分级
 
-状态：`READY_FOR_ACCEPTANCE`
+状态：`COMPLETED`（用户已完成缓存展示分级验收）
 
-执行记录：[p2-04-cache-display.md](./execution-plans/p2-04-cache-display.md) 已完成代码、自动化检查和本地真实页面验证，待用户完成人工验收。
+执行记录：[p2-04-cache-display.md](./execution-plans/p2-04-cache-display.md) 已完成代码、自动化检查、本地真实页面验证和用户人工验收。
 
 已实现可配置的 `HIDDEN`、`MASKED`、`PLAIN` 展示策略。默认 `MASKED`，敏感命名空间必须 `HIDDEN`，配置只能引用代码注册项。
 

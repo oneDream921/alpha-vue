@@ -25,14 +25,14 @@
 
 ## 当前状态
 
-状态：`READY_FOR_ACCEPTANCE`
+状态：`COMPLETED`
 
 敏感缓存说明：验证码、登录失败窗口和 Sa-Token 会话分别由 `cache.display.captcha`、
 `cache.display.login-failure`、`cache.display.session` 控制，默认仍为 `HIDDEN`，可按需改为
 `MASKED` 或 `PLAIN`。当 `REDIS_MASK_VALUES=true` 时，非隐藏级别会被上限保护为 `MASKED`；
 未注册但命中 token、secret、password 等敏感特征的键仍强制 `HIDDEN`。
 
-自动化检查和本地真实页面检查已完成；G3-M04 仍需用户确认后填写人工验收结果。`PLAIN` 的服务端行为由自动化测试覆盖，当前本地实例保留全局脱敏开关，因此页面中不展示明文样例。`HIDDEN` 只显示“完全隐藏”，不会误显示“已截断”。
+自动化检查、本地真实页面检查和用户人工验收已完成；G3-M04 已记录为通过。`PLAIN` 的服务端行为由自动化测试覆盖，当前本地实例保留全局脱敏开关，因此页面中不展示明文样例。`HIDDEN` 只显示“完全隐藏”，不会误显示“已截断”。
 
 ## 回退与风险
 
