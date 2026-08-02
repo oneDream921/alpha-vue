@@ -696,7 +696,7 @@ P2-03、P2-04、P2-06 已触发能力的验证证据，P2-05、P2-07 未触发�
 
 ### P3-02 SnailJob 重评
 
-状态：`READY_FOR_ACCEPTANCE`，阶段决策已转为 `GO`（2026-08-02，用户确认正式接入）
+状态：`COMPLETED`（2026-08-02，阶段决策已转为 `GO`，专项验收通过）
 
 第一版使用 SnailJob 2.0.2 独立 Server、独立 Schema 和 Alpha Client/Executor。
 Alpha 不复制任务中心 UI；维护任务失败通过 `ExecuteResult.failure` 返回给 SnailJob，
@@ -704,7 +704,11 @@ Alpha 不复制任务中心 UI；维护任务失败通过 `ExecuteResult.failure
 避免重复执行。
 
 执行记录：[p3-02-snailjob.md](./execution-plans/p3-02-snailjob.md)。
-当前已完成独立 Server、Schema、Client/Executor 注册和一次真实任务触发；失败重试、超时、停机恢复仍待人工演练。
+执行记录已补齐独立 Server、Schema、Client/Executor 注册、成功任务、失败重试、超时、Alpha
+停机恢复和 SnailJob 不可用降级证据：`taskBatchId=48` 失败后重试成功，`taskBatchId=51`
+产生超时中断，Alpha 停止期间退出日志正常，SnailJob Server 停止期间 Alpha 健康检查仍为
+HTTP 200/`UP`，Server 恢复后 `taskBatchId=54` 再次成功。删除型维护任务继续默认 `dryRun=true`，
+真实删除另行受 P3-01 人工授权约束。
 
 ### P3-03 Lock4j 重评
 

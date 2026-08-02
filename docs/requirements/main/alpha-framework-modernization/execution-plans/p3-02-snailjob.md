@@ -34,12 +34,23 @@
 - SnailJob Server HTTP 管理端返回 200，独立数据库初始化完成（23 张表）。
 - Alpha Client 已注册在线实例 `192.168.0.125:17889`，管理端成功触发 `alphaMaintenanceJob`。
 - 真实任务批次 `taskBatchId=1` 执行成功，5 个维护子任务均为 `status=OK`，且删除型任务保持 `dryRun=true`。
+- 失败重试演练：停止 Alpha 本地 MySQL 后触发 `taskBatchId=48`，日志清理子任务返回
+  `status=FAILED`，SnailJob 记录 `Retry count:[1]`；恢复 MySQL 后同一批次重试成功。
+- 超时演练：将验收任务执行超时临时设置为 1 秒并停止 Alpha 本地 MySQL，触发
+  `taskBatchId=51`；Server 日志记录 `Timeout interruption`，批次列表状态为超时状态。
+- Alpha 停机恢复：停止并重新启动 Alpha，退出日志记录 `snail-job client closed successfully`，
+  重启日志记录 `snail-job client started successfully v2.0.2`，随后任务仍可执行。
+- SnailJob 不可用降级：停止 SnailJob Server 期间，Alpha `/actuator/health` 返回 HTTP 200、
+  `status=UP`；客户端仅记录 gRPC 心跳不可用和重连日志。恢复 Server 后，Alpha 重新建立任务通道并
+  成功执行 `taskBatchId=54`。
 
-## 待完成验收
+## 人工验收结果
 
-- 验证 SnailJob 失败重试、超时、停机恢复和任务日志清理。
-- 由用户确认管理端普通任务验收结果，并补充失败链路演练结果。
+- SnailJob 管理端可访问，用户已完成登录并进入任务页面。
+- 普通任务、失败重试、超时、Alpha 停机恢复和 SnailJob Server 不可用降级均已完成真实本地演练。
+- 验收任务结束后保持删除型维护任务 `dryRun=true`；未执行真实业务数据删除。
 
 ## 当前状态
 
-`READY_FOR_ACCEPTANCE`。Client/Executor 注册和一次真实任务触发已完成；失败重试、超时、停机恢复和日志清理仍是后续人工验收项。
+`COMPLETED`（2026-08-02）。Client/Executor 注册、成功执行、失败重试、超时、停机恢复和
+SnailJob 不可用降级均已通过；P3-01 清理任务的真实删除仍需独立人工授权，不属于本专项默认验收。
