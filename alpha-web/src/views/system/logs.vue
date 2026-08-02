@@ -6,11 +6,16 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import TableActionMenu from '@/components/TableActionMenu.vue'
-import { logApi, type LoginLog, type OperationLog } from '@/service/logs'
+import {
+    logApi,
+    type LoginLog,
+    type OperationLog,
+    type OperationLogDetail,
+} from '@/service/logs'
 import { authStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/dateTime'
 
@@ -27,6 +32,51 @@ const size = 10
 const loading = ref(false)
 const detailOpen = ref(false)
 const selectedOperation = ref<OperationLog>()
+const selectedDetail = ref<OperationLogDetail>()
+function formatAuditSummary(summary?: string) {
+    if (!summary) return '未采集'
+    try {
+        return JSON.stringify(JSON.parse(summary), null, 2)
+    } catch {
+        return summary
+    }
+}
+type AuditSummaryToken = {
+    text: string
+    kind: 'key' | 'string' | 'number' | 'literal' | 'punctuation' | 'plain'
+}
+function tokenizeAuditSummary(summary?: string): AuditSummaryToken[] {
+    const formatted = formatAuditSummary(summary)
+    if (formatted === '未采集') return [{ text: formatted, kind: 'plain' }]
+    const tokens: AuditSummaryToken[] = []
+    const pattern =
+        /("(?:\\.|[^"\\])*")(?=\s*:)|("(?:\\.|[^"\\])*")|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(true|false|null)|([{}[\],:])|(\s+)|(.+)/g
+    let match: RegExpExecArray | null
+    while ((match = pattern.exec(formatted)) !== null) {
+        const [text, key, string, number, literal, punctuation] = match
+        tokens.push({
+            text,
+            kind: key
+                ? 'key'
+                : string
+                  ? 'string'
+                  : number
+                    ? 'number'
+                    : literal
+                      ? 'literal'
+                      : punctuation
+                        ? 'punctuation'
+                        : 'plain',
+        })
+    }
+    return tokens
+}
+const requestSummaryTokens = computed(() =>
+    tokenizeAuditSummary(selectedDetail.value?.requestSummary),
+)
+const responseSummaryTokens = computed(() =>
+    tokenizeAuditSummary(selectedDetail.value?.responseSummary),
+)
 const query = reactive({
     keyword: '',
     result: undefined as 0 | 1 | undefined,
@@ -99,6 +149,24 @@ const formatTime = formatDateTime
 function handlingStatusLabel(status: 0 | 1 | 2) {
     return ({ 0: '未处理', 1: '已处理', 2: '已忽略' } as const)[status]
 }
+function handlingStatusColor(status: 0 | 1 | 2) {
+    return ({ 0: 'warning', 1: 'success', 2: 'default' } as const)[status]
+}
+function requestMethodColor(method?: string) {
+    return (
+        (
+            {
+                DELETE: 'error',
+                GET: 'success',
+                PATCH: 'purple',
+                POST: 'blue',
+                PUT: 'orange',
+            } as const
+        )[
+            method?.toUpperCase() as 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
+        ] ?? 'blue'
+    )
+}
 function requiresHandling(record: OperationLog) {
     return record.status === 0
 }
@@ -109,14 +177,19 @@ async function refreshLogs() {
     if (authStore.hasPermission('log:login:list')) jobs.push(loadLogins())
     await Promise.all(jobs)
 }
-function openDetail(record: OperationLog) {
-    selectedOperation.value = record
+async function openDetail(record: OperationLog) {
+    if (!authStore.hasPermission('log:operation:detail')) {
+        message.error('没有查看详情权限')
+        return
+    }
+    const response = await logApi.operationDetail(record.id)
+    selectedDetail.value = response.data.data
+    selectedOperation.value = response.data.data.summary
     detailOpen.value = true
 }
 async function copyExceptionStack() {
-    const exceptionStack = selectedOperation.value?.exceptionStack
+    const exceptionStack = selectedDetail.value?.exceptionStack
     if (!exceptionStack) return
-
     try {
         await window.navigator.clipboard.writeText(exceptionStack)
         message.success('异常堆栈已复制')
@@ -275,32 +348,34 @@ onMounted(refreshLogs)
                             ></a-table-column
                         ><a-table-column title="操作" width="88" align="center"
                             ><template #default="{ record }"
-                                ><TableActionMenu
-                                    v-if="requiresHandling(record)"
-                                    aria-label="操作日志处理"
+                                ><TableActionMenu aria-label="操作日志操作"
                                     ><a-menu-item
                                         key="detail"
+                                        v-permission="'log:operation:detail'"
                                         @click="openDetail(record)"
                                         ><FileSearchOutlined />详情</a-menu-item
                                     ><a-menu-item
+                                        v-if="requiresHandling(record)"
                                         key="handled"
                                         v-permission="'log:operation:handle'"
                                         @click="updateHandlingStatus(record, 1)"
                                         ><CheckOutlined />已处理</a-menu-item
                                     ><a-menu-item
+                                        v-if="requiresHandling(record)"
                                         key="ignored"
                                         v-permission="'log:operation:handle'"
                                         @click="updateHandlingStatus(record, 2)"
                                         >已忽略</a-menu-item
                                     ><a-menu-item
-                                        v-if="record.handlingStatus !== 0"
+                                        v-if="
+                                            requiresHandling(record) &&
+                                            record.handlingStatus !== 0
+                                        "
                                         key="restore"
                                         v-permission="'log:operation:handle'"
                                         @click="updateHandlingStatus(record, 0)"
                                         >恢复</a-menu-item
                                     ></TableActionMenu
-                                ><span v-else class="log-no-action"
-                                    >无需操作</span
                                 ></template
                             ></a-table-column
                         ><a-table-column
@@ -396,6 +471,7 @@ onMounted(refreshLogs)
                             ><template #default="{ record }"
                                 ><a-space :size="8"
                                     ><a-button
+                                        v-permission="'log:operation:detail'"
                                         type="link"
                                         size="small"
                                         @click="openDetail(record)"
@@ -486,14 +562,14 @@ onMounted(refreshLogs)
         </a-tabs>
         <a-modal
             v-model:open="detailOpen"
-            title="异常详情"
-            :footer="null"
-            width="min(760px, calc(100vw - 32px))"
+            title="操作日志详情"
+            width="min(860px, calc(100vw - 32px))"
         >
             <a-descriptions
                 v-if="selectedOperation"
+                class="log-detail-descriptions"
                 size="small"
-                :column="{ xs: 1, sm: 2 }"
+                :column="1"
                 bordered
             >
                 <a-descriptions-item label="Trace ID">{{
@@ -502,10 +578,18 @@ onMounted(refreshLogs)
                 <a-descriptions-item label="响应码">{{
                     selectedOperation.responseCode || '-'
                 }}</a-descriptions-item>
-                <a-descriptions-item label="请求"
-                    >{{ selectedOperation.method }}
-                    {{ selectedOperation.requestUri }}</a-descriptions-item
-                >
+                <a-descriptions-item label="请求">
+                    <a-space class="log-request-info" size="small">
+                        <a-tag
+                            :color="
+                                requestMethodColor(selectedOperation.method)
+                            "
+                        >
+                            {{ selectedOperation.method || '未知' }} 请求
+                        </a-tag>
+                        <span>{{ selectedOperation.requestUri || '-' }}</span>
+                    </a-space>
+                </a-descriptions-item>
                 <a-descriptions-item label="客户端">{{
                     selectedOperation.clientId || '-'
                 }}</a-descriptions-item>
@@ -524,55 +608,182 @@ onMounted(refreshLogs)
                 <a-descriptions-item label="业务错误码">{{
                     selectedOperation.errorCode ?? '-'
                 }}</a-descriptions-item>
-                <a-descriptions-item label="状态">{{
-                    handlingStatusLabel(selectedOperation.handlingStatus)
-                }}</a-descriptions-item>
-                <a-descriptions-item label="异常堆栈" :span="2">
-                    <div class="exception-stack-content">
-                        <div class="exception-stack-toolbar">
+                <a-descriptions-item label="状态">
+                    <a-tag
+                        :color="
+                            requiresHandling(selectedOperation)
+                                ? handlingStatusColor(
+                                      selectedOperation.handlingStatus,
+                                  )
+                                : 'blue'
+                        "
+                    >
+                        {{
+                            requiresHandling(selectedOperation)
+                                ? handlingStatusLabel(
+                                      selectedOperation.handlingStatus,
+                                  )
+                                : '无需处理'
+                        }}
+                    </a-tag>
+                </a-descriptions-item>
+                <a-descriptions-item :span="2">
+                    <template #label>
+                        <span class="exception-stack-label">
+                            <span>异常堆栈</span>
                             <a-button
+                                type="text"
                                 size="small"
-                                :disabled="!selectedOperation.exceptionStack"
+                                class="exception-copy-button"
+                                aria-label="复制异常堆栈"
+                                title="复制异常堆栈"
+                                :disabled="!selectedDetail?.exceptionStack"
                                 @click="copyExceptionStack"
-                                ><CopyOutlined />复制堆栈</a-button
                             >
-                        </div>
-                        <a-textarea
-                            class="exception-stack"
-                            :value="
-                                selectedOperation.exceptionStack ||
-                                '未记录异常堆栈'
-                            "
-                            :rows="12"
-                            readonly
-                            wrap="off"
-                        />
-                    </div>
+                                <CopyOutlined />
+                            </a-button>
+                        </span>
+                    </template>
+                    <pre class="exception-stack">{{
+                        selectedDetail?.exceptionStack || '未记录异常堆栈'
+                    }}</pre>
+                </a-descriptions-item>
+                <a-descriptions-item label="请求摘要" :span="2">
+                    <pre class="audit-summary"><code><span
+                        v-for="(token, index) in requestSummaryTokens"
+                        :key="index"
+                        class="audit-summary-token"
+                        :class="'audit-summary-token-' + token.kind"
+                    >{{ token.text }}</span></code></pre>
+                </a-descriptions-item>
+                <a-descriptions-item label="响应摘要" :span="2">
+                    <pre class="audit-summary"><code><span
+                        v-for="(token, index) in responseSummaryTokens"
+                        :key="index"
+                        class="audit-summary-token"
+                        :class="'audit-summary-token-' + token.kind"
+                    >{{ token.text }}</span></code></pre>
                 </a-descriptions-item>
             </a-descriptions>
+            <template #footer>
+                <div class="log-detail-footer">
+                    <a-button @click="detailOpen = false">关闭</a-button>
+                </div>
+            </template>
         </a-modal>
     </section>
 </template>
 
 <style scoped>
+.log-detail-descriptions :deep(.ant-descriptions-item-content) {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.log-detail-descriptions :deep(.ant-descriptions-item-label) {
+    width: 150px;
+    min-width: 150px;
+    vertical-align: top;
+}
+
+.log-detail-descriptions.log-detail-descriptions
+    :deep(.ant-descriptions-view > table) {
+    width: 100%;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.log-detail-descriptions :deep(.ant-descriptions-view) {
+    overflow: hidden;
+}
+
+.log-detail-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.log-request-info {
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+.log-request-info > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .exception-stack {
     box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
     min-width: 0;
-    height: 320px;
+    max-height: 320px;
+    margin: 0;
+    padding: 0;
     overflow: auto;
-    resize: none;
+    border: 0;
+    background: transparent;
+    color: var(--alpha-text);
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
     white-space: pre;
 }
 
-.exception-stack-content {
-    width: 100%;
-    min-width: 0;
+.exception-stack-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.exception-stack-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 8px;
+.exception-copy-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+}
+
+.audit-summary {
+    box-sizing: border-box;
+    width: 100%;
+    max-height: 180px;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    border: 0;
+    background: transparent;
+    color: var(--alpha-text);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre;
+}
+
+.audit-summary-token-key {
+    color: #a66a00;
+    font-weight: 500;
+}
+
+.audit-summary-token-string {
+    color: #4f9d50;
+}
+
+.audit-summary-token-number {
+    color: #2563a8;
+}
+
+.audit-summary-token-literal {
+    color: #b42318;
+    font-weight: 600;
+}
+
+.audit-summary-token-punctuation {
+    color: #30343b;
+}
+
+@media (max-width: 767px) {
+    .log-detail-descriptions :deep(.ant-descriptions-item-label) {
+        width: 96px;
+        min-width: 96px;
+    }
 }
 </style>

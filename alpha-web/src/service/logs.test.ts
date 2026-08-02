@@ -16,4 +16,10 @@ describe('logApi', () => {
             params: { page: 2, size: 20, status: 0, handlingStatus: 1 },
         })
     })
+
+    it('loads operation details through the separately protected endpoint', () => {
+        logApi.operationDetail(42)
+
+        expect(get).toHaveBeenCalledWith('/logs/operations/42')
+    })
 })

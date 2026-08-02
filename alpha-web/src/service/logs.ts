@@ -21,11 +21,16 @@ export interface OperationLog {
     errorCode?: number
     durationMs?: number
     traceId?: string
-    exceptionStack?: string
     handlingStatus: 0 | 1 | 2
     handledBy?: number
     handledAt?: string
     createdAt: string
+}
+export interface OperationLogDetail {
+    summary: OperationLog
+    exceptionStack?: string
+    requestSummary?: string
+    responseSummary?: string
 }
 export interface LoginLog {
     id: number
@@ -56,6 +61,8 @@ export const logApi = {
         http.get<ApiResponse<PageResponse<OperationLog>>>('/logs/operations', {
             params: { page, size, ...query },
         }),
+    operationDetail: (id: number) =>
+        http.get<ApiResponse<OperationLogDetail>>(`/logs/operations/${id}`),
     logins: (page = 1, size = 10) =>
         http.get<ApiResponse<PageResponse<LoginLog>>>('/logs/logins', {
             params: { page, size },
