@@ -48,6 +48,12 @@
 | `REDIS_METRICS_SAMPLE_INTERVAL_MS`       | `60000`                        | 指标采样间隔（毫秒）                       |
 | `REDIS_METRICS_RETENTION_MS`             | `86400000`                     | 成功样本进程内最长保留时间（毫秒）         |
 | `REDIS_METRICS_MAX_SAMPLES`              | `1440`                         | 成功样本进程内最大保留数量                 |
+| `MAINTENANCE_ENABLED`                    | `true`                         | 是否启用应用内维护任务调度                 |
+| `MAINTENANCE_FIXED_DELAY_MS`              | `3600000`                      | 维护任务两次执行之间的固定延迟             |
+| `MAINTENANCE_LOG_CLEANUP_DRY_RUN`         | `true`                         | 日志保留清理是否仅报告候选数据             |
+| `MAINTENANCE_LOG_RETENTION_DAYS`          | `90`                           | 登录日志和已处理/成功操作日志保留天数      |
+| `MAINTENANCE_TEMP_FILE_CLEANUP_DRY_RUN`   | `true`                         | 本地上传临时文件清理是否仅报告候选文件     |
+| `MAINTENANCE_SESSION_INDEX_REPAIR_DRY_RUN` | `true`                        | Sa-Token Redis 过期索引修复是否仅报告候选键 |
 
 项目使用直接 Redisson 4.6.1 Client 和 Spring Cache 集成，不使用
 `redisson-spring-boot-starter`。默认 Codec 是 `StringCodec`；缓存和 Sa-Token 对象边界使用代码登记的 Kryo5 白名单 Codec。验证码、登录失败、系统配置、系统字典、Sa-Token 会话和 Redis 监控均使用 Redisson，生产键统一为 `alpha:*`，不读取或清理旧前缀。
@@ -93,6 +99,10 @@ Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后
 管理端审计日志列表只返回元数据；操作日志详情需要独立权限。`@OperationLog` 默认采集请求和响应摘要；无需采集的入口显式设置 `saveRequest = false, saveResponse = false`，认证、密码、Token、文件、上传和密钥相关路径仍由硬性规则禁止采集。响应摘要只保留状态、类型和列表数量等形状信息，审计摘要分别限制为 16 KB 和 2 KB。
 
 Redis 管理页的增强指标默认每分钟执行一次只读 `INFO ALL` 采样，最多在当前应用进程保留 24 小时或 1,440 个成功样本。设置 `REDIS_METRICS_ENABLED=false` 可关闭采样和增强面板，不影响原有 Redis 概览、受限 `SCAN` 和单键删除能力。
+
+应用内维护任务默认启用调度，但删除型任务默认 `dry-run=true`：日志保留、本地上传临时文件清理和
+Sa-Token Redis 索引修复会先输出候选数量，不执行删除。运维确认范围后，才分别关闭对应 dry-run
+开关；每轮任务都有批次上限，未处理失败操作日志不会被日志保留清理删除。
 
 ## 存储切换
 

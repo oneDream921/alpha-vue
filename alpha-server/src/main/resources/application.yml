@@ -77,3 +77,26 @@ alpha:
       metrics-max-samples: ${REDIS_METRICS_MAX_SAMPLES:1440}
   log:
     capture-business-exception-stack: ${AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK:false}
+  maintenance:
+    enabled: ${MAINTENANCE_ENABLED:true}
+    initial-delay-ms: ${MAINTENANCE_INITIAL_DELAY_MS:300000}
+    fixed-delay-ms: ${MAINTENANCE_FIXED_DELAY_MS:3600000}
+    logs:
+      enabled: ${MAINTENANCE_LOG_CLEANUP_ENABLED:true}
+      dry-run: ${MAINTENANCE_LOG_CLEANUP_DRY_RUN:true}
+      retention-days: ${MAINTENANCE_LOG_RETENTION_DAYS:90}
+      batch-size: ${MAINTENANCE_LOG_CLEANUP_BATCH_SIZE:1000}
+    temp-files:
+      enabled: ${MAINTENANCE_TEMP_FILE_CLEANUP_ENABLED:true}
+      dry-run: ${MAINTENANCE_TEMP_FILE_CLEANUP_DRY_RUN:true}
+      retention-ms: ${MAINTENANCE_TEMP_FILE_RETENTION_MS:86400000}
+      batch-size: ${MAINTENANCE_TEMP_FILE_CLEANUP_BATCH_SIZE:1000}
+    storage-consistency:
+      enabled: ${MAINTENANCE_STORAGE_CONSISTENCY_ENABLED:true}
+      batch-size: ${MAINTENANCE_STORAGE_CONSISTENCY_BATCH_SIZE:200}
+    sessions:
+      enabled: ${MAINTENANCE_SESSION_INDEX_REPAIR_ENABLED:true}
+      dry-run: ${MAINTENANCE_SESSION_INDEX_REPAIR_DRY_RUN:true}
+      batch-size: ${MAINTENANCE_SESSION_INDEX_REPAIR_BATCH_SIZE:1000}
+    health-summary:
+      enabled: ${MAINTENANCE_HEALTH_SUMMARY_ENABLED:true}

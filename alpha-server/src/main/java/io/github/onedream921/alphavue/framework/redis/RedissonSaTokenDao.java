@@ -176,6 +176,34 @@ public class RedissonSaTokenDao implements SaTokenDao {
         return List.copyOf(matches.subList(from, to));
     }
 
+    /**
+     * Removes bounded stale search index entries whose data key no longer exists.
+     */
+    public SessionIndexRepairResult repairStaleIndexes(int batchSize, boolean dryRun) {
+        int limit = Math.max(1, Math.min(batchSize, MAX_SEARCH_KEYS));
+        int scanned = 0;
+        int stale = 0;
+        int removed = 0;
+        KeysScanOptions options = KeysScanOptions.defaults()
+                .pattern(INDEX_PREFIX + "*")
+                .limit(limit)
+                .chunkSize(Math.min(limit, MAX_PAGE_SIZE));
+        for (String key : client.getKeys().getKeys(options)) {
+            scanned++;
+            String logical = client.<String>getBucket(key).get();
+            if (logical == null || !client.getBucket(dataKey(logical)).isExists()) {
+                stale++;
+                if (!dryRun && client.getBucket(key).delete()) {
+                    removed++;
+                }
+            }
+            if (scanned >= limit) {
+                break;
+            }
+        }
+        return new SessionIndexRepairResult(scanned, stale, removed);
+    }
+
     private RBucket<Object> bucket(String key) {
         return client.getBucket(dataKey(key), codec);
     }
@@ -226,6 +254,9 @@ public class RedissonSaTokenDao implements SaTokenDao {
 
     private static String indexKey(String logicalKey) {
         return INDEX_PREFIX + RedisPhysicalKey.sha256(PHYSICAL_KEY_VERSION + logicalKey);
+    }
+
+    public record SessionIndexRepairResult(int scanned, int stale, int removed) {
     }
 
 }

@@ -8,6 +8,7 @@
 - `SUPER_ADMIN` 是唯一全权限绕过角色且不可删除；其他访问由后端权限校验决定。
 - 禁用或软删除账号后，已签发 Token 的下一次请求立即失效；管理员可主动踢下线。
 - 操作审计异步写入；`@OperationLog` 默认保存结构化、脱敏和截断后的请求摘要，入口可显式关闭请求和响应摘要，响应只保存状态和形状摘要。密码、Token、Cookie、验证码、请求体、上传正文及 secret/key 字段不落审计库，硬性禁采集规则优先于注解默认值。
+- 应用内维护任务的真实删除或失败会记录系统操作日志摘要；摘要仅包含任务名、状态、扫描数量和影响数量，不包含请求体、Token、Redis 值、文件内容或连接信息。
 - 登录和操作日志保存有界的 clientId、设备摘要、User-Agent 解析结果、traceId、业务错误码、IP 与地点快照；异常摘要会限制长度并脱敏密码、Token、Cookie、验证码、secret/key 等字段。
 - 客户端 IP 默认取 socket 对端地址；只有 `TRUSTED_PROXY_ADDRESSES` 明确列出的代理对端才允许使用 `X-Forwarded-For` 的首个地址，未配置时不信任转发头。
 - 外部 IP 地点使用 `IP_LOCATION_XDB` 指向的 ip2region 离线 XDB 查询；XDB 未配置或查询失败时返回“未知”，不影响业务请求。
@@ -21,6 +22,7 @@
 - Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按代码注册的 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；`REDIS_MASK_VALUES=true` 时所有值至少按 `MASKED` 返回。验证码、失败计数和 Sa-Token 会话也可通过已注册配置切换展示级别，默认仍为 `HIDDEN`；未注册且命中密钥特征的键始终为 `HIDDEN`，且不反序列化 Redis 中的对象。展示级别配置只允许使用已发布的缓存定义，变更沿用参数配置权限、审计和恢复默认值能力。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
 - 在线用户页只读取 Sa-Token 的受控会话索引并限制单页数量，不执行无边界 Redis 扫描；token 只展示 SHA-256 摘要。定向下线按用户和终端索引执行，需 `monitor:online:kickout` 权限并记录审计，不影响其他 client 会话。
 - SQL 日志页只展示进程内最近 SQL 摘要，SQL 文本保留 `?` 占位符，禁止渲染或记录真实参数值、请求体、密码、Token、验证码和 secret/key 字段。采集开关和 Mapper 过滤是当前进程全局运行时设置，修改需要 `monitor:sql:control` 权限。SQL 日志页不得提供任意 SQL 执行能力；如需数据库诊断，只能生成供人工审核的脚本或通过受控运维流程执行。
+- 应用内日志保留清理只删除超过保留期的登录日志、成功操作日志和已处理失败操作日志；未处理失败操作日志不自动删除。临时文件清理仅限本地上传过程中遗留的 `.upload-*.tmp` 文件。所有删除型维护任务默认 dry-run，并有单轮批次上限。
 - SpringDoc OpenAPI 与 Swagger UI 仅在 `dev` profile 开启，认证登录和验证码在 OpenAPI 中显式标记为 `security: []`，其他业务接口继承 Bearer 鉴权。生产默认关闭文档端点；`/actuator/health/**` 可供存活/就绪探针访问，其他 Actuator 端点必须由网关或内部网络和应用鉴权共同保护。
 - `deploy/.env`、生产凭据、Token 和真实个人数据不得提交。MinIO 应用凭据不得复用 root 凭据。
 

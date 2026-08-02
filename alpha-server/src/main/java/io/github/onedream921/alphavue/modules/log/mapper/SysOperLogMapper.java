@@ -7,6 +7,9 @@ import io.github.onedream921.alphavue.modules.log.entity.SysOperLog;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 /**
  * 操作日志数据访问 Mapper
  */
@@ -23,4 +26,9 @@ public interface SysOperLogMapper extends BaseMapper<SysOperLog> {
                              @Param("handledBy") long handledBy);
 
     SysOperLog selectByIdForDetail(@Param("id") long id);
+
+    /**
+     * Selects a bounded batch of operation log ids that are safe to delete.
+     */
+    List<Long> selectExpiredHandledIds(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
 }

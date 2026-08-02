@@ -27,6 +27,14 @@
         FROM sys_oper_log
         WHERE id = #{id}
     </select>
+    <select id="selectExpiredHandledIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_oper_log
+        WHERE created_at &lt; #{cutoff}
+          AND (status = 1 OR handling_status = 1)
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
     <update id="updateHandlingStatus">
         UPDATE sys_oper_log
         SET handling_status = #{handlingStatus},
