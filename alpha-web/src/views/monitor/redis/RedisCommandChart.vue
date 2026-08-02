@@ -11,7 +11,10 @@ import * as echarts from 'echarts/core'
 import { LabelLayout } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 
-import type { RedisCommandMetric, RedisMetricValue } from '@/service/redis'
+import type {
+    RedisCommandMetric,
+    RedisMetricValue,
+} from '@/service/monitor/index'
 
 type CommandChartOption = echarts.ComposeOption<
     PieSeriesOption | LegendComponentOption | TooltipComponentOption

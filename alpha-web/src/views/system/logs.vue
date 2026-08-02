@@ -15,7 +15,7 @@ import {
     type LoginLog,
     type OperationLog,
     type OperationLogDetail,
-} from '@/service/logs'
+} from '@/service/monitor/index'
 import { authStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/dateTime'
 

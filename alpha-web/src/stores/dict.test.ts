@@ -4,7 +4,7 @@ const { enabledItems } = vi.hoisted(() => ({
     enabledItems: vi.fn(),
 }))
 
-vi.mock('@/service/system', () => ({
+vi.mock('@/service/system/index', () => ({
     dictApi: { enabledItems },
 }))
 

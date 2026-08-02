@@ -8,7 +8,7 @@ const { overview, metrics, keys } = vi.hoisted(() => ({
     keys: vi.fn(),
 }))
 
-vi.mock('@/service/redis', () => ({
+vi.mock('@/service/monitor/index', () => ({
     redisApi: {
         overview,
         metrics,

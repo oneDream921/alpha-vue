@@ -10,7 +10,7 @@ import {
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 
-import type { RedisMetricsTrendPoint } from '@/service/redis'
+import type { RedisMetricsTrendPoint } from '@/service/monitor/index'
 
 type TrendMetric =
     | 'usedMemoryBytes'

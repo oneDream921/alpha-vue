@@ -5,7 +5,7 @@ import type { Rule } from 'ant-design-vue/es/form'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { authApi } from '@/service/auth'
+import { authApi } from '@/service/auth/index'
 import { authStore } from '@/stores/auth'
 import AvatarCropper from './AvatarCropper.vue'
 

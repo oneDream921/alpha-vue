@@ -8,7 +8,7 @@ import { message } from 'ant-design-vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { authApi } from '@/service/auth'
+import { authApi } from '@/service/auth/index'
 import { clearManagementRoutes, ensureManagementRoutes } from '@/router'
 import { authStore } from '@/stores/auth'
 import logoUrl from '@/assets/alpha-logo.svg'

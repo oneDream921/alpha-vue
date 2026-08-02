@@ -1,4 +1,4 @@
-import type { ConfigDefinition } from '@/service/system'
+import type { ConfigDefinition } from '@/service/system/index'
 
 export function validateConfigValue(
     definition: ConfigDefinition | undefined,

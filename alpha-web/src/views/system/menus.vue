@@ -10,9 +10,9 @@ import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
-import { authApi } from '@/service/auth'
+import { authApi } from '@/service/auth/index'
 import { ensureManagementRoutes } from '@/router'
-import { menuApi, type Menu } from '@/service/system'
+import { menuApi, type Menu } from '@/service/system/index'
 import { authStore } from '@/stores/auth'
 
 const rows = ref<Menu[]>([])

@@ -1,4 +1,4 @@
-import type { EnabledDictItem } from '@/service/system'
+import type { EnabledDictItem } from '@/service/system/index'
 
 export type DictValue =
     | string

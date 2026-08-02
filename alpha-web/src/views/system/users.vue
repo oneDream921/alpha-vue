@@ -25,7 +25,7 @@ import {
     type Dept,
     type Role,
     type User,
-} from '@/service/system'
+} from '@/service/system/index'
 import { authStore } from '@/stores/auth'
 
 const rows = ref<User[]>([])

@@ -15,7 +15,7 @@ import AlphaTableCard from '@/components/AlphaTableCard.vue'
 import TableColumnSetting, {
     type TableColumnSettingItem,
 } from '@/components/TableColumnSetting.vue'
-import { menuApi, roleApi, type Menu, type Role } from '@/service/system'
+import { menuApi, roleApi, type Menu, type Role } from '@/service/system/index'
 import {
     buildRolePermissionTree,
     collectRolePermissionKeys,

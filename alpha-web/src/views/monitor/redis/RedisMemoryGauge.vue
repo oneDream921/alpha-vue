@@ -8,7 +8,7 @@ import {
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 
-import type { RedisMetricValue } from '@/service/redis'
+import type { RedisMetricValue } from '@/service/monitor/index'
 
 type MemoryGaugeOption = echarts.ComposeOption<
     GaugeSeriesOption | TooltipComponentOption

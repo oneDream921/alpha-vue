@@ -4,7 +4,7 @@ import { message, Modal } from 'ant-design-vue'
 import { onMounted, ref } from 'vue'
 
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
-import { onlineApi, type OnlineSession } from '@/service/online'
+import { onlineApi, type OnlineSession } from '@/service/monitor/index'
 import { authStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/dateTime'
 

@@ -20,7 +20,7 @@ import {
     type ConfigDataType,
     type ConfigDefinition,
     type ConfigDefinitionSave,
-} from '@/service/system'
+} from '@/service/system/index'
 import { configPageFromTableChange } from './configs.pagination'
 import {
     validateConfigValue,

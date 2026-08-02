@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import { dictApi, type EnabledDictItem } from '@/service/system'
+import { dictApi, type EnabledDictItem } from '@/service/system/index'
 
 import { pinia } from './pinia'
 

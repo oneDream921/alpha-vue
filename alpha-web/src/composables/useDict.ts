@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 
-import type { EnabledDictItem } from '@/service/system'
+import type { EnabledDictItem } from '@/service/system/index'
 import { dictStore } from '@/stores/dict'
 import { defaultDictValue, dictLabel, type DictValue } from '@/utils/dicts'
 

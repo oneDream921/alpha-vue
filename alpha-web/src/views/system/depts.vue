@@ -10,7 +10,7 @@ import type { Rule } from 'ant-design-vue/es/form'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
-import { deptApi, type Dept } from '@/service/system'
+import { deptApi, type Dept } from '@/service/system/index'
 
 const rows = ref<Dept[]>([])
 const loading = ref(false)

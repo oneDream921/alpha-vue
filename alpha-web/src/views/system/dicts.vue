@@ -17,7 +17,7 @@ import {
     type DictItemSave,
     type DictType,
     type DictTypeSave,
-} from '@/service/system'
+} from '@/service/system/index'
 import { dictStore } from '@/stores/dict'
 import { parseDateTime } from '@/utils/dateTime'
 import {

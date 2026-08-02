@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { EnabledDictItem } from '@/service/system'
+import type { EnabledDictItem } from '@/service/system/index'
 import { dictValueTokens, type DictValue } from '@/utils/dicts'
 
 const props = withDefaults(

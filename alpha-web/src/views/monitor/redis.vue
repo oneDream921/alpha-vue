@@ -1,24 +1,20 @@
 <script setup lang="ts">
-import {
-    DeleteOutlined,
-    EyeOutlined,
-    ReloadOutlined,
-} from '@ant-design/icons-vue'
+import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 
 import AlphaTableCard from '@/components/AlphaTableCard.vue'
-import TableActionMenu from '@/components/TableActionMenu.vue'
 import {
     redisApi,
     type RedisMetrics,
     type RedisKeyMetadata,
     type RedisOverview,
-} from '@/service/redis'
+} from '@/service/monitor/index'
 
 import RedisCommandChart from './redis/RedisCommandChart.vue'
 import RedisMemoryGauge from './redis/RedisMemoryGauge.vue'
 import RedisTrendChart from './redis/RedisTrendChart.vue'
+import RedisKeyTable from './RedisKeyTable.vue'
 
 const prefix = ref('')
 const pageSize = ref(50)
@@ -696,110 +692,12 @@ onMounted(refresh)
                         />
                     </div>
                     <AlphaTableCard :loading="loading">
-                        <a-table
-                            row-key="key"
-                            :data-source="rows"
+                        <RedisKeyTable
+                            :rows="rows"
                             :loading="loading"
-                            :pagination="false"
-                            :scroll="{ x: 1160 }"
-                        >
-                            <a-table-column
-                                title="键名"
-                                data-index="key"
-                                width="420"
-                            >
-                                <template #default="{ text }">
-                                    <a-tooltip
-                                        :title="text"
-                                        overlay-class-name="redis-key-tooltip"
-                                    >
-                                        <span class="redis-key-cell">{{
-                                            text
-                                        }}</span>
-                                    </a-tooltip>
-                                </template>
-                            </a-table-column>
-                            <a-table-column
-                                title="分类"
-                                data-index="category"
-                                width="160"
-                            />
-                            <a-table-column
-                                title="类型"
-                                data-index="type"
-                                width="120"
-                            />
-                            <a-table-column
-                                title="TTL（秒）"
-                                data-index="ttlSeconds"
-                                width="130"
-                            />
-                            <a-table-column
-                                title="大小估计（字节）"
-                                data-index="sizeBytes"
-                                width="170"
-                            />
-                            <a-table-column
-                                title="值预览"
-                                data-index="value"
-                                width="220"
-                            >
-                                <template #default="{ record }">
-                                    <a-tooltip
-                                        :title="
-                                            record.displayLevel === 'HIDDEN'
-                                                ? undefined
-                                                : record.value || ''
-                                        "
-                                    >
-                                        <span class="redis-value-cell">{{
-                                            record.value || '-'
-                                        }}</span>
-                                    </a-tooltip>
-                                    <a-tag
-                                        class="ml-2"
-                                        :color="
-                                            displayLevelColor(
-                                                record.displayLevel,
-                                            )
-                                        "
-                                    >
-                                        {{
-                                            displayLevelLabel(
-                                                record.displayLevel,
-                                            )
-                                        }}
-                                    </a-tag>
-                                </template>
-                            </a-table-column>
-                            <a-table-column
-                                title="操作"
-                                width="88"
-                                fixed="right"
-                                align="center"
-                            >
-                                <template #default="{ record }">
-                                    <TableActionMenu aria-label="Redis 键操作">
-                                        <a-menu-item
-                                            key="metadata"
-                                            @click="inspect(record)"
-                                        >
-                                            <EyeOutlined />元数据
-                                        </a-menu-item>
-                                        <a-menu-item
-                                            key="delete"
-                                            v-permission="
-                                                'monitor:redis:delete'
-                                            "
-                                            data-testid="delete-redis-key"
-                                            danger
-                                            @click="openDelete(record)"
-                                            ><DeleteOutlined />删除</a-menu-item
-                                        >
-                                    </TableActionMenu>
-                                </template>
-                            </a-table-column>
-                        </a-table>
+                            @inspect="inspect"
+                            @remove="openDelete"
+                        />
                     </AlphaTableCard>
                     <div class="redis-result-bar">
                         <span>{{ querySummary }}</span>

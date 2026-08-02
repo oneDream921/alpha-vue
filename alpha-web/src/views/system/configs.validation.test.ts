@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ConfigDefinition } from '@/service/system'
+import type { ConfigDefinition } from '@/service/system/index'
 import {
     validateConfigValue,
     validateDefinitionRules,

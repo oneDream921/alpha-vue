@@ -10,7 +10,7 @@ const { login, profile, routes, captcha, replace } = vi.hoisted(() => ({
     replace: vi.fn(),
 }))
 
-vi.mock('@/service/auth', () => ({
+vi.mock('@/service/auth/index', () => ({
     authApi: { login, profile, routes, captcha },
 }))
 vi.mock('vue-router', () => ({

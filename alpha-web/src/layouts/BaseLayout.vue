@@ -14,7 +14,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { authApi } from '@/service/auth'
+import { authApi } from '@/service/auth/index'
 import { clearManagementRoutes } from '@/router'
 import { authStore } from '@/stores/auth'
 import logoUrl from '@/assets/alpha-logo.svg'
