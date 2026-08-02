@@ -712,16 +712,32 @@ HTTP 200/`UP`，Server 恢复后 `taskBatchId=54` 再次成功。删除型维护
 
 ### P3-03 Lock4j 重评
 
-只有出现明确的跨实例并发业务场景时才引入。若 SnailJob 或数据库唯一约束已能解决，不重复增加锁抽象。
+状态：`COMPLETED`（2026-08-02，正式决策继续 `DEFER`）
+
+本期未发现需要独立分布式互斥才能成立的真实跨实例业务场景，继续使用数据库约束、任务幂等或
+现有 Redisson 能力，不引入 Lock4j。重新触发条件、职责边界和验证要求见
+[p3-03-p3-04-decisions.md](./execution-plans/p3-03-p3-04-decisions.md)。
 
 ### P3-04 ID 策略决策
 
-在正式投产或需要多实例写入前决定继续使用数据库 ID，或切换雪花 ID。切换前必须处理 JavaScript 长整数、worker 配置、迁移和回滚。
+状态：`COMPLETED`（2026-08-02，正式决策继续数据库自增 ID）
+
+当前正式业务表继续使用 `BIGINT AUTO_INCREMENT`，Java 实体继续使用 `Long`，暂不切换雪花
+ID。对外 Long 字段继续遵守字符串序列化约束；未来只有进入多数据库写入、分库分表或出现明确
+跨库 ID 需求时，才单独设计 worker、迁移/映射和回滚。
+
+正式决策记录：[p3-03-p3-04-decisions.md](./execution-plans/p3-03-p3-04-decisions.md)。
 
 ### P3-05 第三期收口
 
+状态：`READY_FOR_ACCEPTANCE`（2026-08-02，自动化与本地 HTTP 验证完成，生产运维和最终人工门禁待完成）
+
 验证已采用的任务能力、清理任务、恢复能力、生产配置和升级文档。SnailJob 或 Lock4j
 继续为 `DEFER` 时记录“不适用”，不得阻断 G4。
+
+执行记录：[p3-05-third-phase-closeout.md](./execution-plans/p3-05-third-phase-closeout.md)。G4-M04
+小批量真实删除和 G4-M06 备份恢复已由用户明确取消并记录为 `N/A`；当前仍需完成生产凭据
+复核、健康检查覆盖、traceId 故障定位演练、最终评审和用户最终验收。
 
 **阶段门禁：G4**
 
