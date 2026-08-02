@@ -27,6 +27,8 @@ public class SysOperLog {
     private String method;
     private String requestUri;
     private String requestParams;
+    private String requestSummary;
+    private String responseSummary;
     private Integer responseCode;
 
     private Integer status;

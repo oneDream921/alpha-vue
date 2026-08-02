@@ -11,8 +11,7 @@ public record OperationLogVo(long id, Long userId, String username, String modul
                              String method, String requestUri, Integer responseCode, int status,
                              String ipAddress, String location, String clientId, String deviceId, String deviceName, String browser,
                              String operatingSystem, Long durationMs, String traceId, Integer errorCode, int handlingStatus,
-                             Long handledBy, LocalDateTime handledAt, LocalDateTime createdAt,
-                             String exceptionStack) {
+                             Long handledBy, LocalDateTime handledAt, LocalDateTime createdAt) {
     /**
      * 从操作日志实体转换为响应视图
      */
@@ -21,7 +20,6 @@ public record OperationLogVo(long id, Long userId, String username, String modul
                 log.getOperation(), log.getBusinessType(), log.getMethod(), log.getRequestUri(), log.getResponseCode(),
                 log.getStatus(), log.getIpAddress(), log.getLocation(), log.getClientId(), log.getDeviceId(), log.getDeviceName(),
                 log.getBrowser(), log.getOperatingSystem(), log.getDurationMs(), log.getTraceId(), log.getErrorCode(),
-                log.getHandlingStatus(), log.getHandledBy(), log.getHandledAt(), log.getCreatedAt(),
-                log.getExceptionStack());
+                log.getHandlingStatus(), log.getHandledBy(), log.getHandledAt(), log.getCreatedAt());
     }
 }

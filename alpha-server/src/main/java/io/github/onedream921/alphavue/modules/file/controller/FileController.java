@@ -49,7 +49,8 @@ public class FileController extends BaseController {
      * 上传文件并保存文件元数据
      */
     @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @OperationLog(module = "File", operation = "Upload file", type = BusinessType.CREATE)
+    @OperationLog(module = "File", operation = "Upload file", type = BusinessType.CREATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<FileService.FileView> upload(@RequestPart("file") MultipartFile file, HttpServletRequest request) {
         access.require("file:upload");
         long uploaderId = loginUserId();
@@ -72,7 +73,8 @@ public class FileController extends BaseController {
      * 删除文件对象并软删除对应元数据
      */
     @DeleteMapping("/{id}")
-    @OperationLog(module = "File", operation = "Delete file", type = BusinessType.DELETE)
+    @OperationLog(module = "File", operation = "Delete file", type = BusinessType.DELETE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("file:delete");
         fileService.delete(id);

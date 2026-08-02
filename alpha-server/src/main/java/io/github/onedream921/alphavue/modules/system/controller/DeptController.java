@@ -66,7 +66,8 @@ public class DeptController extends BaseController {
      * 新增部门
      */
     @PostMapping
-    @OperationLog(module = "System", operation = "Create department", type = BusinessType.CREATE)
+    @OperationLog(module = "System", operation = "Create department", type = BusinessType.CREATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<DeptVo> create(@Valid @RequestBody DeptRequests.Save body, HttpServletRequest request) {
         access.require("system:dept:create");
         return success(deptService.create(body), request);
@@ -76,7 +77,8 @@ public class DeptController extends BaseController {
      * 更新部门基础信息
      */
     @PutMapping("/{id}")
-    @OperationLog(module = "System", operation = "Update department", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Update department", type = BusinessType.UPDATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<DeptVo> update(@PathVariable @Positive long id, @Valid @RequestBody DeptRequests.Save body,
                                       HttpServletRequest request) {
         access.require("system:dept:update");

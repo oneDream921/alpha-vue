@@ -63,7 +63,8 @@ public class AuthController extends BaseController {
      * 退出当前登录会话
      */
     @PostMapping("/logout")
-    @OperationLog(module = "Authentication", operation = "Logout", type = BusinessType.LOGOUT)
+    @OperationLog(module = "Authentication", operation = "Logout", type = BusinessType.LOGOUT,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<Void> logout(HttpServletRequest servletRequest) {
         cn.dev33.satoken.stp.StpUtil.logout();
         return success(servletRequest);
@@ -73,7 +74,8 @@ public class AuthController extends BaseController {
      * 查询当前登录用户资料
      */
     @GetMapping("/profile")
-    @OperationLog(module = "Authentication", operation = "Read profile")
+    @OperationLog(module = "Authentication", operation = "Read profile",
+            saveRequest = false, saveResponse = false)
     public ApiResponse<AuthService.Profile> profile(HttpServletRequest servletRequest) {
         return success(authService.profile(), servletRequest);
     }
@@ -82,7 +84,8 @@ public class AuthController extends BaseController {
      * 查询当前登录用户可见路由
      */
     @GetMapping("/routes")
-    @OperationLog(module = "Authentication", operation = "Read routes")
+    @OperationLog(module = "Authentication", operation = "Read routes",
+            saveRequest = false, saveResponse = false)
     public ApiResponse<List<RouteVo>> routes(HttpServletRequest servletRequest) {
         return success(authService.routes(), servletRequest);
     }
@@ -91,7 +94,8 @@ public class AuthController extends BaseController {
      * 更新当前登录用户资料
      */
     @PutMapping("/profile")
-    @OperationLog(module = "Authentication", operation = "Update profile", type = BusinessType.UPDATE)
+    @OperationLog(module = "Authentication", operation = "Update profile", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<AuthService.Profile> updateProfile(@Valid @RequestBody ProfileRequests.Update request,
                                                            HttpServletRequest servletRequest) {
         return success(authService.updateProfile(request), servletRequest);
@@ -101,7 +105,8 @@ public class AuthController extends BaseController {
      * 上传并更新当前用户头像
      */
     @PostMapping(path = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @OperationLog(module = "Authentication", operation = "Upload avatar", type = BusinessType.UPDATE)
+    @OperationLog(module = "Authentication", operation = "Upload avatar", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<AuthService.Profile> uploadAvatar(@RequestPart("file") MultipartFile file,
                                                           HttpServletRequest servletRequest) {
         return success(authService.uploadAvatar(file), servletRequest);
@@ -111,7 +116,8 @@ public class AuthController extends BaseController {
      * 修改当前登录用户密码并退出会话
      */
     @PutMapping("/password")
-    @OperationLog(module = "Authentication", operation = "Change password", type = BusinessType.UPDATE)
+    @OperationLog(module = "Authentication", operation = "Change password", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<Void> changePassword(@Valid @RequestBody ProfileRequests.ChangePassword request,
                                             HttpServletRequest servletRequest) {
         authService.changePassword(request);

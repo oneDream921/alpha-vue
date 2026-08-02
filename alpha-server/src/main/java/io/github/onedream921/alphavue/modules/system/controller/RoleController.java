@@ -68,7 +68,8 @@ public class RoleController extends BaseController {
      * 新增角色
      */
     @PostMapping
-    @OperationLog(module = "System", operation = "Create role", type = BusinessType.CREATE)
+    @OperationLog(module = "System", operation = "Create role", type = BusinessType.CREATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<RoleVo> create(@Valid @RequestBody RoleRequests.Create body, HttpServletRequest request) {
         access.require("system:role:create");
         return success(roleService.create(body), request);
@@ -78,7 +79,8 @@ public class RoleController extends BaseController {
      * 更新角色基础信息
      */
     @PutMapping("/{id}")
-    @OperationLog(module = "System", operation = "Update role", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Update role", type = BusinessType.UPDATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<RoleVo> update(@PathVariable @Positive long id, @Valid @RequestBody RoleRequests.Update body,
                                       HttpServletRequest request) {
         access.require("system:role:update");

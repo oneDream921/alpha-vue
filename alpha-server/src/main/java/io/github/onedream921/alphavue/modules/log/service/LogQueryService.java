@@ -10,6 +10,7 @@ import io.github.onedream921.alphavue.modules.log.mapper.SysLoginLogMapper;
 import io.github.onedream921.alphavue.modules.log.mapper.SysOperLogMapper;
 import io.github.onedream921.alphavue.modules.log.vo.LoginLogVo;
 import io.github.onedream921.alphavue.modules.log.vo.OperationLogVo;
+import io.github.onedream921.alphavue.modules.log.vo.OperationLogDetailVo;
 import org.springframework.stereotype.Service;
 
 /**
@@ -50,5 +51,10 @@ public class LogQueryService {
      */
     public boolean updateHandlingStatus(long id, int handlingStatus, long handledBy) {
         return operLogMapper.updateHandlingStatus(id, handlingStatus, handledBy) > 0;
+    }
+
+    public OperationLogDetailVo operationDetail(long id) {
+        SysOperLog log = operLogMapper.selectByIdForDetail(id);
+        return log == null ? null : OperationLogDetailVo.from(log);
     }
 }

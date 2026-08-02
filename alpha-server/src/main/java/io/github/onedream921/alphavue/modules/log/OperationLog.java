@@ -29,14 +29,14 @@ public @interface OperationLog {
     BusinessType type() default BusinessType.OTHER;
 
     /**
-     * 是否记录请求参数，默认关闭以减少敏感信息风险
+     * 是否记录请求参数，默认开启；敏感或无需采集的入口应显式关闭
      */
-    boolean saveRequest() default false;
+    boolean saveRequest() default true;
 
     /**
-     * 是否记录响应内容，默认关闭以减少敏感信息风险
+     * 是否记录响应内容，默认开启；敏感或无需采集的入口应显式关闭
      */
-    boolean saveResponse() default false;
+    boolean saveResponse() default true;
 
     /**
      * 记录请求参数时需要排除的敏感参数名

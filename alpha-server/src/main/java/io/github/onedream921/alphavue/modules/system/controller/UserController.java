@@ -69,7 +69,8 @@ public class UserController extends BaseController {
      * 新增用户并写入初始密码
      */
     @PostMapping
-    @OperationLog(module = "System", operation = "Create user", type = BusinessType.CREATE)
+    @OperationLog(module = "System", operation = "Create user", type = BusinessType.CREATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<UserVo> create(@Valid @RequestBody UserRequests.Create body,
                                       HttpServletRequest request) {
         access.require("system:user:create");
@@ -80,7 +81,8 @@ public class UserController extends BaseController {
      * 更新用户基础信息和启停状态
      */
     @PutMapping("/{id}")
-    @OperationLog(module = "System", operation = "Update user", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Update user", type = BusinessType.UPDATE,
+            saveRequest = true, saveResponse = true)
     public ApiResponse<UserVo> update(@PathVariable @Positive long id, @Valid @RequestBody UserRequests.Update body,
                                       HttpServletRequest request) {
         access.require("system:user:update");
@@ -126,7 +128,8 @@ public class UserController extends BaseController {
      * 管理员重置其他用户密码，并立即使目标用户会话失效
      */
     @PutMapping("/{id}/password")
-    @OperationLog(module = "System", operation = "Reset user password", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Reset user password", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<Void> resetPassword(@PathVariable @Positive long id,
                                            @Valid @RequestBody UserRequests.ResetPassword body,
                                            HttpServletRequest request) {

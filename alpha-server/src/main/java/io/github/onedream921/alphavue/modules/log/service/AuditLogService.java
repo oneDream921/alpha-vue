@@ -61,7 +61,8 @@ public class AuditLogService {
     public void recordOperation(Long userId, String username, String module, String operation, BusinessType type,
             String method, String requestUri, int responseCode, boolean succeeded,
             String ipAddress, long durationMs, String traceId, Integer errorCode, String exceptionStack,
-            String userAgent, String clientId, String deviceId, String deviceName) {
+            String userAgent, String clientId, String deviceId, String deviceName,
+            String requestSummary, String responseSummary) {
         SysOperLog log = new SysOperLog();
         log.setUserId(userId);
         log.setUsername(username);
@@ -71,6 +72,8 @@ public class AuditLogService {
         log.setMethod(method);
         log.setRequestUri(requestUri);
         log.setRequestParams("[redacted]");
+        log.setRequestSummary(limit(requestSummary, 16_000));
+        log.setResponseSummary(limit(responseSummary, 2_000));
         log.setResponseCode(responseCode);
         log.setStatus(succeeded ? 1 : 0);
         log.setIpAddress(ipAddress);

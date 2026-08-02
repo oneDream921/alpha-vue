@@ -21,4 +21,6 @@ public interface SysOperLogMapper extends BaseMapper<SysOperLog> {
      */
     int updateHandlingStatus(@Param("id") long id, @Param("handlingStatus") int handlingStatus,
                              @Param("handledBy") long handledBy);
+
+    SysOperLog selectByIdForDetail(@Param("id") long id);
 }

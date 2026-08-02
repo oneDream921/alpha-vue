@@ -7,10 +7,12 @@ import io.github.onedream921.alphavue.framework.web.ClientAddressResolver;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.log.config.AuditLogProperties;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
+import io.github.onedream921.alphavue.modules.log.service.AuditDetailSanitizer;
 import io.github.onedream921.alphavue.modules.system.entity.SysUser;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -36,16 +38,26 @@ public class OperationLogAspect {
     private final HttpServletResponse response;
     private final ClientAddressResolver clientAddressResolver;
     private final AuditLogProperties auditLogProperties;
+    private final AuditDetailSanitizer auditDetailSanitizer;
 
+    @Autowired
     public OperationLogAspect(AuditLogService auditLogService, SysUserMapper userMapper,
             HttpServletRequest request, HttpServletResponse response, ClientAddressResolver clientAddressResolver,
-            AuditLogProperties auditLogProperties) {
+            AuditLogProperties auditLogProperties, AuditDetailSanitizer auditDetailSanitizer) {
         this.auditLogService = auditLogService;
         this.userMapper = userMapper;
         this.request = request;
         this.response = response;
         this.clientAddressResolver = clientAddressResolver;
         this.auditLogProperties = auditLogProperties;
+        this.auditDetailSanitizer = auditDetailSanitizer;
+    }
+
+    public OperationLogAspect(AuditLogService auditLogService, SysUserMapper userMapper,
+            HttpServletRequest request, HttpServletResponse response, ClientAddressResolver clientAddressResolver,
+            AuditLogProperties auditLogProperties) {
+        this(auditLogService, userMapper, request, response, clientAddressResolver, auditLogProperties,
+                new AuditDetailSanitizer(new com.fasterxml.jackson.databind.ObjectMapper()));
     }
 
     /**
@@ -59,10 +71,16 @@ public class OperationLogAspect {
         int responseCode = 500;
         String exceptionStack = null;
         Integer errorCode = null;
+        String requestSummary = null;
+        String responseSummary = null;
+        boolean detailAllowed = operationLog.saveRequest() || operationLog.saveResponse();
+        if (detailAllowed && isHardDenied(request.getRequestURI(), operationLog.operation())) detailAllowed = false;
+        if (detailAllowed && operationLog.saveRequest()) requestSummary = auditDetailSanitizer.request(joinPoint.getArgs());
         try {
             Object result = joinPoint.proceed();
             succeeded = true;
             responseCode = response.getStatus();
+            if (detailAllowed && operationLog.saveResponse()) responseSummary = auditDetailSanitizer.response(result);
             return result;
         } catch (BusinessException exception) {
             responseCode = exception.code();
@@ -88,14 +106,23 @@ public class OperationLogAspect {
                     (System.nanoTime() - startedAt) / 1_000_000,
                     (String) request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE), errorCode, exceptionStack,
                     request.getHeader("User-Agent"), terminalExtra("clientId"), terminalExtra("deviceId"),
-                    terminalExtra("deviceName"));
+                    terminalExtra("deviceName"), requestSummary, responseSummary);
         }
+    }
+
+    private static boolean isHardDenied(String uri, String operation) {
+        String value = (uri + " " + operation).toLowerCase(java.util.Locale.ROOT);
+        return java.util.stream.Stream.of("login", "password", "captcha", "token", "logout", "upload", "file", "secret", "key")
+                .anyMatch(value::contains);
     }
 
     private String terminalExtra(String key) {
         try {
             Object value = StpUtil.getExtra(key, null);
-            return value == null ? null : value.toString();
+            if (value != null) return value.toString();
+            if ("clientId".equals(key)) return StpUtil.getLoginDeviceType();
+            if ("deviceId".equals(key)) return StpUtil.getLoginDeviceId();
+            return null;
         }
         catch (RuntimeException ignored) { return null; }
     }

@@ -66,14 +66,16 @@ public class ConfigController extends BaseController {
     }
 
     @PostMapping("/definitions")
-    @OperationLog(module = "System", operation = "Create configuration definition", type = BusinessType.CREATE)
+    @OperationLog(module = "System", operation = "Create configuration definition", type = BusinessType.CREATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<ConfigDefinitionVo> createDefinition(@Valid @RequestBody ConfigRequests.DefinitionSave body, HttpServletRequest request) {
         access.require("system:config:define");
         return success(definitionService.create(body), request);
     }
 
     @PutMapping("/definitions/{id}")
-    @OperationLog(module = "System", operation = "Update configuration definition", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Update configuration definition", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<ConfigDefinitionVo> updateDefinition(@PathVariable @Positive long id, @Valid @RequestBody ConfigRequests.DefinitionSave body, HttpServletRequest request) {
         access.require("system:config:define");
         return success(definitionService.update(id, body), request);
@@ -92,7 +94,8 @@ public class ConfigController extends BaseController {
      * 创建参数配置并立即发布到 Redis
      */
     @PostMapping
-    @OperationLog(module = "System", operation = "Create configuration", type = BusinessType.CREATE)
+    @OperationLog(module = "System", operation = "Create configuration", type = BusinessType.CREATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<ConfigVo> create(@Valid @RequestBody ConfigRequests.Save body, HttpServletRequest request) {
         access.require("system:config:create");
         return success(configService.create(body), request);
@@ -102,7 +105,8 @@ public class ConfigController extends BaseController {
      * 更新参数配置并立即发布到 Redis
      */
     @PutMapping("/{id}")
-    @OperationLog(module = "System", operation = "Update configuration", type = BusinessType.UPDATE)
+    @OperationLog(module = "System", operation = "Update configuration", type = BusinessType.UPDATE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<ConfigVo> update(@PathVariable @Positive long id, @Valid @RequestBody ConfigRequests.Save body,
                                         HttpServletRequest request) {
         access.require("system:config:update");
@@ -113,7 +117,8 @@ public class ConfigController extends BaseController {
      * 删除参数配置并移除 Redis 缓存
      */
     @DeleteMapping("/{id}")
-    @OperationLog(module = "System", operation = "Delete configuration", type = BusinessType.DELETE)
+    @OperationLog(module = "System", operation = "Delete configuration", type = BusinessType.DELETE,
+            saveRequest = false, saveResponse = false)
     public ApiResponse<Void> delete(@PathVariable @Positive long id, HttpServletRequest request) {
         access.require("system:config:delete");
         configService.delete(id);

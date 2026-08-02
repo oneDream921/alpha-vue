@@ -10,6 +10,7 @@ import io.github.onedream921.alphavue.modules.log.service.LogQueryService;
 import io.github.onedream921.alphavue.modules.log.dto.OperationLogQuery;
 import io.github.onedream921.alphavue.modules.log.vo.LoginLogVo;
 import io.github.onedream921.alphavue.modules.log.vo.OperationLogVo;
+import io.github.onedream921.alphavue.modules.log.vo.OperationLogDetailVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
@@ -65,6 +66,19 @@ public class LogController extends BaseController {
             HttpServletRequest request) {
         access.require("log:login:list");
         return success(logQueryService.logins(page, size), request);
+    }
+
+    @GetMapping("/operations/{id}")
+    @OperationLog(module = "Log", operation = "View operation log detail", type = BusinessType.OTHER)
+    public ApiResponse<OperationLogDetailVo> operationDetail(@PathVariable @Min(1) long id,
+                                                               HttpServletRequest request) {
+        access.require("log:operation:detail");
+        OperationLogDetailVo detail = logQueryService.operationDetail(id);
+        if (detail == null) {
+            throw new io.github.onedream921.alphavue.common.exception.BusinessException(404,
+                    io.github.onedream921.alphavue.common.exception.PublicErrorMessage.RESOURCE_NOT_FOUND);
+        }
+        return success(detail, request);
     }
 
     /**
