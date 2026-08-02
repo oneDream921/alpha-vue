@@ -640,7 +640,7 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 ### P2-06 审计详情增强
 
-状态：`ACCEPTED`（2026-08-02，自动化验证与用户人工验收通过）
+状态：`COMPLETED`（2026-08-02，自动化验证与用户人工验收通过）
 
 安全评审已通过，当前实现增加受控的请求/响应摘要：
 
@@ -653,12 +653,23 @@ Client，但 Redisson 只用于独立验证命名空间，禁止对同一业务 
 
 ### P2-07 Spring Boot Admin
 
+状态：`N/A`（2026-08-02，未触发）
+
 在 Spike 为 `GO` 且确有运维需求时接入。管理端必须独立鉴权，敏感 Actuator 端点默认关闭或脱敏。
+
+当前结论：现有 Actuator、Redis 监控、SQL 摘要、日志详情和部署健康检查已覆盖本期真实排障需求；
+未提出独立 Admin Server 的新增运维目标、收益指标和网络边界要求。因此本期不接入
+Spring Boot Admin，不新增 `alpha-extensions/monitor-admin` 进程，也不扩大 Actuator 暴露面。
 
 ### P2-08 第二期收口
 
+状态：`COMPLETED`（2026-08-02，自动化验证完成，用户确认第二期完成）
+
 只对已触发能力运行对应验收；阶段收口时执行完整构建、相关桌面与移动端验收及必要的
 安全复核。未触发能力记录 `N/A`。
+
+执行记录：[p2-08-second-phase-closeout.md](./execution-plans/p2-08-second-phase-closeout.md) 汇总
+P2-03、P2-04、P2-06 已触发能力的验证证据，P2-05、P2-07 未触发边界，以及 G3 放行结论。
 
 **阶段门禁：G3**
 
