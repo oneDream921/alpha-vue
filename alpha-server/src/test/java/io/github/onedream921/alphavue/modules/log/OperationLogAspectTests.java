@@ -7,12 +7,15 @@ import io.github.onedream921.alphavue.modules.log.aspect.OperationLogAspect;
 import io.github.onedream921.alphavue.modules.log.config.AuditLogProperties;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.framework.web.TraceIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,6 +28,50 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class OperationLogAspectTests {
+
+    @Test
+    void operationLogDefaultsToCapturingRequestAndResponseSummaries() throws NoSuchMethodException {
+        assertThat(OperationLog.class.getMethod("saveRequest").getDefaultValue()).isEqualTo(true);
+        assertThat(OperationLog.class.getMethod("saveResponse").getDefaultValue()).isEqualTo(true);
+    }
+
+    @Test
+    void capturesSummariesWhenDefaultEnabled() throws Throwable {
+        AuditLogService auditLogService = mock(AuditLogService.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+        OperationLog operationLog = mock(OperationLog.class);
+        when(operationLog.module()).thenReturn("Test");
+        when(operationLog.operation()).thenReturn("Create record");
+        when(operationLog.type()).thenReturn(BusinessType.CREATE);
+        when(operationLog.saveRequest()).thenReturn(true);
+        when(operationLog.saveResponse()).thenReturn(true);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/test");
+        when(request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE)).thenReturn(null);
+        when(joinPoint.getArgs()).thenReturn(new Object[] {"safe-value"});
+        when(joinPoint.proceed()).thenReturn(Map.of("data", Map.of("id", 1)));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(response.getStatus()).thenReturn(200);
+        OperationLogAspect aspect = new OperationLogAspect(auditLogService, mock(SysUserMapper.class), request,
+                response, mock(io.github.onedream921.alphavue.framework.web.ClientAddressResolver.class),
+                new AuditLogProperties());
+
+        try (MockedStatic<StpUtil> stpUtil = mockStatic(StpUtil.class)) {
+            stpUtil.when(StpUtil::getLoginIdDefaultNull).thenReturn(null);
+
+            aspect.record(joinPoint, operationLog);
+
+            ArgumentCaptor<String> requestSummary = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<String> responseSummary = ArgumentCaptor.forClass(String.class);
+            verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Create record"),
+                    eq(BusinessType.CREATE), eq("POST"), eq("/api/test"), eq(200), eq(true), isNull(), anyLong(),
+                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), requestSummary.capture(),
+                    responseSummary.capture());
+            assertThat(requestSummary.getValue()).contains("safe-value");
+            assertThat(responseSummary.getValue()).contains("\"captured\":true");
+        }
+    }
 
     @Test
     void recordsBusinessExceptionSummaryWithoutStack() throws Throwable {
@@ -50,7 +97,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionStack = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Reject request"),
                     eq(BusinessType.UPDATE), eq("PUT"), eq("/api/test"), eq(400), eq(false), isNull(), anyLong(),
-                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
+                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionStack.getValue()).isEqualTo("请求参数错误");
             assertThat(exceptionStack.getValue()).doesNotContain("\n\tat ");
         }
@@ -81,7 +128,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionSummary = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Reject image"),
                     eq(BusinessType.UPDATE), eq("POST"), eq("/api/test/image"), eq(400), eq(false), isNull(), anyLong(),
-                    isNull(), eq(400), exceptionSummary.capture(), isNull(), isNull(), isNull(), isNull());
+                    isNull(), eq(400), exceptionSummary.capture(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionSummary.getValue()).isEqualTo("图片内容签名校验失败");
         }
     }
@@ -110,7 +157,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionStack = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Unexpected failure"),
                     eq(BusinessType.UPDATE), eq("PUT"), eq("/api/test"), eq(500), eq(false), isNull(), anyLong(),
-                    isNull(), isNull(), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
+                    isNull(), isNull(), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionStack.getValue()).contains("IllegalStateException: unexpected failure");
         }
     }
@@ -139,7 +186,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionSummary = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Forbidden request"),
                     eq(BusinessType.OTHER), eq("GET"), eq("/api/test"), eq(403), eq(false), isNull(), anyLong(),
-                    isNull(), eq(403), exceptionSummary.capture(), isNull(), isNull(), isNull(), isNull());
+                    isNull(), eq(403), exceptionSummary.capture(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionSummary.getValue()).isEqualTo("权限校验拒绝");
             assertThat(exceptionSummary.getValue()).doesNotContain("BusinessException");
         }
@@ -170,7 +217,7 @@ class OperationLogAspectTests {
             ArgumentCaptor<String> exceptionStack = ArgumentCaptor.forClass(String.class);
             verify(auditLogService).recordOperation(isNull(), isNull(), eq("Test"), eq("Capture request"),
                     eq(BusinessType.UPDATE), eq("POST"), eq("/api/test"), eq(400), eq(false), isNull(), anyLong(),
-                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull());
+                    isNull(), eq(400), exceptionStack.capture(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull());
             assertThat(exceptionStack.getValue()).contains("BusinessException: 请求参数错误");
         }
     }

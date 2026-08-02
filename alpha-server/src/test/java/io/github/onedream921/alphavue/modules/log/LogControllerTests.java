@@ -56,7 +56,7 @@ class LogControllerTests {
     }
 
     @Test
-    void exposesStoredExceptionStackToAuthorizedOperationLogReaders() throws Exception {
+    void exposesStoredExceptionStackOnlyThroughAuthorizedDetailEndpoint() throws Exception {
         SysOperLog log = new SysOperLog();
         log.setUsername("exception-stack-test");
         log.setModule("Test");
@@ -80,7 +80,15 @@ class LogControllerTests {
         mockMvc.perform(get("/api/logs/operations?page=1&size=10&keyword=exception-stack-test")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.records[0].exceptionStack")
+                .andExpect(jsonPath("$.data.records[0].exceptionStack").doesNotExist());
+
+        long id = operLogMapper.selectPage(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10),
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysOperLog>()
+                        .eq(SysOperLog::getUsername, "exception-stack-test")).getRecords().get(0).getId();
+        mockMvc.perform(get("/api/logs/operations/" + id)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.exceptionStack")
                         .value("java.lang.IllegalStateException: test failure\\n\\tat test.Stack.trace(Stack.java:1)"));
     }
 
