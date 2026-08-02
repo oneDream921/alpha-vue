@@ -26,6 +26,7 @@
         <minio.version>8.5.17</minio.version>
         <redisson.version>4.6.1</redisson.version>
         <ip2region.version>3.3.7</ip2region.version>
+        <snail-job.version>2.0.2</snail-job.version>
     </properties>
 
     <dependencies>
@@ -95,6 +96,16 @@
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot4-starter</artifactId>
             <version>${sa-token.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aizuda</groupId>
+            <artifactId>snail-job-client-starter</artifactId>
+            <version>${snail-job.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aizuda</groupId>
+            <artifactId>snail-job-client-job-core</artifactId>
+            <version>${snail-job.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mindrot</groupId>

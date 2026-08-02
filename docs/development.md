@@ -54,6 +54,11 @@
 | `MAINTENANCE_LOG_RETENTION_DAYS`          | `90`                           | 登录日志和已处理/成功操作日志保留天数      |
 | `MAINTENANCE_TEMP_FILE_CLEANUP_DRY_RUN`   | `true`                         | 本地上传临时文件清理是否仅报告候选文件     |
 | `MAINTENANCE_SESSION_INDEX_REPAIR_DRY_RUN` | `true`                        | Sa-Token Redis 过期索引修复是否仅报告候选键 |
+| `SNAIL_JOB_ENABLED`                         | `false`                       | 是否启用 SnailJob Client                   |
+| `SNAIL_JOB_SERVER_HOST`                     | `localhost`                   | SnailJob Server RPC 地址                   |
+| `SNAIL_JOB_SERVER_PORT`                     | `26888`                       | SnailJob Server RPC 端口                   |
+| `SNAIL_JOB_TOKEN`                           | 无                            | SnailJob group token                       |
+| `MAINTENANCE_SPRING_SCHEDULER_ENABLED`     | `true`                        | 是否启用本地 Spring 定时调度器             |
 
 项目使用直接 Redisson 4.6.1 Client 和 Spring Cache 集成，不使用
 `redisson-spring-boot-starter`。默认 Codec 是 `StringCodec`；缓存和 Sa-Token 对象边界使用代码登记的 Kryo5 白名单 Codec。验证码、登录失败、系统配置、系统字典、Sa-Token 会话和 Redis 监控均使用 Redisson，生产键统一为 `alpha:*`，不读取或清理旧前缀。
@@ -103,6 +108,13 @@ Redis 管理页的增强指标默认每分钟执行一次只读 `INFO ALL` 采�
 应用内维护任务默认启用调度，但删除型任务默认 `dry-run=true`：日志保留、本地上传临时文件清理和
 Sa-Token Redis 索引修复会先输出候选数量，不执行删除。运维确认范围后，才分别关闭对应 dry-run
 开关；每轮任务都有批次上限，未处理失败操作日志不会被日志保留清理删除。
+
+SnailJob 为可选的独立调度扩展。启用 `SNAIL_JOB_ENABLED=true` 后，Alpha 注册
+`alphaMaintenanceJob` 执行器；同时必须设置 `MAINTENANCE_SPRING_SCHEDULER_ENABLED=false`，
+避免同一维护周期被本地调度器和 SnailJob 重复执行。开发环境可通过
+`docker compose --profile snailjob up -d` 启动固定版本 `opensnail/snail-job:2.0.2` 及其独立
+MySQL Schema。
+首次创建数据库卷时会执行 `deploy/snailjob-schema.sql` 中经过审核的官方 2.0.2 初始化脚本；已有数据库卷不会重复执行初始化。
 
 ## 存储切换
 

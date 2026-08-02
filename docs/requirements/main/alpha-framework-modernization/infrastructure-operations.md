@@ -6,10 +6,10 @@
 | --- | --- |
 | 当前/一期 | MySQL、Redis；开发可使用 local 文件，Compose smoke 使用 MinIO |
 | 二期 | 可选 Spring Boot Admin Server |
-| 三期 | 应用内受控定时任务；SnailJob 仅在重新评审为 `GO` 后可选部署 |
+| 三期 | 应用内受控定时任务；SnailJob 在 2026-08-02 重评为 `GO` 后作为独立调度扩展接入 |
 
-Spring Boot Admin 和 SnailJob 不进入一期 Docker 默认启动链路；SnailJob 当前为
-`DEFER`，也不属于三期默认组件。
+Spring Boot Admin 和 SnailJob 不进入一期 Docker 默认启动链路；SnailJob 仅通过
+`snailjob` Compose profile 和显式 Alpha Client 配置启用。
 
 ## 2. 本地开发
 
@@ -115,8 +115,7 @@ Alpha Web 只提供受权限控制的外部入口，不重复开发 Admin UI。
 
 ## 8. SnailJob
 
-SnailJob 当前为 `DEFER`，不进入任何已排期阶段。只有应用内任务已不能满足多实例协调、
-可靠重试或可视化运维的真实需求时，才允许重新评审。转为 `GO` 的前提：
+SnailJob 已于 2026-08-02 重评为 `GO`，但仍不进入默认启动链路。正式启用的前提：
 
 - Boot 4 Client 成功链路 Spike 通过，并补齐失败、超时、重试和恢复验证。
 - Server 使用独立 Schema。

@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 public class MaintenanceProperties {
 
     private boolean enabled = true;
+
+    private boolean springSchedulerEnabled = true;
     private long initialDelayMs = 300_000L;
     private long fixedDelayMs = 3_600_000L;
     private LogCleanup logs = new LogCleanup();

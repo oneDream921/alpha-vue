@@ -696,9 +696,15 @@ P2-03、P2-04、P2-06 已触发能力的验证证据，P2-05、P2-07 未触发�
 
 ### P3-02 SnailJob 重评
 
-当前为 `DEFER`，不默认实施。只有应用内任务无法满足真实的多实例协调、可靠重试或
-可视化运维需求时，才补齐失败链路 Spike 并重新进行 `GO/DEFER/REPLACE` 评审。
-若转为 `GO`，第一版直接使用 SnailJob 管理界面，不在 Alpha Web 复制任务中心。
+状态：`READY_FOR_ACCEPTANCE`，阶段决策已转为 `GO`（2026-08-02，用户确认正式接入）
+
+第一版使用 SnailJob 2.0.2 独立 Server、独立 Schema 和 Alpha Client/Executor。
+Alpha 不复制任务中心 UI；维护任务失败通过 `ExecuteResult.failure` 返回给 SnailJob，
+由平台负责失败记录和重试。P3-01 Spring 调度保留为显式回退路径，并在 SnailJob 启用时自动停用，
+避免重复执行。
+
+执行记录：[p3-02-snailjob.md](./execution-plans/p3-02-snailjob.md)。
+当前已完成独立 Server、Schema、Client/Executor 注册和一次真实任务触发；失败重试、超时、停机恢复仍待人工演练。
 
 ### P3-03 Lock4j 重评
 

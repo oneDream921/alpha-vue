@@ -55,3 +55,15 @@ Redis 管理台用于在故障排查时按 `SCAN` 游标分批检查键空间，
 - 设置 `MAINTENANCE_ENABLED=false` 并重启应用，可关闭全部维护调度。
 - 设置对应 `*_DRY_RUN=true` 并重启应用，可保留报告但停止真实删除。
 - 降低 `*_BATCH_SIZE` 可收窄单轮影响范围。
+
+### SnailJob 调度扩展
+
+SnailJob Server 是独立组件，不嵌入 Alpha Server，也不复用 Alpha 业务 Schema。当前固定使用
+`opensnail/snail-job:2.0.2`，开发环境通过 `snailjob` Compose profile 启动，并使用独立的
+`snailjob-db` 数据库容器。Alpha 侧仅注册 `alphaMaintenanceJob` Executor。
+
+首次创建 `snailjob-mysql-data` 时会挂载 `deploy/snailjob-schema.sql` 初始化官方 2.0.2 表结构；已有数据卷不会重复执行初始化脚本。若数据库已存在但未初始化，请先由数据库管理员审核该脚本后执行，禁止直接删除已有 SnailJob 数据卷。
+
+启用 SnailJob 前必须配置 `SNAIL_JOB_ENABLED=true`、`SNAIL_JOB_TOKEN` 及 Server RPC 地址，
+并设置 `MAINTENANCE_SPRING_SCHEDULER_ENABLED=false`。SnailJob 不可用时的回退方式是关闭
+SnailJob 并重新启用 Spring 调度器；切换期间只允许一个调度来源运行。

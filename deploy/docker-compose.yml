@@ -91,7 +91,49 @@ services:
         mc admin policy create local alpha-vue-rw /config/minio-policy.json >/dev/null &&
         mc admin policy attach local alpha-vue-rw --user "$$MINIO_ACCESS_KEY" >/dev/null
 
+  snailjob-db:
+    profiles: ["snailjob"]
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${SNAILJOB_MYSQL_DATABASE:-snail_job}
+      MYSQL_USER: ${SNAILJOB_MYSQL_USER:-snail_job}
+      MYSQL_PASSWORD: ${SNAILJOB_MYSQL_PASSWORD:-change-me-snailjob-password}
+      MYSQL_ROOT_PASSWORD: ${SNAILJOB_MYSQL_ROOT_PASSWORD:-change-me-snailjob-root-password}
+    ports:
+      - "${SNAILJOB_MYSQL_PORT:-13307}:3306"
+    volumes:
+      - snailjob-mysql-data:/var/lib/mysql
+      - ./snailjob-schema.sql:/docker-entrypoint-initdb.d/001-snailjob.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  snailjob:
+    profiles: ["snailjob"]
+    image: opensnail/snail-job:2.0.2
+    restart: unless-stopped
+    depends_on:
+      snailjob-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:mysql://snailjob-db:3306/${SNAILJOB_MYSQL_DATABASE:-snail_job}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: ${SNAILJOB_MYSQL_USER:-snail_job}
+      SPRING_DATASOURCE_PASSWORD: ${SNAILJOB_MYSQL_PASSWORD:-change-me-snailjob-password}
+      SNAIL_JOB_SERVER_PORT: 17888
+    ports:
+      - "${SNAILJOB_HTTP_PORT:-26300}:8080"
+      - "${SNAIL_JOB_SERVER_PORT:-26888}:17888"
+    volumes:
+      - snailjob-data:/snailjob/server/data
+
 volumes:
   mysql-data:
   redis-data:
   minio-data:
+  snailjob-mysql-data:
+  snailjob-data:

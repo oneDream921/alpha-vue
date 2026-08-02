@@ -4,6 +4,7 @@ import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
  * Runs the application maintenance cycle on a fixed delay.
  */
 @Component
+@ConditionalOnProperty(prefix = "alpha.maintenance", name = "spring-scheduler-enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "snail-job", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class ApplicationMaintenanceScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(ApplicationMaintenanceScheduler.class);
