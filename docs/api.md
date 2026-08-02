@@ -19,7 +19,7 @@
 | 参数配置 | `GET/POST/PUT/DELETE /system/configs`、`GET/POST/PUT /system/configs/definitions` |
 | 字典     | `/system/dict-types` CRUD、`/system/dict-types/{typeId}/items`、`/system/dict-items/{id}`、`GET /system/dicts/{typeCode}/items`、`PUT /system/dicts/cache` |
 | 文件     | `GET /files`、`POST /files/upload`、`DELETE /files/{id}`          |
-| 日志     | `GET /logs/operations`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |
+| 日志     | `GET /logs/operations`、`GET /logs/operations/{id}`、`GET /logs/logins`、`PUT /logs/operations/{id}/handled` |
 | Redis 管理 | `GET /monitor/redis/overview`、`GET /monitor/redis/metrics`、`GET /monitor/redis/keys`、`GET/DELETE /monitor/redis/key` |
 | 在线用户 | `GET /monitor/online-users`、`DELETE /monitor/online-users/{userId}/sessions/{terminalIndex}` |
 | SQL 监控 | `GET /monitor/sql/logs`、`DELETE /monitor/sql/logs`、`GET/PUT /monitor/sql/settings` |
@@ -44,6 +44,6 @@ Redis 管理接受可选前缀筛选、键名关键词与 `SCAN` 游标（`curso
 
 SQL 监控返回当前进程内最近 SQL 摘要，支持 `limit=1..200`、`type=SELECT|INSERT|UPDATE|DELETE|UNKNOWN`、`keyword` 和 `slowOnly` 筛选。SQL 文本只保留 MyBatis 占位符，清除注释和字面量并限制单条摘要长度，不渲染真实参数值；摘要按固定容量和保留时间自动清理。清空接口仅清空内存队列，不影响数据库或审计日志。采集设置接口返回当前全局采集状态、已发现的 MyBatis statement 和排除列表；更新设置需要 `monitor:sql:control` 权限，重启后恢复默认“开启 + 全部记录”。连接池运行指标通过受控的 `/actuator/prometheus` 观测。
 
-日志响应包含账号、结果、IP、地点、clientId、设备摘要、浏览器、操作系统和 traceId；操作日志另包含响应状态、耗时、业务错误码和有界异常摘要。日志不返回请求参数、请求体、响应体或认证敏感信息。
+日志列表响应包含账号、结果、IP、地点、clientId、设备摘要、浏览器、操作系统和 traceId；操作日志另包含响应状态、耗时和业务错误码。操作日志详情需要 `log:operation:detail` 权限，才返回有界异常摘要、默认采集且可由注解关闭的结构化请求摘要和响应形状摘要。列表不返回这些详情字段，认证敏感信息不会落库。
 
 开发环境启动后可访问 `/swagger-ui/index.html` 查看 OpenAPI 页面，也可按分组访问 `/v3/api-docs/{group}`（`auth`、`system`、`file`、`log`、`monitor`）。生产环境默认关闭 SpringDoc API 文档与 Swagger UI；如需临时诊断，应通过受控的运维变更并由网关限制访问，而不是直接公开接口文档。

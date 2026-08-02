@@ -33,3 +33,5 @@ Redis 管理台用于在故障排查时按 `SCAN` 游标分批检查键空间，
 应用只设置通用 API 安全头。Nginx/Ingress/API 网关必须负责 TLS、HSTS、CSP、限流、请求体上限、日志脱敏、Actuator 内网限制与可信代理头清洗。只有代理已清洗外部转发头时，应用才可依赖客户端 IP 头进行安全判断。
 
 审计日志使用 `TRUSTED_PROXY_ADDRESSES` 配置受信代理对端；未配置时应用只记录 socket 对端 IP。内网地址标记为“内网 IP”，外部地址使用 `IP_LOCATION_XDB` 指向的 ip2region 离线 XDB 查询，未配置或查询失败时显示“未知”。
+
+操作日志详情通过 `log:operation:detail` 独立权限访问。带有 `@OperationLog` 的入口默认采集摘要；不需要采集的入口显式关闭 `saveRequest` 和 `saveResponse`，硬性敏感路径仍不可采集。失败时丢弃摘要，不回退保存原始请求或响应；异常堆栈和摘要均有字段长度上限。

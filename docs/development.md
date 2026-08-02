@@ -90,6 +90,8 @@ Vite 将 `/api` 和 `/uploads` 代理到 `http://localhost:8080`。Flyway 在后
 
 管理端 `SQL 日志` 页面用于查看当前后端进程的最近 SQL 摘要；采集开关和 Mapper 勾选只影响当前进程。Hikari 指标通过受控的 `/actuator/prometheus` 观测。SQL 日志的保留边界和故障处置见 [运行与发布手册](operations.md)，敏感数据限制见 [安全说明](security.md)。
 
+管理端审计日志列表只返回元数据；操作日志详情需要独立权限。`@OperationLog` 默认采集请求和响应摘要；无需采集的入口显式设置 `saveRequest = false, saveResponse = false`，认证、密码、Token、文件、上传和密钥相关路径仍由硬性规则禁止采集。响应摘要只保留状态、类型和列表数量等形状信息，审计摘要分别限制为 16 KB 和 2 KB。
+
 Redis 管理页的增强指标默认每分钟执行一次只读 `INFO ALL` 采样，最多在当前应用进程保留 24 小时或 1,440 个成功样本。设置 `REDIS_METRICS_ENABLED=false` 可关闭采样和增强面板，不影响原有 Redis 概览、受限 `SCAN` 和单键删除能力。
 
 ## 存储切换

@@ -14,7 +14,7 @@
 - 实体名使用业务表前缀与单数名词（例如 `SysUser`、`SysFile`），关联实体使用双方名词（例如 `SysUserRole`）；请求使用 `Create`、`Update`、`Save` 等 DTO，响应使用 `*Vo`，不使用含混的 `Data`、`Info` 命名。
 - 预期业务错误抛 `BusinessException`；公开消息来自固定枚举，不把异常细节返回客户端。
 - Controller 不捕获并吞掉业务异常；统一异常处理器负责 HTTP 状态、错误消息和 traceId。存储、数据库等内部异常只记录安全上下文。
-- 仅在有审计价值的变更入口使用 `@OperationLog`，不得记录请求体或敏感参数。
+- 仅在有审计价值的变更入口使用 `@OperationLog`；摘要默认开启，敏感或无需采集的入口必须显式设置 `saveRequest = false, saveResponse = false`，并经过结构化脱敏和限长，不得记录原始请求体或敏感参数。硬性禁采集路径始终优先。
 - 使用 SLF4J 参数化日志和 MDC traceId，禁止 `System.out`、直接打印异常凭据或 SQL 参数。
 - `sys_config` 只保存由定义目录登记的业务配置；定义必须包含类型、默认值、校验边界、敏感性、动态性和领域。运行时代码只能通过已实现的受控绑定读取动态配置，不能按任意键读取技术开关；敏感默认值和配置值不得进入响应、审计或日志。
 - SQL 监控只记录最近执行摘要和占位符 SQL，不记录真实参数值；采集控制只能作为运行时排查开关，不作为审计或持久化配置。数据库连接池使用 Spring Boot BOM 默认 HikariCP，指标通过受控 Actuator/Micrometer 观测。
