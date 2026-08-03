@@ -2,6 +2,8 @@ package io.github.onedream921.alphavue.modules.log.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.onedream921.alphavue.modules.log.config.AuditStreamProperties;
 import io.github.onedream921.alphavue.modules.log.entity.SysOperLog;
 import io.github.onedream921.alphavue.modules.log.mapper.SysOperLogMapper;
@@ -49,6 +51,12 @@ public class RedisAuditLogConsumer {
     }
 
     @Autowired
+    public RedisAuditLogConsumer(RedissonClient redissonClient, SysOperLogMapper operLogMapper,
+            AuditStreamProperties properties, AuditLogMetrics metrics) {
+        this(redissonClient, operLogMapper, JsonMapper.builder().addModule(new JavaTimeModule()).build(), properties,
+                metrics);
+    }
+
     public RedisAuditLogConsumer(RedissonClient redissonClient, SysOperLogMapper operLogMapper,
             ObjectMapper objectMapper, AuditStreamProperties properties, AuditLogMetrics metrics) {
         this.stream = redissonClient.getStream(properties.getStreamKey(), StringCodec.INSTANCE);

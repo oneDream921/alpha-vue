@@ -142,4 +142,9 @@ volumes:
   redis-data:
   minio-data:
   snailjob-mysql-data:
+    # Keep the existing local SnailJob database volume when the Compose
+    # project name changes, so local scheduler data and credentials survive
+    # the stack alignment.
+    name: alpha-vue-snailjob_snailjob-mysql-data
+    external: true
   snailjob-data:
