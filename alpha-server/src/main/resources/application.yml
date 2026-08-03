@@ -88,6 +88,18 @@ alpha:
       metrics-max-samples: ${REDIS_METRICS_MAX_SAMPLES:1440}
   log:
     capture-business-exception-stack: ${AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK:false}
+    stream:
+      enabled: ${AUDIT_STREAM_ENABLED:true}
+      stream-key: ${AUDIT_STREAM_KEY:alpha:audit:operation:v1}
+      dead-letter-stream-key: ${AUDIT_STREAM_DLQ_KEY:alpha:audit:operation:dlq:v1}
+      consumer-group: ${AUDIT_STREAM_CONSUMER_GROUP:alpha-audit-db}
+      consumer-name: ${AUDIT_STREAM_CONSUMER_NAME:}
+      batch-size: ${AUDIT_STREAM_BATCH_SIZE:100}
+      read-timeout-ms: ${AUDIT_STREAM_READ_TIMEOUT_MS:1000}
+      poll-delay-ms: ${AUDIT_STREAM_POLL_DELAY_MS:1000}
+      initial-delay-ms: ${AUDIT_STREAM_INITIAL_DELAY_MS:1000}
+      claim-idle-ms: ${AUDIT_STREAM_CLAIM_IDLE_MS:60000}
+      max-delivery-count: ${AUDIT_STREAM_MAX_DELIVERY_COUNT:10}
   maintenance:
     enabled: ${MAINTENANCE_ENABLED:true}
     spring-scheduler-enabled: ${MAINTENANCE_SPRING_SCHEDULER_ENABLED:true}

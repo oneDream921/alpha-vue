@@ -18,6 +18,9 @@ public class SysOperLog {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** Redis Streams 事件幂等键。 */
+    private String eventId;
+
     private Long userId;
 
     private String username;

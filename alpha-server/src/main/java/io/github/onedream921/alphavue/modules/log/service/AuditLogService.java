@@ -7,6 +7,7 @@ import io.github.onedream921.alphavue.modules.log.mapper.SysLoginLogMapper;
 import io.github.onedream921.alphavue.modules.log.mapper.SysOperLogMapper;
 import io.github.onedream921.alphavue.framework.web.IpLocationService;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -20,12 +21,24 @@ public class AuditLogService {
     private final SysLoginLogMapper loginLogMapper;
     private final SysOperLogMapper operLogMapper;
     private final IpLocationService ipLocationService;
+    private final AuditLogDeliveryService deliveryService;
 
+    @Autowired
+    public AuditLogService(SysLoginLogMapper loginLogMapper, SysOperLogMapper operLogMapper,
+            IpLocationService ipLocationService, AuditLogDeliveryService deliveryService) {
+        this.loginLogMapper = loginLogMapper;
+        this.operLogMapper = operLogMapper;
+        this.ipLocationService = ipLocationService;
+        this.deliveryService = deliveryService;
+    }
+
+    /** 保留给不启动 Spring 容器的单元测试使用。 */
     public AuditLogService(SysLoginLogMapper loginLogMapper, SysOperLogMapper operLogMapper,
             IpLocationService ipLocationService) {
         this.loginLogMapper = loginLogMapper;
         this.operLogMapper = operLogMapper;
         this.ipLocationService = ipLocationService;
+        this.deliveryService = null;
     }
 
     /**
@@ -55,9 +68,8 @@ public class AuditLogService {
     }
 
     /**
-     * 异步记录接口操作结果和请求元数据
+     * 交付接口操作结果和请求元数据；生产环境先进入 Redis Stream，故不等待数据库落库。
      */
-    @Async("auditTaskExecutor")
     public void recordOperation(Long userId, String username, String module, String operation, BusinessType type,
             String method, String requestUri, int responseCode, boolean succeeded,
             String ipAddress, long durationMs, String traceId, Integer errorCode, String exceptionStack,
@@ -89,7 +101,11 @@ public class AuditLogService {
         log.setExceptionStack(limit(exceptionStack, EXCEPTION_SUMMARY_LIMIT));
         log.setHandled(0);
         log.setHandlingStatus(0);
-        try { operLogMapper.insert(log); } catch (RuntimeException ignored) { }
+        if (deliveryService == null) {
+            try { operLogMapper.insert(log); } catch (RuntimeException ignored) { }
+        } else {
+            deliveryService.deliver(log);
+        }
     }
 
     private static String limit(String value, int max) {
