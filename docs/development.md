@@ -38,6 +38,11 @@
 | `SQL_LOG_RETENTION_MS`                  | `1800000`                        | SQL 摘要最长保留时间；仅保留进程内数据 |
 | `SQL_LOG_MAX_SQL_LENGTH`                | `4096`                           | 单条 SQL 摘要最大字符数                |
 | `AUDIT_CAPTURE_BUSINESS_EXCEPTION_STACK` | `false`                         | 是否在审计日志中记录自定义业务异常堆栈 |
+| `AUDIT_STREAM_ENABLED`                    | `true`                          | 是否启用 Redis Streams 操作日志投递       |
+| `AUDIT_STREAM_BATCH_SIZE`                 | `100`                           | 单轮审计事件最大消费数量                 |
+| `AUDIT_STREAM_READ_TIMEOUT_MS`            | `1000`                          | Streams 阻塞读取超时（毫秒）              |
+| `AUDIT_STREAM_CLAIM_IDLE_MS`              | `60000`                         | Pending 消息接管的最小空闲时间（毫秒）    |
+| `AUDIT_STREAM_MAX_DELIVERY_COUNT`         | `10`                            | 消息转入死信前的最大投递次数              |
 | `REDIS_POOL_MAX_ACTIVE`                 | dev: `8`，prod: `16`           | Redisson 最大连接池大小                   |
 | `REDIS_POOL_MAX_WAIT`                   | `1s`                           | Redis 连接耗尽时最大等待时间               |
 | `REDIS_DATABASE`                         | `0`                            | Redisson 独立 Client 使用的 Redis DB       |

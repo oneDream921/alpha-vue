@@ -8,6 +8,7 @@
 - `SUPER_ADMIN` 是唯一全权限绕过角色且不可删除；其他访问由后端权限校验决定。
 - 禁用或软删除账号后，已签发 Token 的下一次请求立即失效；管理员可主动踢下线。
 - 操作审计异步写入；`@OperationLog` 默认保存结构化、脱敏和截断后的请求摘要，入口可显式关闭请求和响应摘要，响应只保存状态和形状摘要。密码、Token、Cookie、验证码、请求体、上传正文及 secret/key 字段不落审计库，硬性禁采集规则优先于注解默认值。
+- 操作审计事件默认经 `alpha:audit:operation:v1` Redis Stream 投递，Consumer Group 仅在数据库写入成功后 ACK；重复事件由 `event_id` 幂等，失败消息会重试，超过上限进入死信 Stream。Redis 不可用时普通操作降级为有界异步数据库写入。
 - 应用内维护任务的真实删除或失败会记录系统操作日志摘要；摘要仅包含任务名、状态、扫描数量和影响数量，不包含请求体、Token、Redis 值、文件内容或连接信息。
 - 登录和操作日志保存有界的 clientId、设备摘要、User-Agent 解析结果、traceId、业务错误码、IP 与地点快照；异常摘要会限制长度并脱敏密码、Token、Cookie、验证码、secret/key 等字段。
 - 客户端 IP 默认取 socket 对端地址；只有 `TRUSTED_PROXY_ADDRESSES` 明确列出的代理对端才允许使用 `X-Forwarded-For` 的首个地址，未配置时不信任转发头。
