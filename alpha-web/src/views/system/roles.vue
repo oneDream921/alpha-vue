@@ -19,6 +19,8 @@ import { menuApi, roleApi, type Menu, type Role } from '@/service/system/index'
 import {
     buildRolePermissionTree,
     collectRolePermissionKeys,
+    toggleRolePermission,
+    withRolePermissionAncestors,
 } from './roles.permissions'
 
 const rows = ref<Role[]>([])
@@ -82,6 +84,15 @@ const permissionTreeData = computed(() => buildRolePermissionTree(menus.value))
 const allPermissionIds = computed(() =>
     collectRolePermissionKeys(permissionTreeData.value),
 )
+
+function normalizePermissionMenus(items: Menu[]): Menu[] {
+    return items.map((item) => ({
+        ...item,
+        id: Number(item.id),
+        parentId:
+            item.parentId === undefined ? undefined : Number(item.parentId),
+    }))
+}
 
 async function load() {
     loading.value = true
@@ -187,8 +198,11 @@ async function openPermissions(row: Role) {
         menuApi.assignable(),
         roleApi.menuIds(row.id),
     ])
-    menus.value = assignableMenus.data.data
-    selectedMenuIds.value = menuIds.data.data
+    menus.value = normalizePermissionMenus(assignableMenus.data.data)
+    selectedMenuIds.value = withRolePermissionAncestors(
+        menus.value,
+        menuIds.data.data,
+    )
     expandedMenuIds.value = allPermissionIds.value
     permissionOpen.value = true
 }
@@ -198,21 +212,33 @@ function selectAllPermissions() {
 function clearPermissions() {
     selectedMenuIds.value = []
 }
-function togglePermissionFromTitle(
-    _selectedKeys: unknown,
-    info: { node?: { key?: number | string }; selected?: boolean },
+function updatePermissionSelection(
+    _keys: unknown,
+    info: { node?: { key?: number | string }; checked?: boolean },
 ) {
-    const key = info.node?.key
-    if (key === undefined) return
-    selectedMenuIds.value = info.selected
-        ? [...selectedMenuIds.value, key]
-        : selectedMenuIds.value.filter((id) => id !== key)
+    togglePermissionFromTitle(info.node?.key, info.checked)
+}
+function togglePermissionFromTitle(
+    key: number | string | undefined,
+    checked?: boolean,
+) {
+    const numericKey = Number(key)
+    if (!Number.isSafeInteger(numericKey)) return
+    const selectedKeys = selectedMenuIds.value.map(Number)
+    const isSelected = selectedKeys.includes(numericKey)
+    if (checked !== undefined && checked === isSelected) return
+    selectedMenuIds.value = toggleRolePermission(
+        menus.value,
+        selectedKeys,
+        numericKey,
+    )
 }
 async function savePermissions() {
     if (!assigningRole.value) return
-    const menuIds = selectedMenuIds.value
-        .map((id) => Number(id))
-        .filter(Number.isSafeInteger)
+    const menuIds = withRolePermissionAncestors(
+        menus.value,
+        selectedMenuIds.value.map(Number),
+    ).filter(Number.isSafeInteger)
     await roleApi.assignMenus(assigningRole.value.id, menuIds)
     message.success('权限已更新')
     permissionOpen.value = false
@@ -390,27 +416,47 @@ onMounted(async () => {
                 </a-space>
             </div>
             <a-tree
-                v-model:checked-keys="selectedMenuIds"
+                :checked-keys="selectedMenuIds"
                 class="role-permission-tree"
                 checkable
+                check-strictly
                 :expanded-keys="expandedMenuIds"
                 :tree-data="permissionTreeData"
                 @expand="(keys) => (expandedMenuIds = keys as number[])"
-                @select="togglePermissionFromTitle"
+                @check="updatePermissionSelection"
             >
                 <template #title="{ title, dataRef }">
-                    {{ title }}
-                    <a-tag
-                        class="ml-2"
-                        :color="
-                            dataRef.menuType === 'BUTTON' ? 'orange' : 'blue'
+                    <span
+                        class="permission-tree-title"
+                        role="button"
+                        tabindex="0"
+                        @click.stop="togglePermissionFromTitle(dataRef.key)"
+                        @keydown.enter.stop="
+                            togglePermissionFromTitle(dataRef.key)
+                        "
+                        @keydown.space.prevent.stop="
+                            togglePermissionFromTitle(dataRef.key)
                         "
                     >
-                        {{ dataRef.menuType === 'BUTTON' ? '按钮' : '菜单' }}
-                    </a-tag>
-                    <span v-if="dataRef.permission" class="permission-code">{{
-                        dataRef.permission
-                    }}</span>
+                        {{ title }}
+                        <a-tag
+                            class="ml-2"
+                            :color="
+                                dataRef.menuType === 'BUTTON'
+                                    ? 'orange'
+                                    : 'blue'
+                            "
+                        >
+                            {{
+                                dataRef.menuType === 'BUTTON' ? '按钮' : '菜单'
+                            }}
+                        </a-tag>
+                        <span
+                            v-if="dataRef.permission"
+                            class="permission-code"
+                            >{{ dataRef.permission }}</span
+                        >
+                    </span>
                 </template>
             </a-tree></a-modal
         >

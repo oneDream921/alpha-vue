@@ -51,3 +51,59 @@ export function collectRolePermissionKeys(
         ...collectRolePermissionKeys(node.children ?? []),
     ])
 }
+
+/**
+ * 为已选权限补齐所有祖先菜单，保证按钮权限始终拥有页面入口。
+ */
+export function withRolePermissionAncestors(
+    menus: RolePermissionMenu[],
+    selectedKeys: readonly (number | string)[],
+): number[] {
+    const menusById = new Map(menus.map((menu) => [menu.id, menu]))
+    const selected = new Set(
+        selectedKeys
+            .map(Number)
+            .filter((key): key is number => Number.isSafeInteger(key)),
+    )
+
+    for (const selectedKey of [...selected]) {
+        let parentId = menusById.get(selectedKey)?.parentId
+        while (parentId && menusById.has(parentId)) {
+            selected.add(parentId)
+            parentId = menusById.get(parentId)?.parentId
+        }
+    }
+
+    return [...selected]
+}
+
+/**
+ * 点击权限名称时切换节点，并同步处理其后代和祖先菜单。
+ */
+export function toggleRolePermission(
+    menus: RolePermissionMenu[],
+    selectedKeys: readonly (number | string)[],
+    targetKey: number,
+): number[] {
+    const selected = new Set(selectedKeys)
+    const isSelected = selected.has(targetKey)
+    const descendants = new Set<number>()
+    const collectDescendants = (parentId: number) => {
+        menus
+            .filter((menu) => menu.parentId === parentId)
+            .forEach((menu) => {
+                descendants.add(menu.id)
+                collectDescendants(menu.id)
+            })
+    }
+
+    if (isSelected) {
+        selected.delete(targetKey)
+        collectDescendants(targetKey)
+        descendants.forEach((id) => selected.delete(id))
+    } else {
+        selected.add(targetKey)
+    }
+
+    return withRolePermissionAncestors(menus, [...selected])
+}

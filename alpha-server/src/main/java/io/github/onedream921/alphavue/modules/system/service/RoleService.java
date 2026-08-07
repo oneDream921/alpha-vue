@@ -17,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 角色业务服务
@@ -110,6 +113,7 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
                 .eq(SysMenu::getDeleted, 0)) != menuIds.size()) {
             throw invalidRequest();
         }
+        validateMenuHierarchy(menuIds);
         roleMenuMapper.deleteByRoleId(roleId);
         if (!menuIds.isEmpty()) {
             roleMenuMapper.insertRelations(roleId, menuIds);
@@ -122,6 +126,27 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
     public List<Long> menuIds(long roleId) {
         requireRole(roleId);
         return roleMenuMapper.selectMenuIdsByRoleId(roleId);
+    }
+
+    /**
+     * 校验角色菜单关系完整，避免按钮权限脱离所属菜单。
+     */
+    private void validateMenuHierarchy(Set<Long> menuIds) {
+        if (menuIds.isEmpty()) {
+            return;
+        }
+        Map<Long, SysMenu> menusById = menuMapper.selectList(new LambdaQueryWrapper<SysMenu>()
+                .in(SysMenu::getId, menuIds)
+                .eq(SysMenu::getStatus, 1)
+                .eq(SysMenu::getDeleted, 0))
+                .stream()
+                .collect(Collectors.toMap(SysMenu::getId, Function.identity()));
+        for (SysMenu menu : menusById.values()) {
+            Long parentId = menu.getParentId();
+            if (parentId != null && parentId != 0 && !menuIds.contains(parentId)) {
+                throw new BusinessException(400, PublicErrorMessage.MENU_PARENT_REQUIRED);
+            }
+        }
     }
 
     private SysRole requireRole(long id) {

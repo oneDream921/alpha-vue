@@ -215,6 +215,24 @@ class RbacControllerTests {
                 "SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ? AND menu_id = ?", Integer.class, roleId, menuId))
                 .isEqualTo(1);
 
+        long parentMenuId = insertMenu("RBAC User Menu", "system:user:list", "MENU", 0);
+        long childMenuId = insertMenu("RBAC User Delete", "system:user:delete", "BUTTON", parentMenuId);
+        mockMvc.perform(put("/api/system/roles/{id}/menus", roleId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuIds\":[" + childMenuId + "]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("按钮权限必须依赖所属菜单权限"));
+
+        mockMvc.perform(put("/api/system/roles/{id}/menus", roleId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuIds\":[" + parentMenuId + "," + childMenuId + "]}"))
+                .andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sys_role_menu WHERE role_id = ? AND menu_id IN (?, ?)",
+                Integer.class, roleId, parentMenuId, childMenuId)).isEqualTo(2);
+
         mockMvc.perform(delete("/api/system/roles/1").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
@@ -264,8 +282,12 @@ class RbacControllerTests {
     }
 
     private long insertMenu(String title, String permission) {
-        jdbcTemplate.update("INSERT INTO sys_menu (parent_id, title, menu_type, permission) VALUES (0, ?, 'BUTTON', ?)",
-                title, permission);
+        return insertMenu(title, permission, "BUTTON", 0);
+    }
+
+    private long insertMenu(String title, String permission, String menuType, long parentId) {
+        jdbcTemplate.update("INSERT INTO sys_menu (parent_id, title, menu_type, permission) VALUES (?, ?, ?, ?)",
+                parentId, title, menuType, permission);
         return jdbcTemplate.queryForObject("SELECT id FROM sys_menu WHERE title = ?", Long.class, title);
     }
 
