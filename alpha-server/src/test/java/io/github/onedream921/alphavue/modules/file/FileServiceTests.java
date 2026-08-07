@@ -306,6 +306,26 @@ class FileServiceTests {
     }
 
     @Test
+    void validatesMinioEndpointBucketAndPublicUrlWhenEnabled() {
+        FileStorageProperties properties = new FileStorageProperties();
+        properties.setProvider(MinioStorageProvider.NAME);
+        properties.getMinio().setAccessKey("app");
+        properties.getMinio().setSecretKey("secret");
+        properties.getMinio().setEndpoint("http://minio:9000");
+        properties.getMinio().setBucket("Alpha_Vue");
+
+        assertThatThrownBy(properties::validateForActiveProvider)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("MINIO_BUCKET");
+
+        properties.getMinio().setBucket("alpha-vue");
+        properties.getMinio().setPublicUrl("http://user:password@cdn.example.com");
+        assertThatThrownBy(properties::validateForActiveProvider)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("MINIO_PUBLIC_URL");
+    }
+
+    @Test
     void reconcilesMetadataWhenTheNormalSoftDeleteReportsNoUpdatedRow() throws Exception {
         String key = "reconcile.txt";
         Files.createDirectories(STORAGE_ROOT);

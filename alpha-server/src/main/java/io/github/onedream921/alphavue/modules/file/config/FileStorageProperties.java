@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.net.URI;
 import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -49,6 +50,9 @@ public class FileStorageProperties {
                 && (isBlank(minio.getAccessKey()) || isBlank(minio.getSecretKey()))) {
             throw new IllegalStateException("MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be configured when "
                     + "FILE_STORAGE_PROVIDER=minio");
+        }
+        if (MinioStorageProvider.NAME.equalsIgnoreCase(provider)) {
+            minio.validate();
         }
         if (!publicAccess && (isBlank(accessTokenSecret) || accessTokenTtl.isNegative() || accessTokenTtl.isZero())) {
             throw new IllegalStateException("FILE_ACCESS_TOKEN_SECRET and a positive FILE_ACCESS_TOKEN_TTL are required "
@@ -132,5 +136,35 @@ public class FileStorageProperties {
         private String secretKey;
         private String bucket = "alpha-vue";
         private String publicUrl = "";
+
+        private void validate() {
+            validateHttpUrl(endpoint, "MINIO_ENDPOINT");
+            if (isBlank(bucket) || !bucket.matches("[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")) {
+                throw new IllegalStateException("MINIO_BUCKET must be a valid DNS-compatible bucket name");
+            }
+            if (!isBlank(publicUrl)) {
+                validateHttpUrl(publicUrl, "MINIO_PUBLIC_URL");
+            }
+        }
+
+        private static void validateHttpUrl(String value, String name) {
+            if (isBlank(value)) {
+                throw new IllegalStateException(name + " must be configured");
+            }
+            try {
+                URI uri = URI.create(value.trim());
+                if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                        || isBlank(uri.getHost()) || uri.getUserInfo() != null
+                        || uri.getQuery() != null || uri.getFragment() != null) {
+                    throw new IllegalArgumentException();
+                }
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalStateException(name + " must be an absolute HTTP(S) URL without credentials or query", exception);
+            }
+        }
+
+        private static boolean isBlank(String value) {
+            return value == null || value.isBlank();
+        }
     }
 }
