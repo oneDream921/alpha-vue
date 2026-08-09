@@ -1,8 +1,10 @@
 {
   "schemaVersion": 1,
-  "frameworkVersion": "0.2.3",
+  "frameworkVersion": "0.5.0",
   "targets": {
     "claude": [
+      ".claude/skills/afk-core-acceptance-doc",
+      ".claude/skills/afk-core-afk-maintenance",
       ".claude/skills/afk-core-align-memory",
       ".claude/skills/afk-core-debugging",
       ".claude/skills/afk-core-git-handoff",
@@ -22,6 +24,8 @@
       "CLAUDE.md"
     ],
     "codex": [
+      ".agents/skills/afk-core-acceptance-doc",
+      ".agents/skills/afk-core-afk-maintenance",
       ".agents/skills/afk-core-align-memory",
       ".agents/skills/afk-core-debugging",
       ".agents/skills/afk-core-git-handoff",
@@ -55,6 +59,8 @@
       ".cursor/hooks/afk-git-guard.mjs",
       ".cursor/rules/afk-core.mdc",
       ".cursor/rules/afk-project.mdc",
+      ".cursor/skills/afk-core-acceptance-doc",
+      ".cursor/skills/afk-core-afk-maintenance",
       ".cursor/skills/afk-core-align-memory",
       ".cursor/skills/afk-core-debugging",
       ".cursor/skills/afk-core-git-handoff",
@@ -71,6 +77,9 @@
       ".cursor/skills/afk-project-alpha-vue-generate-task-prompts",
       ".cursor/skills/afk-project-alpha-vue-local-start",
       ".cursor/skills/afk-project-alpha-vue-task-delivery-orchestrator"
+    ],
+    "framework": [
+      ".agent-framework/sync.mjs"
     ]
   }
 }

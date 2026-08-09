@@ -1,5 +1,21 @@
 #!/usr/bin/env node
 
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const hookRoot = dirname(fileURLToPath(import.meta.url));
+
+function playCompletionNotification() {
+  const isWindows = process.platform === "win32";
+  const command = isWindows ? "powershell.exe" : "sh";
+  const args = isWindows
+    ? ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(hookRoot, "afk-notify.ps1")]
+    : [join(hookRoot, "afk-notify.sh")];
+
+  spawnSync(command, args, { stdio: "ignore", timeout: 4_000 });
+}
+
 let input;
 try {
   input = JSON.parse(await new Promise((resolve, reject) => {
@@ -23,4 +39,7 @@ if (!hasTrace && input.stop_hook_active !== true) {
     decision: "block",
     reason: "AFK final-response contract: repeat the complete user-facing final response and end it with exactly one [TRACE] line.",
   })}\n`);
-} else process.stdout.write("{}\n");
+} else {
+  playCompletionNotification();
+  process.stdout.write("{}\n");
+}

@@ -36,14 +36,7 @@
             "command": "sh -lc 'root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.codex/hooks/afk-trace-check.mjs\"'",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.codex/hooks/afk-trace-check.mjs')\"",
             "timeout": 5,
-            "statusMessage": "Checking AFK response footer"
-          },
-          {
-            "type": "command",
-            "command": "sh -lc 'root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); sh \"$root/.codex/hooks/afk-notify.sh\"'",
-            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; & (Join-Path $root '.codex/hooks/afk-notify.ps1')\"",
-            "timeout": 5,
-            "statusMessage": "Playing completion notification"
+            "statusMessage": "Checking AFK completion"
           }
         ]
       }

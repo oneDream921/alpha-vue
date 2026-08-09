@@ -12,7 +12,8 @@
 - 生产分支：main
 - 预发分支：无
 - 测试分支：无
-- 集成分支：main
+- 专题分支基线：main
+- 合入目标分支：main
 - 功能分支：codex/<slug>
 - 修复分支：codex/fix-<slug>
 - release 分支：无
