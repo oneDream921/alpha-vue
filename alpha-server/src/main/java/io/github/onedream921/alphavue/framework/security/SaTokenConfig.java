@@ -10,6 +10,7 @@ import io.github.onedream921.alphavue.modules.auth.service.AuthService;
 import io.github.onedream921.alphavue.modules.auth.service.CaptchaService;
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
+import io.github.onedream921.alphavue.modules.system.settings.service.SystemSettingService;
 import io.github.onedream921.alphavue.framework.redis.RedissonCoreAdapter;
 import io.github.onedream921.alphavue.framework.redis.RedisPhysicalKey;
 import io.github.onedream921.alphavue.framework.redis.RedissonSaTokenDao;
@@ -67,6 +68,15 @@ public class SaTokenConfig implements WebMvcConfigurer {
         return registration;
     }
 
+    @Bean
+    FilterRegistrationBean<XssSanitizingFilter> xssSanitizingFilter(SystemSettingService settingService) {
+        FilterRegistrationBean<XssSanitizingFilter> registration =
+                new FilterRegistrationBean<>(new XssSanitizingFilter(settingService, new com.fasterxml.jackson.databind.ObjectMapper()));
+        registration.addUrlPatterns("/api/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
+        return registration;
+    }
+
     /**
      * 注册 Sa-Token 登录校验拦截器和公开资源放行规则
      */
@@ -80,6 +90,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/captcha",
+                        "/api/auth/oauth/**",
+                        "/api/wechat/official-account/callback",
                         "/api/auth/test-token",
                         "/actuator/**",
                         "/v3/api-docs/**",
@@ -222,9 +234,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
          * 通过 Redis 原子脚本占用一次登录尝试
          */
         @Override
-        public boolean reserveAttempt(String username, String ipAddress) {
+        public boolean reserveAttempt(String username, String ipAddress, int limit, Duration window) {
             return redis.reserveAttempt(RedisPhysicalKey.forIdentifier("auth", "login-failure",
-                    username + "\u0000" + ipAddress), MAX_LOGIN_FAILURES, LOGIN_FAILURE_WINDOW);
+                    username + "\u0000" + ipAddress), limit, window);
         }
 
         /**
@@ -244,15 +256,15 @@ public class SaTokenConfig implements WebMvcConfigurer {
          * 在内存窗口中占用一次登录尝试
          */
         @Override
-        public synchronized boolean reserveAttempt(String username, String ipAddress) {
+        public synchronized boolean reserveAttempt(String username, String ipAddress, int limit, Duration window) {
             String key = username + "\u0000" + ipAddress;
             long now = System.nanoTime();
             FailureWindow current = attempts.get(key);
             if (current == null || current.expiresAtNanos() <= now) {
-                attempts.put(key, new FailureWindow(1, now + LOGIN_FAILURE_WINDOW.toNanos()));
+                attempts.put(key, new FailureWindow(1, now + window.toNanos()));
                 return true;
             }
-            if (current.attempts() >= MAX_LOGIN_FAILURES) {
+            if (current.attempts() >= limit) {
                 return false;
             }
             attempts.put(key, new FailureWindow(current.attempts() + 1, current.expiresAtNanos()));

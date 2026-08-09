@@ -54,11 +54,11 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in deploy/.env}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/.env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-alpha-minio-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-alpha-local-minio-root-password-2026}
     ports:
-      - "${MINIO_API_PORT:?Set MINIO_API_PORT in deploy/.env}:9000"
-      - "${MINIO_CONSOLE_PORT:?Set MINIO_CONSOLE_PORT in deploy/.env}:9001"
+      - "${MINIO_API_PORT:-19000}:9000"
+      - "${MINIO_CONSOLE_PORT:-19001}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
@@ -75,10 +75,10 @@ services:
       minio:
         condition: service_healthy
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in deploy/.env}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in deploy/.env}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in deploy/.env}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in deploy/.env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-alpha-minio-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-alpha-local-minio-root-password-2026}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-alpha-vue-app}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-alpha-local-minio-app-secret-2026}
     volumes:
       - ./minio-policy.json:/config/minio-policy.json:ro
     entrypoint:

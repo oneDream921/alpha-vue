@@ -32,6 +32,14 @@ load_env_file() {
   done < "$ENV_FILE"
 }
 
+validate_system_settings_master_key() {
+  local key="${SYSTEM_SETTINGS_MASTER_KEY:-}"
+  if [[ ! "$key" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+    echo "SYSTEM_SETTINGS_MASTER_KEY must be a 64-character hexadecimal value in deploy/.env." >&2
+    return 1
+  fi
+}
+
 is_docker_process() {
   local pid="$1"
   local command

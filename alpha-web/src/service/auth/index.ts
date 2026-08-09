@@ -19,8 +19,17 @@ export interface LoginResult {
 
 export interface CaptchaResult {
     enabled: boolean
+    type: 'numeric' | 'slider'
+    rememberMeEnabled: boolean
     captchaId: string | null
     image: string | null
+    question: string | null
+    sliderBackground: string | null
+    sliderPiece: string | null
+    sliderWidth: number | null
+    sliderHeight: number | null
+    sliderPieceWidth: number | null
+    sliderPieceTop: number | null
 }
 
 export const authApi = {

@@ -1,6 +1,6 @@
 # Alpha Vue 本地启停脚本
 
-所有 `*.sh` 脚本均可在仓库根目录的终端执行，也可在 IDEA 中直接打开后点击运行。运行前请确认 `deploy/.env` 已配置完成。
+所有 `*.sh` 脚本均可在仓库根目录的终端执行，也可在 IDEA 中直接打开后点击运行。运行前请确认 `deploy/.env` 已配置完成，并包含 `SYSTEM_SETTINGS_MASTER_KEY`：该值必须是 64 位十六进制字符串，用于加密数据库中的系统配置凭据。可先从 `deploy/.env.example` 复制配置，再填写本地值。
 
 ## 一键启动：`start-all.sh`
 
@@ -48,7 +48,7 @@ COMPOSE_PROJECT_NAME=其他项目名 scripts/stop-dependencies.sh
 scripts/start-backend.sh
 ```
 
-安全读取 `deploy/.env`，检查依赖，然后启动 Spring Boot 后端并等待 `http://localhost:8080/actuator/health` 健康检查通过。
+安全读取 `deploy/.env`，检查依赖，然后启动 Spring Boot 后端并等待 `http://localhost:${SERVER_PORT:-8080}/actuator/health` 健康检查通过。若缺少或格式错误的 `SYSTEM_SETTINGS_MASTER_KEY`，后端会在启动前失败并将原因写入日志。
 
 ## 后端停止：`stop-backend.sh`
 

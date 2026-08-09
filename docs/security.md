@@ -13,14 +13,17 @@
 - 登录和操作日志保存有界的 clientId、设备摘要、User-Agent 解析结果、traceId、业务错误码、IP 与地点快照；异常摘要会限制长度并脱敏密码、Token、Cookie、验证码、secret/key 等字段。
 - 客户端 IP 默认取 socket 对端地址；只有 `TRUSTED_PROXY_ADDRESSES` 明确列出的代理对端才允许使用 `X-Forwarded-For` 的首个地址，未配置时不信任转发头。
 - 外部 IP 地点使用 `IP_LOCATION_XDB` 指向的 ip2region 离线 XDB 查询；XDB 未配置或查询失败时返回“未知”，不影响业务请求。
-- 参数配置只允许定义目录中已发布的 `file.*` 业务键。敏感定义仅可作为数据存储，默认值和实际值不进入普通响应、请求审计或应用日志；动态定义只能使用代码已有的文件业务绑定，不能绑定 Spring、Server、数据源、Redis、存储提供者、Sa-Token、连接信息或诊断开关。
+- 系统配置按业务分组和字段白名单保存；数据库中的密钥、Token 和私钥使用应用主密钥加密，普通接口只返回“已配置”状态。运行时只能读取所属分组，不能将 Spring、Server、数据源、Redis、Sa-Token 或诊断开关开放为页面参数。文件允许类型以逗号分隔扩展名保存（如 `png,jpg,pdf`），前端标签多选输入后由服务端逐项解析校验。
+- 文件存储 Access Key 和 Secret Key 仅可由具有 `system:setting:update` 权限的管理员通过 `GET /system/settings/file/credentials` 主动查看；该入口关闭审计请求和响应摘要，管理端不会在加载页面时调用，且在隐藏、切换页签或保存后从表单清除。普通配置读取接口绝不返回这两项明文。
+- RSA 密钥重新生成属于受保护操作：接口仅在当前响应一次性返回新私钥，前端展示后不得持久化到浏览器存储或日志；关闭展示后普通配置接口不提供私钥明文。数据库保存的私钥必须使用应用主密钥加密。
 - 上传使用 UUID 对象键，校验扩展名、MIME、图片签名、大小和安全路径；删除顺序为先对象后元数据。
 - 文件默认私有：本地静态映射和 MinIO 匿名读取默认关闭，接口返回短期 HMAC 签名 URL。必须配置 `FILE_ACCESS_TOKEN_SECRET`；仅在明确设置 `FILE_PUBLIC_ACCESS=true` 时才允许公开读取。
+- 文件短期访问地址刷新接口仅允许 `file:list` 权限调用，只返回指定文件的新签名 URL，不返回文件内容、对象键或存储凭据。
 - 每个请求生成 traceId，写入 MDC、响应头和统一响应；生产日志按天滚动并保留 30 天。
 - API 响应设置 `nosniff`、拒绝 iframe、Referrer-Policy、Permissions-Policy 与 `Cache-Control: no-store`；CSP、TLS、HSTS 和限流由边缘反向代理统一配置。
 - 数据库连接池使用 Spring Boot BOM 默认 HikariCP，并通过受 Bearer 鉴权与网络边界保护的 Actuator/Micrometer 暴露 Hikari 指标；泄漏检测默认关闭，仅在受控诊断场景通过 `DB_POOL_LEAK_DETECTION_THRESHOLD_MS` 临时开启。Redis 连接池采用有限等待，Sa-Token 键检索使用带上限的 `SCAN`，禁止在生产路径使用 `KEYS`。
 - Redisson Client 默认使用 `StringCodec`；对象 Codec 按缓存和 Sa-Token 场景分别使用显式类白名单，不兼容读取旧 JDK 序列化数据。生产 Sa-Token DAO 使用 SHA-256 物理键映射和受控索引，完整实现对象、字符串、会话、TTL 与有界搜索。所有新业务键必须使用 `alpha:*`，不得与旧业务键双读或双写。
-- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按代码注册的 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；`REDIS_MASK_VALUES=true` 时所有值至少按 `MASKED` 返回。验证码、失败计数和 Sa-Token 会话也可通过已注册配置切换展示级别，默认仍为 `HIDDEN`；未注册且命中密钥特征的键始终为 `HIDDEN`，且不反序列化 Redis 中的对象。展示级别配置只允许使用已发布的缓存定义，变更沿用参数配置权限、审计和恢复默认值能力。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
+- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按代码注册的 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；`REDIS_MASK_VALUES=true` 时所有值至少按 `MASKED` 返回。验证码、失败计数和 Sa-Token 会话始终为 `HIDDEN`；未注册且命中密钥特征的键也始终为 `HIDDEN`，且不反序列化 Redis 中的对象。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
 - 在线用户页只读取 Sa-Token 的受控会话索引并限制单页数量，不执行无边界 Redis 扫描；token 只展示 SHA-256 摘要。定向下线按用户和终端索引执行，需 `monitor:online:kickout` 权限并记录审计，不影响其他 client 会话。
 - SQL 日志页只展示进程内最近 SQL 摘要，SQL 文本保留 `?` 占位符，禁止渲染或记录真实参数值、请求体、密码、Token、验证码和 secret/key 字段。采集开关和 Mapper 过滤是当前进程全局运行时设置，修改需要 `monitor:sql:control` 权限。SQL 日志页不得提供任意 SQL 执行能力；如需数据库诊断，只能生成供人工审核的脚本或通过受控运维流程执行。
 - 应用内日志保留清理只删除超过保留期的登录日志、成功操作日志和已处理失败操作日志；未处理失败操作日志不自动删除。临时文件清理仅限本地上传过程中遗留的 `.upload-*.tmp` 文件。所有删除型维护任务默认 dry-run，并有单轮批次上限。

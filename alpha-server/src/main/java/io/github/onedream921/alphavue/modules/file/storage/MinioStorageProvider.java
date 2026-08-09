@@ -1,6 +1,8 @@
 package io.github.onedream921.alphavue.modules.file.storage;
 
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
+import io.github.onedream921.alphavue.modules.system.settings.SettingGroup;
+import io.github.onedream921.alphavue.modules.system.settings.service.SystemSettingService;
 import io.minio.MinioClient;
 import io.minio.GetObjectArgs;
 import io.minio.PutObjectArgs;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 /**
  * MinIO 文件存储实现
@@ -18,16 +21,17 @@ public class MinioStorageProvider implements StorageProvider {
 
     public static final String NAME = "minio";
 
-    private final FileStorageProperties.Minio properties;
     private final FileStorageProperties fileProperties;
+    private final SystemSettingService settings;
     private volatile MinioClient client;
+    private volatile String clientSignature;
 
     /**
      * 根据文件存储配置初始化 MinIO 提供者
      */
-    public MinioStorageProvider(FileStorageProperties fileProperties) {
+    public MinioStorageProvider(FileStorageProperties fileProperties, SystemSettingService settings) {
         this.fileProperties = fileProperties;
-        this.properties = fileProperties.getMinio();
+        this.settings = settings;
     }
 
     @Override
@@ -46,7 +50,7 @@ public class MinioStorageProvider implements StorageProvider {
                 throw new IOException("Storage key has no allowed server-side content type");
             }
             client().putObject(PutObjectArgs.builder()
-                    .bucket(properties.getBucket())
+                    .bucket(bucket())
                     .object(key)
                     .stream(input, -1, 10 * 1024 * 1024)
                     .contentType(serverContentType)
@@ -62,7 +66,7 @@ public class MinioStorageProvider implements StorageProvider {
     @Override
     public void delete(String key) throws IOException {
         try {
-            client().removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
+            client().removeObject(RemoveObjectArgs.builder().bucket(bucket()).object(key).build());
         } catch (Exception exception) {
             throw new IOException("Unable to delete object from MinIO", exception);
         }
@@ -71,7 +75,7 @@ public class MinioStorageProvider implements StorageProvider {
     @Override
     public InputStream open(String key) throws IOException {
         try {
-            return client().getObject(GetObjectArgs.builder().bucket(properties.getBucket()).object(key).build());
+            return client().getObject(GetObjectArgs.builder().bucket(bucket()).object(key).build());
         } catch (Exception exception) {
             throw new IOException("Unable to read object from MinIO", exception);
         }
@@ -82,11 +86,12 @@ public class MinioStorageProvider implements StorageProvider {
      */
     @Override
     public String publicUrl(String key) {
-        String base = properties.getPublicUrl();
+        Map<String, Object> value = settings.runtimeValues(SettingGroup.FILE);
+        String base = text(value, "accessDomain", fileProperties.getMinio().getPublicUrl());
         if (base == null || base.isBlank()) {
-            base = properties.getEndpoint();
+            base = text(value, "endpoint", fileProperties.getMinio().getEndpoint());
         }
-        return trimTrailingSlash(base) + "/" + properties.getBucket() + "/" + key;
+        return trimTrailingSlash(base) + "/" + text(value, "bucket", fileProperties.getMinio().getBucket()) + "/" + key;
     }
 
     private static String trimTrailingSlash(String value) {
@@ -95,21 +100,30 @@ public class MinioStorageProvider implements StorageProvider {
 
     private MinioClient client() {
         MinioClient current = client;
-        if (current != null) {
-            return current;
-        }
+        if (current != null && clientSignature == null) return current;
+        Map<String, Object> value = settings.runtimeValues(SettingGroup.FILE);
+        String endpoint = text(value, "endpoint", fileProperties.getMinio().getEndpoint());
+        String accessKey = required(value, "accessKey", fileProperties.getMinio().getAccessKey());
+        String secretKey = required(value, "secretKey", fileProperties.getMinio().getSecretKey());
+        String signature = endpoint + "\n" + accessKey + "\n" + secretKey;
+        if (current != null && (clientSignature == null || clientSignature.equals(signature))) return current;
         synchronized (this) {
-            if (client == null) {
-                if (properties.getAccessKey() == null || properties.getAccessKey().isBlank()
-                        || properties.getSecretKey() == null || properties.getSecretKey().isBlank()) {
-                    throw new IllegalStateException("MINIO_ACCESS_KEY and MINIO_SECRET_KEY are required for MinIO storage");
-                }
-                client = MinioClient.builder()
-                        .endpoint(properties.getEndpoint())
-                        .credentials(properties.getAccessKey(), properties.getSecretKey())
-                        .build();
+            if (client == null || !signature.equals(clientSignature)) {
+                client = MinioClient.builder().endpoint(endpoint).credentials(accessKey, secretKey).build();
+                clientSignature = signature;
             }
             return client;
         }
+    }
+
+    private String bucket() { return text(settings.runtimeValues(SettingGroup.FILE), "bucket", fileProperties.getMinio().getBucket()); }
+    private static String text(Map<String, Object> value, String key, String fallback) {
+        Object configured = value.get(key);
+        return configured instanceof String text && !text.isBlank() ? text.trim() : fallback;
+    }
+    private static String required(Map<String, Object> value, String key, String fallback) {
+        String result = text(value, key, fallback);
+        if (result == null || result.isBlank()) throw new IllegalStateException("Missing MinIO setting: " + key);
+        return result;
     }
 }

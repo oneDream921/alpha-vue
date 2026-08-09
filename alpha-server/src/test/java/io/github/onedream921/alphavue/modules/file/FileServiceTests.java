@@ -8,7 +8,9 @@ import io.github.onedream921.alphavue.modules.file.storage.LocalStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.MinioStorageProvider;
 import io.github.onedream921.alphavue.modules.file.storage.StorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
-import io.github.onedream921.alphavue.modules.system.service.ConfigService;
+import io.github.onedream921.alphavue.modules.system.settings.SettingGroup;
+import io.github.onedream921.alphavue.modules.system.settings.dto.SystemSettingRequests;
+import io.github.onedream921.alphavue.modules.system.settings.service.SystemSettingService;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.junit.jupiter.api.AfterEach;
@@ -80,7 +82,7 @@ class FileServiceTests {
     private SysUserMapper userMapper;
 
     @Autowired
-    private ConfigService configService;
+    private SystemSettingService settingService;
 
     @AfterEach
     void cleanUp() throws IOException {
@@ -100,13 +102,8 @@ class FileServiceTests {
 
     @org.junit.jupiter.api.BeforeEach
     void configureRuntimeFileRules() {
-        jdbcTemplate.update("DELETE FROM sys_config WHERE config_key LIKE 'file.%'");
-        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
-                "测试上传大小", "file.upload.max-size-mb", "1", "文件", "INTEGER", true);
-        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
-                "测试扩展名", "file.upload.allowed-extensions", "txt,png,webp", "文件", "STRING", true);
-        jdbcTemplate.update("INSERT INTO sys_config (config_name, config_key, config_value, config_group, data_type, enabled, deleted) VALUES (?, ?, ?, ?, ?, ?, 0)",
-                "测试访问期限", "file.private-access-ttl-minutes", "1", "文件", "INTEGER", true);
+        settingService.save(SettingGroup.FILE, new SystemSettingRequests.Save(java.util.Map.of(
+                "maxSizeMb", 1, "allowedExtensions", "txt,png,webp", "privateAccessTtlMinutes", 1)));
     }
 
     @Test
@@ -172,7 +169,7 @@ class FileServiceTests {
 
     @Test
     void avatarImageRemainsAllowedWhenOrdinaryFileAllowListExcludesPng() throws Exception {
-        jdbcTemplate.update("UPDATE sys_config SET config_value = 'jpg' WHERE config_key = 'file.upload.allowed-extensions'");
+        settingService.save(SettingGroup.FILE, new SystemSettingRequests.Save(java.util.Map.of("allowedExtensions", "jpg")));
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", MediaType.IMAGE_PNG_VALUE,
                 new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
 
@@ -240,6 +237,23 @@ class FileServiceTests {
     }
 
     @Test
+    void refreshesThePrivateFileAccessUrlForAnExistingFile() throws Exception {
+        MvcResult upload = mockMvc.perform(multipart("/api/files/upload")
+                        .file(new MockMultipartFile("file", "logo.txt", MediaType.TEXT_PLAIN_VALUE,
+                                "logo".getBytes()))
+                        .header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isOk())
+                .andReturn();
+        long id = jsonId(upload);
+
+        mockMvc.perform(get("/api/files/" + id + "/access-url")
+                        .header("Authorization", bearer(loginAsAdmin())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString(
+                        "/api/files/" + id + "/content?")));
+    }
+
+    @Test
     void keepsMetadataActiveWhenDeletingTheStoredObjectFails() throws Exception {
         Files.createDirectories(STORAGE_ROOT.resolve("blocked"));
         Files.writeString(STORAGE_ROOT.resolve("blocked/child.txt"), "not empty");
@@ -302,7 +316,7 @@ class FileServiceTests {
 
         assertThatThrownBy(properties::validateForActiveProvider)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("FILE_STORAGE_PROVIDER must be local or minio");
+                .hasMessage("FILE_STORAGE_PROVIDER must be local, minio, oss or cos");
     }
 
     @Test
@@ -336,7 +350,7 @@ class FileServiceTests {
                 """);
         long id = jdbcTemplate.queryForObject("SELECT id FROM sys_file WHERE object_key = ?", Long.class, key);
         FileService service = new FailedSoftDeleteFileService(fileStorageProperties,
-                List.of(localStorageProvider, minioStorageProvider), userMapper, fileAccessTokenService, configService);
+                List.of(localStorageProvider, minioStorageProvider), userMapper, fileAccessTokenService);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "baseMapper", fileService.getBaseMapper());
 
         assertThatThrownBy(() -> service.delete(id))
@@ -368,8 +382,8 @@ class FileServiceTests {
     private static final class FailedSoftDeleteFileService extends FileService {
         private FailedSoftDeleteFileService(FileStorageProperties properties, List<StorageProvider> storageProviders,
                                             SysUserMapper userMapper,
-                                            FileAccessTokenService fileAccessTokenService, ConfigService configService) {
-            super(properties, storageProviders, userMapper, fileAccessTokenService, configService);
+                                            FileAccessTokenService fileAccessTokenService) {
+            super(properties, storageProviders, userMapper, fileAccessTokenService);
         }
 
         @Override

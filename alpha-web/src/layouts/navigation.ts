@@ -96,11 +96,11 @@ const managedNavigationMeta = [
         permission: 'system:dept:list',
     },
     {
-        componentId: 'system/configs',
-        path: '/system/configs',
-        title: '参数配置',
+        componentId: 'system/settings',
+        path: '/system/settings',
+        title: '系统配置',
         icon: SettingOutlined,
-        permission: 'system:config:list',
+        permission: 'system:setting:list',
     },
     {
         componentId: 'system/dicts',

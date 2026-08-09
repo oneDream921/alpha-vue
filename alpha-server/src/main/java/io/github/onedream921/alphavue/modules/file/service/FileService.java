@@ -11,10 +11,11 @@ import io.github.onedream921.alphavue.modules.file.mapper.SysFileMapper;
 import io.github.onedream921.alphavue.modules.file.config.FileStorageProperties;
 import io.github.onedream921.alphavue.modules.file.storage.StorageProvider;
 import io.github.onedream921.alphavue.modules.system.mapper.SysUserMapper;
-import io.github.onedream921.alphavue.modules.system.config.RuntimeConfigBinding;
-import io.github.onedream921.alphavue.modules.system.service.ConfigService;
+import io.github.onedream921.alphavue.modules.system.settings.SettingGroup;
+import io.github.onedream921.alphavue.modules.system.settings.service.SystemSettingService;
 import io.github.onedream921.alphavue.modules.system.vo.UserSummaryVo;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,15 +39,22 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     private final Map<String, StorageProvider> providers;
     private final SysUserMapper userMapper;
     private final FileAccessTokenService accessTokenService;
-    private final ConfigService configService;
+    private final SystemSettingService settingService;
 
     public FileService(FileStorageProperties properties, List<StorageProvider> storageProviders,
                        SysUserMapper userMapper,
-                       FileAccessTokenService accessTokenService, ConfigService configService) {
+                       FileAccessTokenService accessTokenService) {
+        this(properties, storageProviders, userMapper, accessTokenService, (SystemSettingService) null);
+    }
+
+    @Autowired
+    public FileService(FileStorageProperties properties, List<StorageProvider> storageProviders,
+                       SysUserMapper userMapper, FileAccessTokenService accessTokenService,
+                       SystemSettingService settingService) {
         this.properties = properties;
         this.userMapper = userMapper;
         this.accessTokenService = accessTokenService;
-        this.configService = configService;
+        this.settingService = settingService;
         this.providers = storageProviders.stream().collect(Collectors.toUnmodifiableMap(
                 provider -> normalizeProvider(provider.name()), provider -> provider));
     }
@@ -62,7 +70,7 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
         String originalName = requireOriginalName(file);
         String extension = extensionOf(originalName);
         String contentType = validateUpload(file, extension, extensionOverride);
-        StorageProvider provider = providerFor(properties.getProvider());
+        StorageProvider provider = providerFor(providerName());
         String key = UUID.randomUUID() + "." + extension;
         try (var input = file.getInputStream()) {
             provider.store(key, input, contentType);
@@ -71,7 +79,7 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
         }
 
         SysFile metadata = new SysFile();
-        metadata.setStorageProvider(normalizeProvider(properties.getProvider()));
+        metadata.setStorageProvider(providerName());
         metadata.setObjectKey(key);
         metadata.setOriginalName(originalName);
         metadata.setContentType(contentType);
@@ -237,14 +245,29 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
     }
 
     private Set<String> allowedExtensions() {
-        return java.util.Arrays.stream(configService.value(RuntimeConfigBinding.FILE_UPLOAD_ALLOWED_EXTENSIONS).split(","))
+        Object configured = setting("allowedExtensions");
+        String source = configured instanceof String value && !value.isBlank() ? value
+                : String.join(",", properties.getAllowedExtensions());
+        return java.util.Arrays.stream(source.split(","))
                 .filter(extension -> extension != null && !extension.isBlank())
                 .map(FileService::normalizeExtension)
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     private long maxSizeBytes() {
-        return Integer.parseInt(configService.value(RuntimeConfigBinding.FILE_UPLOAD_MAX_SIZE)) * 1024L * 1024L;
+        Object configured = setting("maxSizeMb");
+        if (configured instanceof Number value && value.longValue() > 0) return value.longValue() * 1024L * 1024L;
+        if (configured instanceof String value) try { return Long.parseLong(value) * 1024L * 1024L; } catch (NumberFormatException ignored) { }
+        return properties.getMaxSizeBytes();
+    }
+
+    private String providerName() {
+        Object configured = setting("provider");
+        return configured instanceof String value && !value.isBlank() ? normalizeProvider(value) : normalizeProvider(properties.getProvider());
+    }
+
+    private Object setting(String key) {
+        return settingService == null ? null : settingService.get(SettingGroup.FILE).values().get(key);
     }
 
     private StorageProvider providerFor(String name) {

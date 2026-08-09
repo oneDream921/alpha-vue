@@ -15,5 +15,6 @@ public record LoginRequest(
         @Size(max = 64) String deviceName,
         Boolean rememberMe,
         @Size(max = 64) String captchaId,
-        @Size(max = 16) String captcha) {
+        // Numeric codes are short; slider verification carries position, duration, and trace points.
+        @Size(max = 2048) String captcha) {
 }

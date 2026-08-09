@@ -15,6 +15,7 @@ import type { ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { authApi } from '@/service/auth/index'
+import { systemSettingApi } from '@/service/system/settings'
 import { clearManagementRoutes } from '@/router'
 import { authStore } from '@/stores/auth'
 import logoUrl from '@/assets/alpha-logo.svg'
@@ -58,6 +59,13 @@ const menuSearchOpen = ref(false)
 const expandedNavigationGroups = ref<string[]>([])
 const appContentRef = ref<LayoutContentRef | null>(null)
 const menuSearchRef = ref<FocusableInput | null>(null)
+const siteInfo = ref({ copyright: '', icp: '' })
+const watermark = ref({
+    enabled: false,
+    type: 'custom' as 'custom' | 'username',
+    content: '',
+    opacity: 0.12,
+})
 
 const isMobile = computed(() => viewportWidth.value < 768)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -339,7 +347,39 @@ onMounted(() => {
     updateViewport()
     window.addEventListener('resize', updateViewport)
     window.addEventListener('keydown', handleGlobalShortcut)
+    void loadWatermark()
 })
+
+async function loadWatermark() {
+    if (!authStore.getToken()) return
+    try {
+        const response = await systemSettingApi.publicSettings()
+        const site = response.data.data.site as
+            Record<string, unknown> | undefined
+        siteInfo.value = {
+            copyright: String(site?.copyright ?? '').trim(),
+            icp: String(site?.icp ?? '').trim(),
+        }
+        watermark.value = {
+            enabled: site?.watermarkEnabled === true,
+            type: site?.watermarkType === 'username' ? 'username' : 'custom',
+            content: String(site?.watermarkContent ?? ''),
+            opacity: Math.min(
+                1,
+                Math.max(0, Number(site?.watermarkOpacity ?? 0.12)),
+            ),
+        }
+    } catch {
+        siteInfo.value = { copyright: '', icp: '' }
+        watermark.value.enabled = false
+    }
+}
+
+const watermarkText = computed(() =>
+    watermark.value.type === 'username'
+        ? displayName.value
+        : watermark.value.content,
+)
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', updateViewport)
@@ -694,6 +734,62 @@ watch(() => route.fullPath, resetContentScroll)
             <a-layout-content ref="appContentRef" class="app-content">
                 <RouterView />
             </a-layout-content>
+            <a-layout-footer
+                v-if="siteInfo.copyright || siteInfo.icp"
+                class="app-footer"
+            >
+                <span v-if="siteInfo.copyright">{{ siteInfo.copyright }}</span>
+                <a-divider
+                    v-if="siteInfo.copyright && siteInfo.icp"
+                    type="vertical"
+                />
+                <span v-if="siteInfo.icp">{{ siteInfo.icp }}</span>
+            </a-layout-footer>
         </a-layout>
+        <div
+            v-if="watermark.enabled && watermarkText"
+            class="global-watermark"
+            :style="{ opacity: watermark.opacity }"
+            aria-hidden="true"
+        >
+            <span v-for="index in 36" :key="index">{{ watermarkText }}</span>
+        </div>
     </a-layout>
 </template>
+
+<style scoped>
+.global-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    align-content: space-around;
+    justify-items: center;
+    column-gap: 96px;
+    row-gap: 72px;
+    pointer-events: none;
+    overflow: hidden;
+    color: #1f2937;
+    font-size: 16px;
+    transform: rotate(-24deg) scale(1.2);
+}
+.app-footer {
+    padding: 12px 24px 20px;
+    color: var(--alpha-text-secondary);
+    font-size: 12px;
+    text-align: center;
+}
+.global-watermark span {
+    white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .global-watermark {
+        grid-template-columns: repeat(3, 1fr);
+        column-gap: 56px;
+        row-gap: 48px;
+        font-size: 14px;
+    }
+}
+</style>

@@ -23,12 +23,16 @@ export const fileApi = {
         return http.post<ApiResponse<StoredFile>>('/files/upload', data)
     },
     delete: (id: number) => http.delete<ApiResponse<null>>(`/files/${id}`),
+    accessUrl: (id: number) =>
+        http.get<ApiResponse<string>>(`/files/${id}/access-url`),
     content: (
         url: string,
         responseType: 'arraybuffer' | 'text' = 'arraybuffer',
+        options: { silent?: boolean } = {},
     ) =>
         http.get<ArrayBuffer | string>(url, {
             baseURL: '',
             responseType,
+            suppressGlobalErrorMessage: options.silent === true,
         }),
 }

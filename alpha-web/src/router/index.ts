@@ -49,13 +49,13 @@ const managementRouteDefinitions = [
         },
     },
     {
-        path: 'system/configs',
-        name: 'configs',
-        componentId: 'system/configs',
-        component: () => import('@/views/system/configs.vue'),
+        path: 'system/settings',
+        name: 'settings',
+        componentId: 'system/settings',
+        component: () => import('@/views/system/settings/index.vue'),
         meta: {
-            title: '参数配置',
-            permission: 'system:config:list',
+            title: '系统配置',
+            permission: 'system:setting:list',
         },
     },
     {

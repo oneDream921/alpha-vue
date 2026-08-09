@@ -80,12 +80,12 @@ describe('layout navigation', () => {
     it('falls back to the managed whitelist when backend routes are empty', () => {
         const navigation = buildNavigation(
             [],
-            (permission) => permission === 'system:config:list',
+            (permission) => permission === 'system:setting:list',
         )
 
         expect(
             flattenNavigationLeaves(navigation).map((item) => item.title),
-        ).toEqual(['工作台', '参数配置', '个人中心'])
+        ).toEqual(['工作台', '系统配置', '个人中心'])
     })
 
     it('computes tab close ranges without mutating the input list', () => {

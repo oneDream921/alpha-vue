@@ -36,19 +36,22 @@ interface AuthState {
 const storageKey = 'alpha-auth'
 
 function readState(): AuthState {
-    const storage = localStorageOrNull()
-    if (!storage) {
+    const storages = [localStorageOrNull(), sessionStorageOrNull()].filter(
+        (storage): storage is Storage => storage !== null,
+    )
+    if (!storages.length) {
         return { token: null, profile: null, routes: [] }
     }
 
-    try {
-        const stored = storage.getItem(storageKey)
-        return stored
-            ? (JSON.parse(stored) as AuthState)
-            : { token: null, profile: null, routes: [] }
-    } catch {
-        return { token: null, profile: null, routes: [] }
+    for (const storage of storages) {
+        try {
+            const stored = storage.getItem(storageKey)
+            if (stored) return JSON.parse(stored) as AuthState
+        } catch {
+            // Try the next storage location.
+        }
     }
+    return { token: null, profile: null, routes: [] }
 }
 
 const useAuthStore = defineStore('auth', {
@@ -56,8 +59,13 @@ const useAuthStore = defineStore('auth', {
 })
 const store = useAuthStore(pinia)
 
+let persistenceStorage: 'local' | 'session' = 'session'
+
 function persist() {
-    const storage = localStorageOrNull()
+    const storage =
+        persistenceStorage === 'local'
+            ? localStorageOrNull()
+            : sessionStorageOrNull()
     if (storage) {
         storage.setItem(storageKey, JSON.stringify(store.$state))
     }
@@ -71,12 +79,29 @@ function localStorageOrNull(): Storage | null {
     }
 }
 
+function sessionStorageOrNull(): Storage | null {
+    try {
+        return typeof window === 'undefined' ? null : window.sessionStorage
+    } catch {
+        return null
+    }
+}
+
+function setPersistence(rememberMe: boolean) {
+    persistenceStorage = rememberMe ? 'local' : 'session'
+    const otherStorage = rememberMe
+        ? sessionStorageOrNull()
+        : localStorageOrNull()
+    otherStorage?.removeItem(storageKey)
+}
+
 export const authStore = {
     get state() {
         return store.$state
     },
     getToken: () => store.token,
-    setToken(token: string) {
+    setToken(token: string, rememberMe = false) {
+        setPersistence(rememberMe)
         store.token = token
         persist()
     },
@@ -88,7 +113,13 @@ export const authStore = {
         store.routes = routes
         persist()
     },
-    setSession(token: string, profile: UserProfile, routes: AppRoute[]) {
+    setSession(
+        token: string,
+        profile: UserProfile,
+        routes: AppRoute[],
+        rememberMe = false,
+    ) {
+        setPersistence(rememberMe)
         store.$patch({ token, profile, routes })
         persist()
     },
@@ -101,6 +132,7 @@ export const authStore = {
     },
     clearAuth() {
         localStorageOrNull()?.removeItem(storageKey)
+        sessionStorageOrNull()?.removeItem(storageKey)
         store.$reset()
     },
 }

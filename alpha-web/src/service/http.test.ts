@@ -81,6 +81,27 @@ describe('createHttpClient', () => {
         expect(error).not.toHaveBeenCalled()
     })
 
+    it('can suppress generic errors for expected preview failures', async () => {
+        error.mockClear()
+        const auth = {
+            getToken: () => 'session-token',
+            clearAuth: vi.fn(),
+        }
+        const client = createHttpClient(auth)
+        const mock = new AxiosMockAdapter(client)
+
+        mock.onGet('/files/9/content').reply(404, {
+            message: '文件不存在',
+        })
+
+        await expect(
+            client.get('/files/9/content', {
+                suppressGlobalErrorMessage: true,
+            }),
+        ).rejects.toMatchObject({ response: { status: 404 } })
+        expect(error).not.toHaveBeenCalled()
+    })
+
     it('recognizes login requests with query parameters by method and path', async () => {
         error.mockClear()
         const auth = {

@@ -32,4 +32,13 @@ describe('authStore', () => {
         expect(authStore.state.profile).toBeNull()
         expect(authStore.state.routes).toEqual([])
     })
+
+    it('uses session storage unless remember-me is enabled', () => {
+        authStore.setToken('session-token')
+        expect(sessionStorage.getItem('alpha-auth')).toContain('session-token')
+        expect(localStorage.getItem('alpha-auth')).toBeNull()
+        authStore.setToken('remembered-token', true)
+        expect(localStorage.getItem('alpha-auth')).toContain('remembered-token')
+        expect(sessionStorage.getItem('alpha-auth')).toBeNull()
+    })
 })

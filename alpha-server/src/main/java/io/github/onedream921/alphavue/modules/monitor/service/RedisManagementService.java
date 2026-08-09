@@ -12,7 +12,6 @@ import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
-import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,19 +27,17 @@ public class RedisManagementService {
     private final RedisKeyspace keyspace;
     private final RedisManagementProperties properties;
     private final RedisDisplayPolicyRegistry policyRegistry;
-    private final ConfigService configService;
 
     @Autowired
     public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties,
-                                  RedisDisplayPolicyRegistry policyRegistry, ConfigService configService) {
+                                  RedisDisplayPolicyRegistry policyRegistry) {
         this.keyspace = keyspace;
         this.properties = properties;
         this.policyRegistry = policyRegistry;
-        this.configService = configService;
     }
 
     public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
-        this(keyspace, properties, new RedisDisplayPolicyRegistry(), null);
+        this(keyspace, properties, new RedisDisplayPolicyRegistry());
     }
 
     /**
@@ -106,13 +103,6 @@ public class RedisManagementService {
     private RedisDisplayLevel effectiveLevel(RedisDisplayPolicyRegistry.Definition definition, String key) {
         if (isSensitiveKey(key) && !definition.sensitive()) return RedisDisplayLevel.HIDDEN;
         RedisDisplayLevel configured = definition.defaultLevel();
-        try {
-            if (configService != null) {
-                configured = RedisDisplayLevel.valueOf(configService.value(policyRegistry.configKey(definition)));
-            }
-        } catch (RuntimeException exception) {
-            configured = definition.defaultLevel();
-        }
         if (properties.isMaskValues() && configured != RedisDisplayLevel.HIDDEN) return RedisDisplayLevel.MASKED;
         return configured;
     }

@@ -61,6 +61,8 @@ springdoc:
   enable-javadoc: false
 
 alpha:
+  system-settings:
+    master-key: ${SYSTEM_SETTINGS_MASTER_KEY:}
   web:
     trusted-proxies: ${TRUSTED_PROXY_ADDRESSES:}
     ip-location-xdb: ${IP_LOCATION_XDB:}

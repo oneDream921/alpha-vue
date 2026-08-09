@@ -31,13 +31,13 @@ describe('managementRoutesFor', () => {
                 sortOrder: 2,
             },
             {
-                id: 27,
+                id: 50,
                 parentId: 2,
-                title: '参数配置',
+                title: '系统配置',
                 menuType: 'MENU',
-                path: 'configs',
-                component: 'system/configs',
-                permission: 'system:config:list',
+                path: 'settings',
+                component: 'system/settings',
+                permission: 'system:setting:list',
                 sortOrder: 3,
             },
             {
@@ -83,7 +83,7 @@ describe('managementRoutesFor', () => {
 
         expect(routes.map((route) => route.name)).toEqual([
             'users',
-            'configs',
+            'settings',
             'dicts',
             'redis',
             'sql-monitor',

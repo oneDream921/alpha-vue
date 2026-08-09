@@ -31,6 +31,8 @@ sa-token:
   is-log: false
 
 alpha:
+  system-settings:
+    master-key: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   monitor:
     redis:
       metrics-enabled: false

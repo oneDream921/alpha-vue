@@ -46,6 +46,18 @@ class AuthControllerTests {
     }
 
     @Test
+    void acceptsSliderCaptchaPayloadLengthBeforeBusinessValidation() throws Exception {
+        String sliderPayload = "240~1200~0,24,0;60,24,120;120,24,240;180,24,360;240,24,480";
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"incorrect\",\"clientId\":\"pc-admin\","
+                                + "\"captchaId\":\"slider-id\",\"captcha\":\"" + sliderPayload + "\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
     void rejectsMissingOrUnknownClientId() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,6 +103,24 @@ class AuthControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.username").value("admin"));
+    }
+
+    @Test
+    void exposesCaptchaModeAndRememberMeSetting() throws Exception {
+        mockMvc.perform(get("/api/auth/captcha"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.enabled").exists())
+                .andExpect(jsonPath("$.data.type").value("numeric"))
+                .andExpect(jsonPath("$.data.rememberMeEnabled").exists());
+    }
+
+    @Test
+    void exposesSystemSettingsRouteForAdministrator() throws Exception {
+        String token = login("admin", "admin123", "pc-admin");
+
+        mockMvc.perform(get("/api/auth/routes").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.component == 'system/settings' && @.permission == 'system:setting:list')]").exists());
     }
 
     @Test

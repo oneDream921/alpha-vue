@@ -1,5 +1,7 @@
 # 编码规范
 
+本项目 Java 规约的完整版本见 [Alpha Vue Java 开发规范](java-development-conventions.md)，其中包含数据库、对象分层、异常日志、并发集合、测试和交付评审清单。
+
 ## 后端
 
 - 单体按领域分包：通用契约放 `common`，技术适配放 `framework`，业务放 `modules/<domain>`。每个领域按职责继续拆为 `controller`、`service`、`mapper`、`entity`、`dto`、`vo`；配置放 `config`，基础设施实现放专属子包（如 `storage`、`aspect`）。禁止将 Controller、Service、Mapper 直接并列放在领域根包。
@@ -16,7 +18,7 @@
 - Controller 不捕获并吞掉业务异常；统一异常处理器负责 HTTP 状态、错误消息和 traceId。存储、数据库等内部异常只记录安全上下文。
 - 仅在有审计价值的变更入口使用 `@OperationLog`；摘要默认开启，敏感或无需采集的入口必须显式设置 `saveRequest = false, saveResponse = false`，并经过结构化脱敏和限长，不得记录原始请求体或敏感参数。硬性禁采集路径始终优先。
 - 使用 SLF4J 参数化日志和 MDC traceId，禁止 `System.out`、直接打印异常凭据或 SQL 参数。
-- `sys_config` 只保存由定义目录登记的业务配置；定义必须包含类型、默认值、校验边界、敏感性、动态性和领域。运行时代码只能通过已实现的受控绑定读取动态配置，不能按任意键读取技术开关；敏感默认值和配置值不得进入响应、审计或日志。
+- 系统配置使用分组白名单持久化模型；敏感字段单独加密托管，普通读取、审计和日志不得包含明文。运行时代码只能读取所属配置组，不得按任意键读取技术开关。
 - SQL 监控只记录最近执行摘要和占位符 SQL，不记录真实参数值；采集控制只能作为运行时排查开关，不作为审计或持久化配置。数据库连接池使用 Spring Boot BOM 默认 HikariCP，指标通过受控 Actuator/Micrometer 观测。
 
 ## 前端

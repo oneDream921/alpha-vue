@@ -28,7 +28,22 @@ import { authStore } from '@/stores/auth'
 describe('login page', () => {
     it('stores the token before loading profile and routes', async () => {
         captcha.mockResolvedValue({
-            data: { data: { enabled: false, captchaId: null, image: null } },
+            data: {
+                data: {
+                    enabled: false,
+                    type: 'numeric',
+                    rememberMeEnabled: true,
+                    captchaId: null,
+                    image: null,
+                    question: null,
+                    sliderBackground: null,
+                    sliderPiece: null,
+                    sliderWidth: null,
+                    sliderHeight: null,
+                    sliderPieceWidth: null,
+                    sliderPieceTop: null,
+                },
+            },
         })
         login.mockResolvedValue({
             data: {
@@ -78,7 +93,22 @@ describe('login page', () => {
             [],
         )
         captcha.mockResolvedValue({
-            data: { data: { enabled: false, captchaId: null, image: null } },
+            data: {
+                data: {
+                    enabled: false,
+                    type: 'numeric',
+                    rememberMeEnabled: true,
+                    captchaId: null,
+                    image: null,
+                    question: null,
+                    sliderBackground: null,
+                    sliderPiece: null,
+                    sliderWidth: null,
+                    sliderHeight: null,
+                    sliderPieceWidth: null,
+                    sliderPieceTop: null,
+                },
+            },
         })
         login.mockRejectedValue(new Error('invalid credentials'))
 
@@ -93,5 +123,39 @@ describe('login page', () => {
         expect(authStore.getToken()).toBeNull()
         expect(authStore.state.profile).toBeNull()
         expect(authStore.state.routes).toEqual([])
+    })
+
+    it('renders the configured slider captcha and hides disabled remember-me option', async () => {
+        captcha.mockResolvedValue({
+            data: {
+                data: {
+                    enabled: true,
+                    type: 'slider',
+                    rememberMeEnabled: false,
+                    captchaId: 'slider-id',
+                    image: null,
+                    question: '3 + 4 = ?',
+                    sliderBackground: 'data:image/png;base64,background',
+                    sliderPiece: 'data:image/png;base64,piece',
+                    sliderWidth: 420,
+                    sliderHeight: 280,
+                    sliderPieceWidth: 42,
+                    sliderPieceTop: 42,
+                },
+            },
+        })
+        const wrapper = mount(Login, { global: { plugins: [Antd] } })
+        await flushPromises()
+        await wrapper.find('input[autocomplete="username"]').setValue('admin')
+        await wrapper
+            .find('input[autocomplete="current-password"]')
+            .setValue('password')
+        await wrapper.get('form').trigger('submit')
+        await flushPromises()
+        expect(document.body.textContent).not.toContain('请完成滑块验证后继续登录')
+        expect(document.body.textContent).toContain('拖动滑块完成验证')
+        expect(document.body.querySelector('.slider-captcha')).not.toBeNull()
+        expect(document.body.querySelector('.slider-captcha-toolbar')).not.toBeNull()
+        expect(document.body.textContent).not.toContain('7 天内保持登录')
     })
 })

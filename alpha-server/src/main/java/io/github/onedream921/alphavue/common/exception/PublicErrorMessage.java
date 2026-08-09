@@ -16,7 +16,7 @@ public enum PublicErrorMessage {
     DEPT_HAS_CHILDREN("请先删除该部门下的子部门"),
     DEPT_HAS_USERS("请先将该部门下的用户调整到其他部门"),
     MENU_PARENT_REQUIRED("按钮权限必须依赖所属菜单权限"),
-    LOGIN_TEMPORARILY_LOCKED("登录失败次数过多，请稍后再试"),
+    LOGIN_TEMPORARILY_LOCKED("账号已被临时锁定，请在锁定时间结束后重试"),
     UNAUTHORIZED("请先登录"),
     FORBIDDEN("没有操作权限"),
     RESOURCE_NOT_FOUND("资源不存在"),

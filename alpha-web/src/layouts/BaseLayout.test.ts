@@ -1,5 +1,5 @@
 import Antd, { Modal } from 'ant-design-vue'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const routeMock = vi.hoisted(() => ({
@@ -18,12 +18,60 @@ vi.mock('vue-router', () => ({
     useRoute: () => routeMock,
     useRouter: () => ({ replace: vi.fn() }),
 }))
+const { publicSettings } = vi.hoisted(() => ({ publicSettings: vi.fn() }))
+vi.mock('@/service/system/settings', () => ({
+    systemSettingApi: { publicSettings },
+}))
 
 import BaseLayout from './BaseLayout.vue'
 import { authStore } from '@/stores/auth'
 
 describe('BaseLayout', () => {
+    it('renders site footer settings and resolves username watermarks', async () => {
+        authStore.setSession(
+            'test-token',
+            {
+                id: 1,
+                username: 'admin',
+                nickname: '管理员',
+                roles: [],
+                permissions: ['*'],
+                mustChangePassword: false,
+            },
+            [],
+        )
+        publicSettings.mockResolvedValue({
+            data: {
+                data: {
+                    site: {
+                        copyright: '© Alpha Vue',
+                        icp: 'ICP备案号 123',
+                        watermarkEnabled: true,
+                        watermarkType: 'username',
+                        watermarkOpacity: 0.2,
+                    },
+                },
+            },
+        })
+
+        const wrapper = mount(BaseLayout, {
+            global: {
+                plugins: [Antd],
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' },
+                },
+            },
+        })
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('© Alpha Vue')
+        expect(wrapper.text()).toContain('ICP备案号 123')
+        expect(wrapper.find('.global-watermark').text()).toContain('管理员')
+    })
+
     afterEach(() => {
+        publicSettings.mockReset()
         authStore.clearAuth()
         routeMock.path = '/'
         routeMock.fullPath = '/'
@@ -372,7 +420,7 @@ describe('BaseLayout', () => {
         expect(currentItems[currentItems.length - 1].text()).toBe('用户管理')
     })
 
-    it('shows parameter configuration only to users with its list permission', () => {
+    it('shows system settings only to users with its list permission', () => {
         authStore.setProfile({
             id: 2,
             username: 'operator',
@@ -390,14 +438,14 @@ describe('BaseLayout', () => {
                 },
             },
         })
-        expect(withoutPermission.text()).not.toContain('参数配置')
+        expect(withoutPermission.text()).not.toContain('系统配置')
         withoutPermission.unmount()
 
         authStore.setProfile({
             id: 2,
             username: 'operator',
             roles: [],
-            permissions: ['system:config:list'],
+            permissions: ['system:setting:list'],
             mustChangePassword: false,
         })
         const withPermission = mount(BaseLayout, {
@@ -409,7 +457,7 @@ describe('BaseLayout', () => {
                 },
             },
         })
-        expect(withPermission.text()).toContain('参数配置')
+        expect(withPermission.text()).toContain('系统配置')
     })
 
     it('shows data dictionary only to users with its list permission', () => {

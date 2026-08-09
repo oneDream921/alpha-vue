@@ -70,6 +70,15 @@ public class FileController extends BaseController {
     }
 
     /**
+     * 为私有文件生成新的短期访问地址，避免持久化或复用已过期的签名地址。
+     */
+    @GetMapping("/{id}/access-url")
+    public ApiResponse<String> accessUrl(@PathVariable @Positive long id, HttpServletRequest request) {
+        access.require("file:list");
+        return success(fileService.accessUrl(id), request);
+    }
+
+    /**
      * 删除文件对象并软删除对应元数据
      */
     @DeleteMapping("/{id}")

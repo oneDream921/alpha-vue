@@ -3,15 +3,12 @@ package io.github.onedream921.alphavue.modules.monitor.service;
 import io.github.onedream921.alphavue.modules.monitor.config.RedisManagementProperties;
 import io.github.onedream921.alphavue.modules.monitor.config.RedisDisplayPolicyRegistry;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
-import io.github.onedream921.alphavue.modules.system.service.ConfigService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class RedisManagementServiceTests {
 
@@ -40,11 +37,9 @@ class RedisManagementServiceTests {
     }
 
     @Test
-    void allowsRegisteredSensitiveNamespacesToUseTheSameDisplayLevels() {
+    void neverShowsSensitiveNamespacesEvenWhenValueMaskingIsDisabled() {
         RedisManagementProperties properties = new RedisManagementProperties();
         properties.setMaskValues(false);
-        ConfigService configService = mock(ConfigService.class);
-        when(configService.value("cache.display.session")).thenReturn("PLAIN");
         RedisKeyspace keyspace = new RedisKeyspace() {
             @Override public RedisScanResult scan(String prefix, String keyword, String cursor, int count) {
                 return new RedisScanResult(List.of(
@@ -57,12 +52,12 @@ class RedisManagementServiceTests {
         };
 
         RedisManagementService service = new RedisManagementService(
-                keyspace, properties, new RedisDisplayPolicyRegistry(), configService);
+                keyspace, properties, new RedisDisplayPolicyRegistry());
 
         List<RedisKeyMetadataVo> records = service.page(
                 new io.github.onedream921.alphavue.modules.monitor.dto.RedisKeyQuery("", "0", 10, null)).records();
 
-        assertThat(records).extracting(RedisKeyMetadataVo::value).containsExactly("secret", "[masked]");
-        assertThat(records).extracting(RedisKeyMetadataVo::displayLevel).containsExactly("PLAIN", "HIDDEN");
+        assertThat(records).extracting(RedisKeyMetadataVo::value).containsExactly("[masked]", "[masked]");
+        assertThat(records).extracting(RedisKeyMetadataVo::displayLevel).containsExactly("HIDDEN", "HIDDEN");
     }
 }

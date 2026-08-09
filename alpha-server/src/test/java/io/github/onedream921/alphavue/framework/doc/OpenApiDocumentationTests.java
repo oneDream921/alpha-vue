@@ -30,11 +30,11 @@ class OpenApiDocumentationTests {
     }
 
     @Test
-    void exposesConfigurationTagInSystemGroup() throws Exception {
+    void exposesSystemSettingsTagInSystemGroup() throws Exception {
         mockMvc.perform(get("/v3/api-docs/system"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tags[?(@.name == '参数配置')]").exists())
-                .andExpect(jsonPath("$.paths['/api/system/configs']").exists());
+                .andExpect(jsonPath("$.tags[?(@.name == '系统配置')]").exists())
+                .andExpect(jsonPath("$.paths['/api/system/settings/{group}']").exists());
     }
 
     @Test

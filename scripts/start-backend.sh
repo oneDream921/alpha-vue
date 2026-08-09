@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 load_env_file
+validate_system_settings_master_key
 : "${SERVER_PORT:=8080}"
 : "${FILE_ACCESS_TOKEN_SECRET:=alpha-local-dev-file-access-token-secret}"
 export SERVER_PORT FILE_ACCESS_TOKEN_SECRET

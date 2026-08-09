@@ -3,6 +3,12 @@ import { message, Modal } from 'ant-design-vue'
 
 import { authStore, type AuthStore } from '@/stores/auth'
 
+declare module 'axios' {
+    interface AxiosRequestConfig {
+        suppressGlobalErrorMessage?: boolean
+    }
+}
+
 export interface ApiResponse<T> {
     code: number
     message: string
@@ -64,7 +70,11 @@ export function createHttpClient(store: AuthStore): AxiosInstance {
                 const isLoginRequest =
                     error.config?.method?.toLowerCase() === 'post' &&
                     requestPath === '/auth/login'
-                if (error.response?.status !== 401 && !isLoginRequest) {
+                if (
+                    error.response?.status !== 401 &&
+                    !isLoginRequest &&
+                    !error.config?.suppressGlobalErrorMessage
+                ) {
                     const errorMessage = error.response?.data?.message
                     message.error(
                         typeof errorMessage === 'string' && errorMessage
