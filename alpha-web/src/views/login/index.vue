@@ -44,7 +44,9 @@ const sliderOffset = ref(0)
 const sliderDragging = ref(false)
 const sliderStartX = ref(0)
 const sliderModalOpen = ref(false)
-const sliderTrack = ref<HTMLElement>()
+const sliderTrack = ref<{
+    getBoundingClientRect: () => { left: number; top: number }
+}>()
 const sliderTrace = ref<Array<{ x: number; y: number; t: number }>>([])
 const sliderStartedAt = ref(0)
 const sliderStatus = ref('')
@@ -103,34 +105,43 @@ function moveSlider(event: SliderPointerEvent) {
     recordSliderPoint(event)
 }
 
-function recordSliderPoint(event: SliderPointerEvent) {
+function recordSliderPoint(
+    event: SliderPointerEvent,
+    elapsed = Date.now() - sliderStartedAt.value,
+    force = false,
+) {
     const bounds = sliderTrack.value?.getBoundingClientRect()
     if (!bounds) return
-    const maxOffset = Math.max(0, sliderWidth.value - sliderPieceWidth.value)
-    const x = Math.max(
-        0,
-        Math.min(
-            maxOffset,
-            event.clientX - bounds.left - sliderPieceWidth.value / 2,
-        ),
-    )
     const y = Math.max(0, Math.min(48, event.clientY - bounds.top))
-    const t = Date.now() - sliderStartedAt.value
     const last = sliderTrace.value.at(-1)
-    if (!last || t - last.t >= 16) sliderTrace.value.push({ x, y, t })
+    if (!last || force || elapsed - last.t >= 16) {
+        sliderTrace.value.push({ x: sliderOffset.value, y, t: elapsed })
+    }
 }
 
 async function endSlider() {
     if (!sliderDragging.value) return
     sliderDragging.value = false
-    recordSliderPoint({
-        clientX: sliderStartX.value + sliderOffset.value,
-        clientY: 0,
-        currentTarget: sliderTrack.value,
-        pointerId: 0,
-    })
-    form.captcha = `${Math.round(sliderOffset.value)}~${Date.now() - sliderStartedAt.value}~${sliderTrace.value
-        .map((point) => `${Math.round(point.x)},${Math.round(point.y)},${point.t}`)
+    const lastTraceTime = sliderTrace.value.at(-1)?.t ?? -1
+    const duration = Math.max(
+        Date.now() - sliderStartedAt.value,
+        lastTraceTime + 1,
+    )
+    recordSliderPoint(
+        {
+            clientX: sliderStartX.value + sliderOffset.value,
+            clientY: 0,
+            currentTarget: sliderTrack.value,
+            pointerId: 0,
+        },
+        duration,
+        true,
+    )
+    form.captcha = `${Math.round(sliderOffset.value)}~${duration}~${sliderTrace.value
+        .map(
+            (point) =>
+                `${Math.round(point.x)},${Math.round(point.y)},${point.t}`,
+        )
         .join(';')}`
     sliderModalOpen.value = false
     await performLogin()
@@ -152,7 +163,11 @@ function showSliderInfo() {
 }
 
 async function submit() {
-    if (captchaEnabled.value && captchaType.value === 'slider' && !form.captcha) {
+    if (
+        captchaEnabled.value &&
+        captchaType.value === 'slider' &&
+        !form.captcha
+    ) {
         sliderModalOpen.value = true
         return
     }
@@ -329,10 +344,7 @@ onMounted(loadCaptcha)
                             }"
                         />
                     </div>
-                    <div
-                        ref="sliderTrack"
-                        class="slider-captcha-track"
-                    >
+                    <div ref="sliderTrack" class="slider-captcha-track">
                         <div
                             class="slider-captcha-fill"
                             :style="{

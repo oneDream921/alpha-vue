@@ -1,6 +1,8 @@
 import Antd from 'ant-design-vue'
-import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+enableAutoUnmount(afterEach)
 
 const { login, profile, routes, captcha, replace } = vi.hoisted(() => ({
     login: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock('@/router', () => ({
 }))
 
 import Login from './index.vue'
+import type { LoginPayload } from '@/service/auth/index'
 import { authStore } from '@/stores/auth'
 
 describe('login page', () => {
@@ -152,10 +155,107 @@ describe('login page', () => {
             .setValue('password')
         await wrapper.get('form').trigger('submit')
         await flushPromises()
-        expect(document.body.textContent).not.toContain('请完成滑块验证后继续登录')
+        expect(document.body.textContent).not.toContain(
+            '请完成滑块验证后继续登录',
+        )
         expect(document.body.textContent).toContain('拖动滑块完成验证')
         expect(document.body.querySelector('.slider-captcha')).not.toBeNull()
-        expect(document.body.querySelector('.slider-captcha-toolbar')).not.toBeNull()
+        expect(
+            document.body.querySelector('.slider-captcha-toolbar'),
+        ).not.toBeNull()
         expect(document.body.textContent).not.toContain('7 天内保持登录')
+    })
+
+    it('submits the final slider offset even when pointer-up follows the last move within 16ms', async () => {
+        let now = 1_000
+        const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now)
+        try {
+            captcha.mockResolvedValue({
+                data: {
+                    data: {
+                        enabled: true,
+                        type: 'slider',
+                        rememberMeEnabled: true,
+                        captchaId: 'slider-id',
+                        image: null,
+                        question: null,
+                        sliderBackground: 'data:image/png;base64,background',
+                        sliderPiece: 'data:image/png;base64,piece',
+                        sliderWidth: 420,
+                        sliderHeight: 280,
+                        sliderPieceWidth: 42,
+                        sliderPieceTop: 42,
+                    },
+                },
+            })
+            login.mockClear()
+            let submittedCaptcha = ''
+            login.mockImplementationOnce(async (payload: LoginPayload) => {
+                submittedCaptcha = payload.captcha ?? ''
+                throw new Error('stop after payload capture')
+            })
+
+            const wrapper = mount(Login, { global: { plugins: [Antd] } })
+            await flushPromises()
+            await wrapper
+                .find('input[autocomplete="username"]')
+                .setValue('admin')
+            await wrapper
+                .find('input[autocomplete="current-password"]')
+                .setValue('admin123')
+            await wrapper.get('form').trigger('submit')
+            await flushPromises()
+            expect(login).not.toHaveBeenCalled()
+
+            const latest = (selector: string) =>
+                Array.from(
+                    document.body.querySelectorAll<HTMLElement>(selector),
+                ).at(-1) as HTMLElement
+            const track = latest('.slider-captcha-track')
+            const handle = latest('.slider-captcha-handle') as HTMLElement & {
+                setPointerCapture: (pointerId: number) => void
+            }
+            const captchaPanel = latest('.slider-captcha')
+            track.getBoundingClientRect = () => ({ left: 0, top: 0 }) as DOMRect
+            handle.setPointerCapture = vi.fn()
+            const dispatchPointerEvent = (
+                target: HTMLElement,
+                type: string,
+                clientX: number,
+            ) => {
+                const event = new MouseEvent(type, {
+                    bubbles: true,
+                    clientX,
+                    clientY: 24,
+                })
+                Object.defineProperty(event, 'pointerId', { value: 1 })
+                target.dispatchEvent(event)
+            }
+
+            dispatchPointerEvent(handle, 'pointerdown', 6)
+            for (const [elapsed, clientX] of [
+                [400, 100],
+                [500, 200],
+                [600, 300],
+                [615, 371],
+            ] as const) {
+                now = 1_000 + elapsed
+                dispatchPointerEvent(captchaPanel, 'pointermove', clientX)
+            }
+            now = 1_630
+            dispatchPointerEvent(captchaPanel, 'pointerup', 371)
+            await flushPromises()
+
+            expect(login).toHaveBeenCalledOnce()
+            expect(submittedCaptcha).toContain('~')
+            const [submittedX, duration, trace] = submittedCaptcha.split('~')
+            const lastPoint = trace.split(';').at(-1)?.split(',')
+            expect(submittedX).toBe('365')
+            expect(duration).toBe('630')
+            expect(lastPoint?.[0]).toBe(submittedX)
+            expect(lastPoint?.[2]).toBe(duration)
+        } finally {
+            nowSpy.mockRestore()
+        }
     })
 })
