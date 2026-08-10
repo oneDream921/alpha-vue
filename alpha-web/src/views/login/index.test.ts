@@ -29,6 +29,42 @@ import type { LoginPayload } from '@/service/auth/index'
 import { authStore } from '@/stores/auth'
 
 describe('login page', () => {
+    it('blocks login until the captcha configuration finishes loading', async () => {
+        let resolveCaptcha: ((value: unknown) => void) | undefined
+        captcha.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveCaptcha = resolve
+            }),
+        )
+        login.mockClear()
+
+        const wrapper = mount(Login, { global: { plugins: [Antd] } })
+        await wrapper.find('input[autocomplete="username"]').setValue('admin')
+        await wrapper
+            .find('input[autocomplete="current-password"]')
+            .setValue('admin123')
+
+        expect(
+            wrapper.get('button[type="submit"]').attributes('disabled'),
+        ).toBe('')
+        await wrapper.get('form').trigger('submit')
+        expect(login).not.toHaveBeenCalled()
+
+        resolveCaptcha?.({
+            data: {
+                data: {
+                    enabled: false,
+                    type: 'numeric',
+                    rememberMeEnabled: true,
+                },
+            },
+        })
+        await flushPromises()
+        expect(
+            wrapper.get('button[type="submit"]').attributes('disabled'),
+        ).toBeUndefined()
+    })
+
     it('stores the token before loading profile and routes', async () => {
         captcha.mockResolvedValue({
             data: {
@@ -216,7 +252,9 @@ describe('login page', () => {
                 setPointerCapture: (pointerId: number) => void
             }
             const captchaPanel = latest('.slider-captcha')
-            track.getBoundingClientRect = () => ({ left: 0, top: 0 }) as DOMRect
+            track.getBoundingClientRect = () =>
+                ({ left: 0, top: 0, width: 350 }) as DOMRect
+            handle.getBoundingClientRect = () => ({ width: 50 }) as DOMRect
             handle.setPointerCapture = vi.fn()
             const dispatchPointerEvent = (
                 target: HTMLElement,
@@ -234,16 +272,16 @@ describe('login page', () => {
 
             dispatchPointerEvent(handle, 'pointerdown', 6)
             for (const [elapsed, clientX] of [
-                [400, 100],
-                [500, 200],
-                [600, 300],
-                [615, 371],
+                [400, 75],
+                [500, 145],
+                [600, 215],
+                [615, 296],
             ] as const) {
                 now = 1_000 + elapsed
                 dispatchPointerEvent(captchaPanel, 'pointermove', clientX)
             }
             now = 1_630
-            dispatchPointerEvent(captchaPanel, 'pointerup', 371)
+            dispatchPointerEvent(captchaPanel, 'pointerup', 296)
             await flushPromises()
 
             expect(login).toHaveBeenCalledOnce()

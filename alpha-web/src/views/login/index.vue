@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import axios from 'axios'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { authApi } from '@/service/auth/index'
@@ -20,6 +20,8 @@ import logoUrl from '@/assets/alpha-logo.svg'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const captchaLoading = ref(true)
+const captchaLoadFailed = ref(false)
 const form = reactive({
     username: '',
     password: '',
@@ -43,34 +45,54 @@ const sliderPieceTop = ref(42)
 const sliderOffset = ref(0)
 const sliderDragging = ref(false)
 const sliderStartX = ref(0)
+const sliderStartOffset = ref(0)
 const sliderModalOpen = ref(false)
-const sliderTrack = ref<{
-    getBoundingClientRect: () => { left: number; top: number }
-}>()
+const sliderTrack = ref<SliderElement>()
+const sliderHandle = ref<SliderElement>()
 const sliderTrace = ref<Array<{ x: number; y: number; t: number }>>([])
 const sliderStartedAt = ref(0)
 const sliderStatus = ref('')
+const sliderMaxOffset = computed(() =>
+    Math.max(0, sliderWidth.value - sliderPieceWidth.value),
+)
+const sliderProgress = computed(() =>
+    sliderMaxOffset.value > 0 ? sliderOffset.value / sliderMaxOffset.value : 0,
+)
 
 async function loadCaptcha() {
-    const response = await authApi.captcha()
-    captchaEnabled.value = response.data.data.enabled
-    captchaType.value = response.data.data.type ?? 'numeric'
-    rememberMeEnabled.value = response.data.data.rememberMeEnabled ?? true
-    if (!rememberMeEnabled.value) form.rememberMe = false
-    captchaImage.value = response.data.data.image ?? undefined
-    captchaQuestion.value = response.data.data.question ?? undefined
-    sliderBackground.value = response.data.data.sliderBackground ?? undefined
-    sliderPiece.value = response.data.data.sliderPiece ?? undefined
-    sliderWidth.value = response.data.data.sliderWidth ?? 420
-    sliderHeight.value = response.data.data.sliderHeight ?? 280
-    sliderPieceWidth.value = response.data.data.sliderPieceWidth ?? 42
-    sliderPieceTop.value = response.data.data.sliderPieceTop ?? 42
-    sliderOffset.value = 0
-    sliderTrace.value = []
-    sliderStartedAt.value = 0
-    sliderStatus.value = ''
-    form.captchaId = response.data.data.captchaId ?? ''
-    form.captcha = ''
+    captchaLoading.value = true
+    try {
+        const response = await authApi.captcha()
+        captchaEnabled.value = response.data.data.enabled
+        captchaType.value = response.data.data.type ?? 'numeric'
+        rememberMeEnabled.value = response.data.data.rememberMeEnabled ?? true
+        if (!rememberMeEnabled.value) form.rememberMe = false
+        captchaImage.value = response.data.data.image ?? undefined
+        captchaQuestion.value = response.data.data.question ?? undefined
+        sliderBackground.value =
+            response.data.data.sliderBackground ?? undefined
+        sliderPiece.value = response.data.data.sliderPiece ?? undefined
+        sliderWidth.value = response.data.data.sliderWidth ?? 420
+        sliderHeight.value = response.data.data.sliderHeight ?? 280
+        sliderPieceWidth.value = response.data.data.sliderPieceWidth ?? 42
+        sliderPieceTop.value = response.data.data.sliderPieceTop ?? 42
+        sliderOffset.value = 0
+        sliderTrace.value = []
+        sliderStartedAt.value = 0
+        sliderStatus.value = ''
+        form.captchaId = response.data.data.captchaId ?? ''
+        form.captcha = ''
+        captchaLoadFailed.value = false
+        return true
+    } catch {
+        captchaLoadFailed.value = true
+        form.captchaId = ''
+        form.captcha = ''
+        message.error('安全验证加载失败，请重试')
+        return false
+    } finally {
+        captchaLoading.value = false
+    }
 }
 
 type SliderPointerEvent = {
@@ -80,12 +102,21 @@ type SliderPointerEvent = {
     pointerId: number
 }
 
+type SliderElement = {
+    getBoundingClientRect: () => {
+        left: number
+        top: number
+        width: number
+    }
+}
+
 function startSlider(event: SliderPointerEvent) {
-    if (!sliderPiece.value) return
+    if (!sliderPiece.value || captchaLoading.value || loading.value) return
     sliderStatus.value = '正在验证'
     sliderDragging.value = true
     sliderStartedAt.value = Date.now()
-    sliderStartX.value = event.clientX - sliderOffset.value
+    sliderStartX.value = event.clientX
+    sliderStartOffset.value = sliderOffset.value
     sliderTrace.value = []
     recordSliderPoint(event)
     ;(
@@ -97,10 +128,15 @@ function startSlider(event: SliderPointerEvent) {
 
 function moveSlider(event: SliderPointerEvent) {
     if (!sliderDragging.value) return
-    const maxOffset = Math.max(0, sliderWidth.value - sliderPieceWidth.value)
+    const trackWidth = sliderTrack.value?.getBoundingClientRect().width ?? 0
+    const handleWidth = sliderHandle.value?.getBoundingClientRect().width ?? 50
+    const displayTravel = Math.max(1, trackWidth - handleWidth)
+    const logicalDelta =
+        ((event.clientX - sliderStartX.value) / displayTravel) *
+        sliderMaxOffset.value
     sliderOffset.value = Math.min(
-        maxOffset,
-        Math.max(0, event.clientX - sliderStartX.value),
+        sliderMaxOffset.value,
+        Math.max(0, sliderStartOffset.value + logicalDelta),
     )
     recordSliderPoint(event)
 }
@@ -143,13 +179,22 @@ async function endSlider() {
                 `${Math.round(point.x)},${Math.round(point.y)},${point.t}`,
         )
         .join(';')}`
-    sliderModalOpen.value = false
-    await performLogin()
+    sliderStatus.value = '正在校验'
+    const success = await performLogin()
+    if (success) {
+        sliderModalOpen.value = false
+    } else if (
+        captchaEnabled.value &&
+        captchaType.value === 'slider' &&
+        !captchaLoadFailed.value
+    ) {
+        sliderModalOpen.value = true
+        sliderStatus.value = '验证未通过，请重试'
+    }
 }
 
 async function refreshSlider() {
-    await loadCaptcha()
-    sliderModalOpen.value = true
+    if (await loadCaptcha()) sliderModalOpen.value = true
 }
 
 function closeSlider() {
@@ -163,6 +208,7 @@ function showSliderInfo() {
 }
 
 async function submit() {
+    if (captchaLoading.value || captchaLoadFailed.value) return
     if (
         captchaEnabled.value &&
         captchaType.value === 'slider' &&
@@ -197,6 +243,7 @@ async function performLogin() {
                 ? route.query.redirect
                 : '/'
         await router.replace(redirect)
+        return true
     } catch (error: unknown) {
         authStore.clearAuth()
         clearManagementRoutes()
@@ -209,6 +256,7 @@ async function performLogin() {
                 : '登录失败，请检查账号和密码',
         )
         if (captchaEnabled.value) await loadCaptcha()
+        return false
     } finally {
         loading.value = false
     }
@@ -232,6 +280,10 @@ onMounted(loadCaptcha)
                 </div>
             </div>
             <a-form :model="form" layout="vertical" @finish="submit">
+                <div v-if="captchaLoadFailed" class="captcha-load-error">
+                    <span>安全验证加载失败，暂时无法登录</span>
+                    <a-button size="small" @click="loadCaptcha">重试</a-button>
+                </div>
                 <a-form-item
                     label="账号"
                     name="username"
@@ -282,9 +334,10 @@ onMounted(loadCaptcha)
                             class="captcha-button"
                             title="刷新验证码"
                             aria-label="刷新验证码"
+                            :disabled="captchaLoading"
                             @click="loadCaptcha"
                             ><img
-                                v-if="captchaImage"
+                                v-if="captchaImage && !captchaLoading"
                                 :src="captchaImage"
                                 alt="验证码" /><ReloadOutlined v-else
                         /></a-button>
@@ -303,6 +356,7 @@ onMounted(loadCaptcha)
                     size="large"
                     block
                     :loading="loading"
+                    :disabled="captchaLoading || captchaLoadFailed"
                 >
                     登录
                 </a-button>
@@ -327,8 +381,7 @@ onMounted(loadCaptcha)
                     <div
                         class="slider-captcha-image"
                         :style="{
-                            width: `${sliderWidth}px`,
-                            height: `${sliderHeight}px`,
+                            aspectRatio: `${sliderWidth} / ${sliderHeight}`,
                         }"
                     >
                         <img :src="sliderBackground" alt="滑块验证码背景" />
@@ -337,10 +390,10 @@ onMounted(loadCaptcha)
                             :src="sliderPiece"
                             alt="滑块拼图"
                             :style="{
-                                width: `${sliderPieceWidth}px`,
-                                height: `${sliderPieceWidth}px`,
-                                top: `${sliderPieceTop}px`,
-                                left: `${sliderOffset}px`,
+                                width: `${(sliderPieceWidth / sliderWidth) * 100}%`,
+                                height: `${(sliderPieceWidth / sliderHeight) * 100}%`,
+                                top: `${(sliderPieceTop / sliderHeight) * 100}%`,
+                                left: `${(sliderOffset / sliderWidth) * 100}%`,
                             }"
                         />
                     </div>
@@ -348,17 +401,22 @@ onMounted(loadCaptcha)
                         <div
                             class="slider-captcha-fill"
                             :style="{
-                                width: `${sliderOffset + sliderPieceWidth / 2}px`,
+                                width: `${sliderProgress * 100}%`,
                             }"
                         />
                         <span id="slider-captcha-status" aria-live="polite">
                             {{ sliderStatus || '拖动滑块完成验证' }}
                         </span>
                         <button
+                            ref="sliderHandle"
                             type="button"
                             class="slider-captcha-handle"
                             aria-label="拖动滑块"
-                            :style="{ left: `${sliderOffset}px` }"
+                            :disabled="captchaLoading || loading"
+                            :style="{
+                                left: `${sliderProgress * 100}%`,
+                                transform: `translateX(-${sliderProgress * 100}%)`,
+                            }"
                             @pointerdown.stop="startSlider"
                         >
                             <HolderOutlined />
@@ -377,6 +435,7 @@ onMounted(loadCaptcha)
                             type="button"
                             title="刷新验证图片"
                             aria-label="刷新验证图片"
+                            :disabled="captchaLoading || loading"
                             @click="refreshSlider"
                         >
                             <ReloadOutlined />

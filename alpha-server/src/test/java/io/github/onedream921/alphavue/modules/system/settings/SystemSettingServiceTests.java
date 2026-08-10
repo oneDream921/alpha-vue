@@ -38,6 +38,36 @@ class SystemSettingServiceTests {
     }
 
     @Test
+    void rejectsInvalidRegisteredValuesBeforePersistence() {
+        SysSystemSettingMapper mapper = mock(SysSystemSettingMapper.class);
+        SystemSettingService service = new SystemSettingService(mapper, new SettingCipher(KEY));
+
+        assertThatThrownBy(() -> service.save(SettingGroup.FILE,
+                new SystemSettingRequests.Save(Map.of("provider", "ftp"))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.SITE,
+                new SystemSettingRequests.Save(Map.of("watermarkOpacity", 0.9))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.OAUTH,
+                new SystemSettingRequests.Save(Map.of("callbackBaseUrl", "javascript:alert(1)"))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.OFFICIAL_ACCOUNT,
+                new SystemSettingRequests.Save(Map.of("customMenuJson", "not-json"))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.OFFICIAL_ACCOUNT,
+                new SystemSettingRequests.Save(Map.of("customMenuJson", "{\"button\":}"))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.LOGIN,
+                new SystemSettingRequests.Save(Map.of("maxRetry", 21))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.LOGIN,
+                new SystemSettingRequests.Save(Map.of("lockMinutes", 1.5))))
+                .isInstanceOf(RuntimeException.class);
+        verify(mapper, never()).insert(any(SysSystemSetting.class));
+        verify(mapper, never()).updateById(any(SysSystemSetting.class));
+    }
+
+    @Test
     void regeneratesRsaKeyPairReturnsOneTimePairWithoutPersistingUntilExplicitSave() {
         SysSystemSettingMapper mapper = mock(SysSystemSettingMapper.class);
         when(mapper.selectOne(any())).thenReturn(null);

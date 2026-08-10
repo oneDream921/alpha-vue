@@ -269,4 +269,45 @@ describe('system settings page', () => {
         await flushPromises()
         expect(wrapper.text()).toContain('滑块验证')
     })
+
+    it('reveals dependent settings only after their feature is enabled', async () => {
+        get.mockResolvedValue({
+            data: {
+                data: {
+                    group: 'site',
+                    values: { watermarkEnabled: false },
+                    secretConfigured: {},
+                    restartRequired: false,
+                },
+            },
+        })
+        const wrapper = mount(Settings, {
+            global: {
+                plugins: [Antd],
+                directives: { permission: () => undefined },
+            },
+        })
+        await flushPromises()
+
+        expect(wrapper.text()).not.toContain('水印类型')
+        await wrapper.get('[role="switch"]').trigger('click')
+        await flushPromises()
+        expect(wrapper.text()).toContain('水印类型')
+        expect(wrapper.text()).toContain('有未保存的修改')
+    })
+
+    it('shows a recoverable page error when the active group cannot load', async () => {
+        get.mockRejectedValue(new Error('offline'))
+        const wrapper = mount(Settings, {
+            global: {
+                plugins: [Antd],
+                directives: { permission: () => undefined },
+            },
+        })
+        await flushPromises()
+
+        expect(wrapper.text()).toContain('配置加载失败')
+        expect(wrapper.text()).toContain('重试')
+        expect(wrapper.find('form').exists()).toBe(false)
+    })
 })

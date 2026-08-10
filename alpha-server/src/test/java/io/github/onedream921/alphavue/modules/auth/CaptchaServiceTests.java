@@ -29,7 +29,9 @@ class CaptchaServiceTests {
 
         assertThat(response.enabled()).isTrue();
         assertThat(response.type()).isEqualTo("numeric");
+        assertThat(response.question()).isNull();
         assertThat(response.image()).startsWith("data:image/png;base64,");
+        assertThat(store.code).matches("\\d{6}");
         service.validate(response.captchaId(), store.code);
         assertThatThrownBy(() -> service.validate(response.captchaId(), store.code))
                 .isInstanceOf(BusinessException.class);

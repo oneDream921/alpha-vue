@@ -73,10 +73,10 @@ public class CaptchaService {
                     visual.background(), visual.piece(), visual.width(), visual.height(),
                     visual.pieceWidth(), visual.pieceTop());
         }
-        NumericChallenge challenge = createNumericChallenge();
-        store.put(id, challenge.answer(), properties.getCaptchaTtl());
-        return new CaptchaResponse(true, type, rememberMeEnabled, id, render(challenge.answer()),
-                challenge.question(),
+        String code = createNumericCode();
+        store.put(id, code, properties.getCaptchaTtl());
+        return new CaptchaResponse(true, type, rememberMeEnabled, id, render(code),
+                null,
                 null, null, null, null, null, null);
     }
 
@@ -232,17 +232,12 @@ public class CaptchaService {
     private record SliderVisual(String background, String piece, int width, int height,
                                 int pieceWidth, int pieceTop) { }
 
-    private static NumericChallenge createNumericChallenge() {
-        if (RANDOM.nextBoolean()) {
-            int left = 1 + RANDOM.nextInt(9);
-            int right = 1 + RANDOM.nextInt(9);
-            return new NumericChallenge(String.valueOf(left + right), left + " + " + right + " = ?");
+    private static String createNumericCode() {
+        StringBuilder code = new StringBuilder(6);
+        for (int index = 0; index < 6; index++) {
+            code.append(RANDOM.nextInt(10));
         }
-        StringBuilder code = new StringBuilder(5);
-        for (int index = 0; index < 5; index++) {
-            code.append("23456789ABCDEFGHJKLMNPQRSTUVWXYZ".charAt(RANDOM.nextInt(32)));
-        }
-        return new NumericChallenge(code.toString(), null);
+        return code.toString();
     }
 
     private static String render(String code) {
@@ -261,13 +256,14 @@ public class CaptchaService {
                 graphics.setColor(randomColor(160, 230));
                 graphics.fillRect(RANDOM.nextInt(160), RANDOM.nextInt(60), 1 + RANDOM.nextInt(2), 1 + RANDOM.nextInt(2));
             }
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 36));
+            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 32));
             for (int index = 0; index < code.length(); index++) {
                 Graphics2D character = (Graphics2D) graphics.create();
                 try {
                     character.setColor(randomColor(20, 100));
-                    character.rotate(Math.toRadians(RANDOM.nextInt(31) - 15), 20 + index * 32, 36);
-                    character.drawString(String.valueOf(code.charAt(index)), 14 + index * 34 + RANDOM.nextInt(5), 43 + RANDOM.nextInt(5) - 2);
+                    character.rotate(Math.toRadians(RANDOM.nextInt(25) - 12), 18 + index * 25, 34);
+                    character.drawString(String.valueOf(code.charAt(index)), 7 + index * 25 + RANDOM.nextInt(3),
+                            42 + RANDOM.nextInt(5) - 2);
                 } finally {
                     character.dispose();
                 }
@@ -286,8 +282,6 @@ public class CaptchaService {
     private static Color randomColor(int min, int max) {
         return new Color(min + RANDOM.nextInt(max - min), min + RANDOM.nextInt(max - min), min + RANDOM.nextInt(max - min));
     }
-
-    private record NumericChallenge(String answer, String question) { }
 
     private boolean captchaEnabled() {
         if (settingService == null) {

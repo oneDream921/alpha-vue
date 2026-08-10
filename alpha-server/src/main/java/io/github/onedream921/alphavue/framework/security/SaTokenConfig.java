@@ -91,6 +91,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/api/auth/login",
                         "/api/auth/captcha",
                         "/api/auth/oauth/**",
+                        "/api/system/settings/public",
                         "/api/wechat/official-account/callback",
                         "/api/auth/test-token",
                         "/actuator/**",
