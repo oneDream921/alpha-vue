@@ -27,6 +27,7 @@ import {
     type User,
 } from '@/service/system/index'
 import { authStore } from '@/stores/auth'
+import { toggleDeptSelection } from './users.dept-selection'
 
 const rows = ref<User[]>([])
 const roles = ref<Role[]>([])
@@ -101,6 +102,9 @@ const deptTreeData = computed<DeptTreeNode[]>(() => {
     })
     return roots
 })
+const selectedDeptName = computed(
+    () => depts.value.find((dept) => dept.id === selectedDeptId.value)?.name,
+)
 const filteredRows = computed(() => {
     const value = keyword.value.trim().toLowerCase()
     return value
@@ -127,8 +131,10 @@ async function load() {
     }
 }
 function selectDept(selectedKeys: (string | number)[]) {
-    selectedDeptId.value =
-        selectedKeys[0] == null ? undefined : Number(selectedKeys[0])
+    selectedDeptId.value = toggleDeptSelection(
+        selectedDeptId.value,
+        selectedKeys,
+    )
     page.value = 1
     void load()
 }
@@ -321,12 +327,40 @@ onMounted(async () => {
         </div>
         <div class="user-management-workspace">
             <aside class="user-dept-filter">
-                <div class="user-dept-filter-title">部门范围</div>
+                <div class="user-dept-filter-title">
+                    <span>部门范围</span>
+                    <a-tag v-if="selectedDeptName" color="blue" bordered>
+                        {{ selectedDeptName }}
+                    </a-tag>
+                </div>
+                <p class="user-dept-filter-hint">
+                    点击部门筛选，再次点击可取消
+                </p>
                 <a-tree
+                    class="user-dept-tree"
+                    block-node
+                    show-line
                     :tree-data="deptTreeData"
                     :selected-keys="selectedDeptId ? [selectedDeptId] : []"
                     @select="selectDept"
-                />
+                >
+                    <template #title="{ title, key }">
+                        <span
+                            class="user-dept-tree-label"
+                            :class="{
+                                'user-dept-tree-label-selected':
+                                    Number(key) === selectedDeptId,
+                            }"
+                        >
+                            <span
+                                v-if="Number(key) === selectedDeptId"
+                                class="user-dept-tree-label-marker"
+                                aria-hidden="true"
+                            />
+                            <span>{{ title }}</span>
+                        </span>
+                    </template>
+                </a-tree>
             </aside>
             <div>
                 <div class="page-toolbar">
@@ -587,8 +621,98 @@ onMounted(async () => {
 }
 
 .user-dept-filter-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 10px;
     font-weight: 600;
+}
+
+.user-dept-filter-title .ant-tag {
+    max-width: 132px;
+    margin-inline-end: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-dept-filter-hint {
+    margin: -4px 0 10px;
+    color: var(--alpha-muted);
+    font-size: 12px;
+}
+
+:deep(.user-dept-tree .ant-tree-treenode) {
+    width: 100%;
+    padding-block: 2px;
+}
+
+:deep(.user-dept-tree .ant-tree-switcher-line-icon) {
+    transform: translateY(3px);
+}
+
+:deep(.user-dept-tree .ant-tree-switcher-leaf-line) {
+    position: relative;
+    top: 2px;
+}
+
+:deep(.user-dept-tree .ant-tree-switcher-noop .anticon-file) {
+    transform: translateY(3px);
+}
+
+:deep(.user-dept-tree .ant-tree-node-content-wrapper) {
+    min-height: 34px;
+    padding: 6px 8px;
+    line-height: 20px;
+    border-radius: 6px;
+    transition:
+        color 0.16s ease,
+        background-color 0.16s ease;
+}
+
+:deep(.user-dept-tree .ant-tree-node-content-wrapper:hover) {
+    color: var(--alpha-primary-strong) !important;
+    background: var(--alpha-primary-soft) !important;
+}
+
+:deep(.user-dept-tree .ant-tree-node-content-wrapper.ant-tree-node-selected) {
+    color: var(--alpha-primary-strong) !important;
+    font-weight: 700 !important;
+    background-color: #dfe5ff !important;
+    box-shadow: inset 4px 0 0 var(--alpha-primary) !important;
+}
+
+:deep(
+    .user-dept-tree
+        .ant-tree-node-content-wrapper.ant-tree-node-selected
+        .ant-tree-title
+) {
+    color: inherit !important;
+}
+
+:deep(.user-dept-tree-label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 20px;
+    line-height: 20px;
+    vertical-align: middle;
+}
+
+:deep(.user-dept-tree-label-marker) {
+    display: block;
+    position: relative;
+    top: 2px;
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: var(--alpha-primary-strong);
+}
+
+:deep(.user-dept-tree-label-selected) {
+    color: var(--alpha-primary-strong) !important;
+    font-weight: 700 !important;
 }
 
 @media (max-width: 767px) {

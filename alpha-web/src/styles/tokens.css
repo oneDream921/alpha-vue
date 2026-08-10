@@ -1,16 +1,18 @@
 :root {
-    --alpha-primary: #2563eb;
-    --alpha-primary-strong: #1d4ed8;
-    --alpha-primary-soft: #eff6ff;
+    --alpha-primary: #646cff;
+    --alpha-primary-strong: #4f46e5;
+    --alpha-primary-soft: #eef2ff;
     --alpha-surface: #ffffff;
-    --alpha-canvas: #f2f4f7;
-    --alpha-text: #172033;
+    --alpha-canvas: #f7fafc;
+    --alpha-text: #1f1f1f;
     --alpha-muted: #667085;
     --alpha-border: #dfe3ea;
     --alpha-border-soft: #edf0f4;
     --alpha-sidebar: #ffffff;
-    --alpha-sidebar-hover: #eff6ff;
+    --alpha-sidebar-hover: #eef2ff;
     --alpha-header-height: 56px;
     --alpha-radius: 6px;
-    --alpha-shadow: 0 1px 2px rgb(16 24 40 / 4%);
+    --alpha-shadow: 0 1px 2px rgb(0 21 41 / 8%);
+    --alpha-shadow-sidebar: 2px 0 8px rgb(29 35 41 / 5%);
+    --alpha-shadow-tab: 0 1px 2px rgb(0 21 41 / 8%);
 }

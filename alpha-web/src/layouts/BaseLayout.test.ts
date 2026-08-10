@@ -68,6 +68,9 @@ describe('BaseLayout', () => {
         expect(wrapper.text()).toContain('© Alpha Vue')
         expect(wrapper.text()).toContain('ICP备案号 123')
         expect(wrapper.find('.global-watermark').text()).toContain('管理员')
+        expect(wrapper.get('.app-content .app-footer').text()).toContain(
+            '© Alpha Vue',
+        )
     })
 
     afterEach(() => {

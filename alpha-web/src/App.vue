@@ -3,12 +3,12 @@ import zhCN from 'ant-design-vue/es/locale/zh_CN'
 
 const theme = {
     token: {
-        colorPrimary: '#2563eb',
-        colorInfo: '#2563eb',
+        colorPrimary: '#646cff',
+        colorInfo: '#646cff',
         colorSuccess: '#16a34a',
         colorWarning: '#d97706',
         colorError: '#dc2626',
-        colorText: '#172033',
+        colorText: '#1f1f1f',
         colorTextSecondary: '#667085',
         colorBorder: '#dfe3ea',
         borderRadius: 6,

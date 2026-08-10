@@ -404,7 +404,8 @@ watch(() => route.fullPath, resetContentScroll)
         <a-layout-sider
             v-if="!isMobile"
             :collapsed="sidebarCollapsed"
-            :collapsed-width="isDesktop ? 80 : 0"
+            :width="220"
+            :collapsed-width="isDesktop ? 64 : 0"
             :trigger="null"
             class="desktop-sidebar"
         >
@@ -421,9 +422,10 @@ watch(() => route.fullPath, resetContentScroll)
                     aria-label="Alpha Vue 首页"
                 >
                     <img class="brand-mark" :src="logoUrl" alt="" />
-                    <span v-if="!sidebarCollapsed" class="brand-name"
-                        >Alpha Vue</span
-                    >
+                    <span v-if="!sidebarCollapsed" class="brand-copy">
+                        <span class="brand-name">Alpha Vue</span>
+                        <span class="brand-subtitle">管理控制台</span>
+                    </span>
                 </RouterLink>
                 <template v-for="item in visibleNavigation" :key="item.key">
                     <div
@@ -733,18 +735,20 @@ watch(() => route.fullPath, resetContentScroll)
             </div>
             <a-layout-content ref="appContentRef" class="app-content">
                 <RouterView />
+                <div
+                    v-if="siteInfo.copyright || siteInfo.icp"
+                    class="app-footer"
+                >
+                    <span v-if="siteInfo.copyright">{{
+                        siteInfo.copyright
+                    }}</span>
+                    <a-divider
+                        v-if="siteInfo.copyright && siteInfo.icp"
+                        type="vertical"
+                    />
+                    <span v-if="siteInfo.icp">{{ siteInfo.icp }}</span>
+                </div>
             </a-layout-content>
-            <a-layout-footer
-                v-if="siteInfo.copyright || siteInfo.icp"
-                class="app-footer"
-            >
-                <span v-if="siteInfo.copyright">{{ siteInfo.copyright }}</span>
-                <a-divider
-                    v-if="siteInfo.copyright && siteInfo.icp"
-                    type="vertical"
-                />
-                <span v-if="siteInfo.icp">{{ siteInfo.icp }}</span>
-            </a-layout-footer>
         </a-layout>
         <div
             v-if="watermark.enabled && watermarkText"
