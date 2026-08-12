@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-local-start
+name: afk-project-alpha-vue-local-start
 description: Start the Alpha Vue local development environment quickly. Use when
   the user asks to start, restart, run, boot, or bring up the Alpha Vue project
   locally, including handling occupied app ports, reusing Docker dependency

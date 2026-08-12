@@ -2,7 +2,7 @@
 由 Agent Framework Kit 生成，请勿直接编辑。
 项目 Agent 源资产位于 agent.yaml、.project-agent/rules、.project-agent/skills、docs/ai 与 docs/requirements。
 修改 agent.yaml、.project-agent/rules 或 .project-agent/skills 后，默认先运行 node .agent-framework/sync.mjs --dry-run，再运行 node .agent-framework/sync.mjs。
-接管、升级、排查或已明确使用本地 AFK 源码时，使用 afk-maintenance Skill 选择同一来源的入口。
+接管、升级、排查或已明确使用本地 AFK 源码时，使用 afk-maintenance Skill（投影：afk-core-afk-maintenance）选择同一来源的入口。
 -->
 # Codex 工作区指南
 
@@ -11,10 +11,10 @@
 ### 交互收尾
 
 - 每个面向用户的最终回复都以且仅以一行 `[TRACE] 规则：<规则依据>；记忆：<记忆依据>；技能：<技能依据>；钩子：<钩子结果>` 结尾；Hook 未实际拦截、改道或续写时写“无”。
-- 只有存在真实且需要用户拍板的决策时才展示可选方向；选项简短、互斥，并给出一个推荐和一句理由。
-- 有后续方向时独立列出 `[下一步建议]` 并说明推荐理由；没有可执行建议时写 `[下一步建议] 无`。
-- 需要继续决策时先锁定上一轮结论，再提出下一步；普通实施步骤不包装成选项。
-- 用户回复字母只绑定紧邻上一条最终回复中的方向；授权语义必须写在该方向本身。
+- 仅在需求尚未收敛的 `requirements-explore`（投影：`afk-core-requirements-explore`）/ `grill-me`（投影：`afk-core-grill-me`）阶段展示简短、互斥的选项，并每题给出一个推荐和一句理由；逐题时用户回复字母只绑定紧邻上一条需求探索问题，分轮时只绑定紧邻上一组已编号问题；授权语义必须写在选项本身。
+- 其他阶段不展示“可选方向”、不列 A/B/C，也不要求用户回复字母。有后续动作时只给一条明确推荐，以 `[下一步建议]` 说明方向和理由；没有可执行建议时写 `[下一步建议] 无`。
+- 其他阶段确需用户拍板时，先说明推荐、理由和影响，再用一句直接问题请求确认；安全确认、外部授权和平台权限提示仍按各自边界执行。
+- 需要继续决策时先锁定上一轮结论，再提出下一步；普通实施步骤不包装成问题或选项。
 
 ### Git 约定
 
@@ -22,7 +22,7 @@
 - 写业务代码、需求文档或 SQL 前，先确认目标仓和受保护分支，未配置时把 `main` / `master` 视为生产分支；若位于生产或受保护分支且用户未明确要求就地修改，只给出迁出建议并等待确认；多仓任务先锁定具体仓库。
 - 生成迁出命令前先读取项目规则配置的「专题分支基线」，用 `git switch -c <专题分支> <基线>` 显式指定创建起点，无需先位于基线；测试分支是共享验证目标，不得作为专题分支基线。基线未配置时先询问，不猜测或默认沿用当前分支。
 - 生成合入建议前读取「合入目标分支」（旧项目的「集成分支」视为同义字段）与「合入偏好」：优先 PR / MR 时只给手动推送命令和 source / target，优先本地 merge 时只给切换目标分支、合并及按需推送的命令，未填写偏好时两种都给；Agent 不代执行这些命令或创建 PR / MR。
-- 用户要求提交、询问提交命令或选择提交交接时，使用 `git-handoff` Skill；只生成由用户执行的命令。
+- 用户要求提交、询问提交命令或选择提交交接时，使用 `git-handoff` Skill（投影：`afk-core-git-handoff`）；只生成由用户执行的命令。
 - 项目规则可以增加限制，但不能放宽以上 Git 边界。
 
 ### 安全边界
@@ -38,13 +38,13 @@
 - 先核对相关代码、文档和可复现结果；事实以代码和验证证据为准，项目规则不得放宽 AFK 的安全与授权边界。
 - 修改业务代码前确认目标仓和受保护分支；完成后运行与改动相关的验证并报告证据。
 - 开始实施前简要说明设计思路、改动范围和影响；模糊的业务取舍先确认，技术细节按现有约定处理。
-- 用户要求接管、检查、升级或修复 AFK 时使用 `afk-maintenance` Skill；普通业务任务不要加载它。
+- 用户要求接管、检查、升级、修复 AFK，或沉淀、调整项目 Agent 约定时使用 `afk-maintenance` Skill（投影：`afk-core-afk-maintenance`）；普通业务任务不要加载它。
 
 ### 项目记忆
 
 - 仅在任务相关时从项目记忆入口开始读取，并按导航下钻；不要默认读取全部记忆。
 - 记忆与代码冲突时以代码为准，并指出记忆可能需要更新。
-- 不自动写入或修改记忆；用户明确要求形成记忆时才使用 `update-memory` Skill。
+- 不自动写入或修改记忆。用户要求形成、更新、写入或补充记忆时，使用 `update-memory` Skill（投影：`afk-core-update-memory`）先在对话中给出《记忆变更提案 vN》，不得创建提案文件；仅当用户针对最新完整提案明确回复「确认形成记忆」后，才按提案写入。
 
 ### 多 Git 工作区路由
 
@@ -66,7 +66,7 @@
 
 #### 工作区与边界
 
-- 当前 workspace 是单一 Git 仓库：`alpha-web` 为 Vue 3 管理端，`alpha-server` 为 Spring Boot 服务，`deploy` 为本地部署与 smoke test，`docs` 为规范、设计和运维文档。
+- 当前 workspace 是单一 Git 仓库：`alpha-web` 为原 Vue 3 管理端，`alpha-web-soybean` 为基于 SoybeanJS 重写的新管理端，`alpha-server` 为两套前端共用的 Spring Boot 服务，`deploy` 为本地部署与 smoke test，`docs` 为规范、设计和运维文档。
 - 项目特有 Rule 和 Skill 只维护在 `.project-agent`；需要更新三端投影时运行 AFK `sync`，不得直接编辑生成文件或 AFK 框架源仓库。
 
 #### Git / 分支约定
@@ -86,7 +86,8 @@
 #### 规范入口
 
 - 跨层编码与交付约束以 `docs/conventions.md` 为准。
-- 前端任务必须使用 `alpha-vue-frontend` Skill，并完整读取 `docs/frontend-conventions.md`。
+- 修改、评审或调试 `alpha-web` 时使用 `alpha-vue-frontend` Skill，并完整读取 `docs/frontend-conventions.md`。
+- 修改、评审或调试 `alpha-web-soybean` 时使用 `soybean-frontend` Skill；同时影响两套前端时同时使用两个 Skill，并分别遵守各自目录的规范和验证入口。
 - 涉及系统边界、模块划分、技术选型、重大非功能需求或架构评审时，使用 `alpha-vue-architecture` Skill；只有用户明确要求时才落盘 ADR 或设计文档。
 - 新增或变更前后端 API 契约时，使用 `alpha-vue-api-design` Skill，并以 `docs/api.md`、`docs/security.md` 和现有实现为准。
 - 实现、重构、调试或评审 `alpha-server` 的 Spring Boot / Java 代码时，使用 `alpha-vue-backend` Skill；它不替代 `java-code-review` 的风险审查。
@@ -103,7 +104,9 @@
 
 #### 验证入口
 
-- 前端：`pnpm --dir alpha-web typecheck`、`test`、`lint`、`format:check`、`build`。
+- 原前端 `alpha-web`：`pnpm --dir alpha-web typecheck`、`test`、`lint`、`format:check`、`build`。
+- Soybean 前端 `alpha-web-soybean`：`pnpm --dir alpha-web-soybean exec eslint .`、`typecheck`、相关 Vitest、`build:test`；具体命令和浏览器证据以 `soybean-frontend` Skill 为准。
+- 同时修改两套前端时分别运行对应检查，不以其中一套的通过替代另一套。
 - 后端：`./mvnw -f alpha-server/pom.xml test` 和 `package`。
 - 部署配置：`docker compose --env-file deploy/.env -f deploy/docker-compose.yml config --quiet`；涉及真实联调时再运行 `deploy/smoke-test.sh`。
 - 页面变更还需验收桌面、平板和手机视口。
@@ -114,4 +117,4 @@
 
 ## 项目记忆
 
-仅在与当前任务相关时阅读 `docs/ai/README.md`。不要自动写入项目记忆；用户明确要求形成记忆时再更新。
+仅在与当前任务相关时阅读 `docs/ai/README.md`。不要自动写入项目记忆；用户要求形成记忆时先在对话中给出变更提案，仅在用户针对最新完整提案回复「确认形成记忆」后写入。

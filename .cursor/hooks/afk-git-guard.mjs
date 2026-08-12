@@ -30,7 +30,7 @@ if (blocked) {
   });
 } else if (localWrite) {
   response("deny", {
-    user_message: `Git ${localWrite} 属于 AFK 人工提交交接操作，请在本地终端自行执行。`,
-    agent_message: `AFK git guard blocked git ${localWrite}. Print the exact handoff command for the user; do not retry through Shell.`,
+    user_message: `Git ${localWrite} 属于 AFK 人工提交交接操作，请由 Agent 使用 afk-core-git-handoff Skill 输出完整命令后在本地终端自行执行。`,
+    agent_message: `AFK git guard blocked git ${localWrite}. Use the afk-core-git-handoff Skill to print the exact handoff command for the user; do not retry through Shell.`,
   });
 } else response("allow");

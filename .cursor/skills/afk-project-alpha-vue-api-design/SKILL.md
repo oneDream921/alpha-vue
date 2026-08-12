@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-api-design
+name: afk-project-alpha-vue-api-design
 description: Design or change Alpha Vue REST API contracts across the Spring
   Boot backend and Vue frontend. Use when adding or changing endpoints, request
   or response models, pagination, filtering, permissions, file operations,

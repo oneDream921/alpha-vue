@@ -11,13 +11,13 @@ Design the smallest architecture that satisfies confirmed requirements and prese
 
 1. Read `docs/conventions.md` and the relevant `docs/api.md`, `docs/security.md`, `docs/development.md`, or `docs/operations.md`.
 2. Read `docs/ai/README.md` when business, service, or contract memory is relevant, then load only the indexed material needed.
-3. Inspect the affected `alpha-web`, `alpha-server`, `deploy`, tests, and nearby implementation before proposing a change.
+3. Inspect the affected `alpha-web`, `alpha-web-soybean`, `alpha-server`, `deploy`, tests, and nearby implementation before proposing a change. Treat the two frontends as separate clients of the shared backend; do not assume one frontend's structure or behavior defines the other.
 4. If requirements are unclear, use `requirements-explore`; do not invent product scope.
 
 ## Design
 
 1. State the problem, confirmed constraints, non-goals, and the current architecture that will remain unchanged.
-2. Identify ownership across `alpha-web`, `alpha-server`, `deploy`, and `docs`; keep backend responsibilities in `common`, `framework`, or `modules/<domain>` as appropriate.
+2. Identify ownership across `alpha-web`, `alpha-web-soybean`, `alpha-server`, `deploy`, and `docs`; keep backend responsibilities in `common`, `framework`, or `modules/<domain>` as appropriate.
 3. Compare the smallest viable option with only materially different alternatives. Cover security, data consistency, failure modes, operations, testing, and migration impact when applicable.
 4. Select one option and state its trade-offs. Use a compact Mermaid diagram only when component relationships are not clear in prose.
 5. Define API, permission, persistence, deployment, and verification consequences before implementation planning.

@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-generate-task-prompts
+name: afk-project-alpha-vue-generate-task-prompts
 description: Generate one copyable Alpha Vue execution, review, remediation, or
   status-sync prompt from a user-specified task and current project evidence.
   Use when another manually created thread needs a grounded task prompt,
@@ -75,7 +75,11 @@ review must evaluate the delivery process gates rather than merely review code.
 Select other Skills by actual scope:
 
 - `alpha-vue-backend`: Java or Spring Boot implementation/review.
-- `alpha-vue-frontend`: Vue implementation/review or responsive browser acceptance.
+- `alpha-vue-frontend`: implementation/review under the original `alpha-web` client.
+- `soybean-frontend`: implementation/review under `alpha-web-soybean`, including its generated routes,
+  permissions, responsive behavior, and browser acceptance conventions.
+- Select both frontend Skills only when the named task changes both clients; one client's checks never
+  substitute for the other's.
 - `alpha-vue-api-design`: a public API contract is added or changed.
 - `alpha-vue-architecture`: a system boundary or approved architecture decision is being evaluated;
   do not use it for routine implementation of an already decided design.
@@ -135,9 +139,12 @@ the same `测试通过` handoff.
 ### STATUS_SYNC
 
 Generate this prompt only when the user has explicitly said `测试通过` and implementation evidence is
-available. Require the receiving agent to verify Git commits and supplied evidence, then update only
-the named task's execution block in `implementation-plan.md` and supported checks in `acceptance.md`.
-It must not infer unverified results, change production code, start the next task, or use
+available. Resolve and name the current requirement directory and its existing status files; do not
+default to `alpha-framework-modernization` or assume filenames. Require the receiving agent to verify
+Git commits and supplied evidence, then update only the named task's execution block and supported
+acceptance checks in those verified files. If the files do not exist or their ownership is unclear,
+the prompt must stop for user direction instead of creating them. It must not infer unverified
+results, change production code, start the next task, or use
 `alpha-vue-task-delivery-orchestrator` merely for a documentation-only status update. Documentation changes
 remain uncommitted unless the user separately gives the repository's exact commit authorization.
 
