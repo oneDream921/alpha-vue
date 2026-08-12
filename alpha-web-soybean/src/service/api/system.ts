@@ -138,8 +138,12 @@ function resource<T, Create, Update>(name: EntityName) {
 
 export const userApi = {
   ...resource<User, UserCreate, UserUpdate>('users'),
-  page: (page = 1, size = 10, deptId?: number) =>
-    request<PageResponse<User>>({ url: '/system/users', method: 'get', params: { page, size, deptId } }),
+  page: (params: { page?: number; size?: number; deptId?: number; keyword?: string } = {}) =>
+    request<PageResponse<User>>({
+      url: '/system/users',
+      method: 'get',
+      params: { page: params.page ?? 1, size: params.size ?? 10, deptId: params.deptId, keyword: params.keyword }
+    }),
   assignRoles: (id: number, roleIds: number[]) =>
     request<null>({ url: `/system/users/${id}/roles`, method: 'put', data: { roleIds } }),
   kickout: (id: number) => request<null>({ url: `/system/users/${id}/kickout`, method: 'put' }),

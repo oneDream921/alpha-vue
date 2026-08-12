@@ -23,7 +23,7 @@
 - API 响应设置 `nosniff`、拒绝 iframe、Referrer-Policy、Permissions-Policy 与 `Cache-Control: no-store`；CSP、TLS、HSTS 和限流由边缘反向代理统一配置。
 - 数据库连接池使用 Spring Boot BOM 默认 HikariCP，并通过受 Bearer 鉴权与网络边界保护的 Actuator/Micrometer 暴露 Hikari 指标；泄漏检测默认关闭，仅在受控诊断场景通过 `DB_POOL_LEAK_DETECTION_THRESHOLD_MS` 临时开启。Redis 连接池采用有限等待，Sa-Token 键检索使用带上限的 `SCAN`，禁止在生产路径使用 `KEYS`。
 - Redisson Client 默认使用 `StringCodec`；对象 Codec 按缓存和 Sa-Token 场景分别使用显式类白名单，不兼容读取旧 JDK 序列化数据。生产 Sa-Token DAO 使用 SHA-256 物理键映射和受控索引，完整实现对象、字符串、会话、TTL 与有界搜索。所有新业务键必须使用 `alpha:*`，不得与旧业务键双读或双写。
-- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按代码注册的 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；`REDIS_MASK_VALUES=true` 时所有值至少按 `MASKED` 返回。验证码、失败计数和 Sa-Token 会话始终为 `HIDDEN`；未注册且命中密钥特征的键也始终为 `HIDDEN`，且不反序列化 Redis 中的对象。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
+- Redis 运维台使用 Redisson 带上限的 `SCAN` 查询全库键，值预览按缓存配置中的五类 `HIDDEN`、`MASKED`、`PLAIN` 级别处理；验证码、失败计数、Sa-Token 会话、数据字典和业务缓存均可由 `CACHE` 分组逐类控制。旧 `redisMaskValues` 仅用于兼容首次读取，五类策略保存后不再读取。Redis 指标采样仅执行只读 `INFO ALL` 并映射白名单字段，响应不包含地址、凭据、原始 INFO、键值或命令参数。禁止 `KEYS`、`FLUSHDB`、`FLUSHALL`、任意键写入及批量删除。删除单键需 `monitor:redis:delete` 权限、二次确认并记录审计。
 - 在线用户页只读取 Sa-Token 的受控会话索引并限制单页数量，不执行无边界 Redis 扫描；token 只展示 SHA-256 摘要。定向下线按用户和终端索引执行，需 `monitor:online:kickout` 权限并记录审计，不影响其他 client 会话。
 - SQL 日志页只展示进程内最近 SQL 摘要，SQL 文本保留 `?` 占位符，禁止渲染或记录真实参数值、请求体、密码、Token、验证码和 secret/key 字段。采集开关和 Mapper 过滤是当前进程全局运行时设置，修改需要 `monitor:sql:control` 权限。SQL 日志页不得提供任意 SQL 执行能力；如需数据库诊断，只能生成供人工审核的脚本或通过受控运维流程执行。
 - 应用内日志保留清理只删除超过保留期的登录日志、成功操作日志和已处理失败操作日志；未处理失败操作日志不自动删除。临时文件清理仅限本地上传过程中遗留的 `.upload-*.tmp` 文件。所有删除型维护任务默认 dry-run，并有单轮批次上限。
@@ -31,3 +31,8 @@
 - `deploy/.env`、生产凭据、Token 和真实个人数据不得提交。MinIO 应用凭据不得复用 root 凭据。
 
 生产部署必须设置独立强密码、启用验证码、使用 HTTPS、由反向代理限制上传体积，并在边缘配置 TLS、HSTS、CSP、受信任代理与速率限制。不得把 `X-Forwarded-For` 直接当作客户端 IP，除非该请求确实来自受信任的反向代理。
+## 登录验证码
+
+- 数字验证码由 EasyCaptcha 生成 4 位纯数字图片，答案仅短期存于 Redis，并在首次校验时原子消费。
+- 滑动验证码由 AJ-Captcha `blockPuzzle` 生成和校验；挑战及二次校验凭据存于 Redis，登录时再次校验并消费，不能重复使用。
+- 验证码答案、坐标、轨迹、密钥及二次校验凭据不得写入日志。

@@ -83,7 +83,6 @@ alpha:
       public-url: ${MINIO_PUBLIC_URL:}
   monitor:
     redis:
-      mask-values: ${REDIS_MASK_VALUES:true}
       metrics-enabled: ${REDIS_METRICS_ENABLED:true}
       metrics-sample-interval-ms: ${REDIS_METRICS_SAMPLE_INTERVAL_MS:60000}
       metrics-retention-ms: ${REDIS_METRICS_RETENTION_MS:86400000}

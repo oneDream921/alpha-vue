@@ -550,7 +550,9 @@ onMounted(refresh);
         <ADescriptionsItem label="TTL">{{ selected.ttlSeconds }}</ADescriptionsItem>
         <ADescriptionsItem label="值">
           <ATooltip :title="selected.displayLevel === 'HIDDEN' ? undefined : selected.value || ''">
-            <pre class="redis-value-preview">{{ selected.value || '-' }}</pre>
+            <pre class="redis-value-preview">{{
+              selected.displayLevel === 'HIDDEN' ? '敏感数据已隐藏' : selected.value || '-'
+            }}</pre>
           </ATooltip>
           <ATag :color="displayLevelColor(selected.displayLevel)">
             {{ displayLevelLabel(selected.displayLevel) }}
@@ -561,7 +563,7 @@ onMounted(refresh);
     <AModal
       v-model:open="deleteOpen"
       title="确认删除 Redis 键"
-      ok-text="删除"
+      ok-text="确认删除"
       ok-type="danger"
       :ok-button-props="{ disabled: !canDelete }"
       @ok="confirmDelete"

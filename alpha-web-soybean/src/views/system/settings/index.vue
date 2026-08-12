@@ -28,6 +28,12 @@ const tabs: Tab[] = [
     effect: '保存后用于后续登录请求'
   },
   {
+    key: 'cache',
+    label: '缓存配置',
+    description: '按验证码、登录失败窗口、会话、字典和业务缓存分别控制隐藏、脱敏或明文展示。',
+    effect: '保存后刷新 Redis 运维台生效'
+  },
+  {
     key: 'file',
     label: '文件配置',
     description: '管理应用运行时文件存储、上传限制和访问策略。',
@@ -122,7 +128,9 @@ const fields = computed(() => {
         ['watermarkEnabled', '启用水印'],
         ['watermarkType', '水印类型'],
         ['watermarkContent', '水印内容'],
-        ['watermarkOpacity', '水印透明度']
+        ['watermarkOpacity', '水印透明度'],
+        ['watermarkFontSize', '水印字号'],
+        ['watermarkGap', '水印间距']
       ],
       login: [
         ['captchaEnabled', '验证码开关'],
@@ -130,6 +138,13 @@ const fields = computed(() => {
         ['maxRetry', '最大重试次数'],
         ['lockMinutes', '锁定时间（分钟）'],
         ['rememberMeEnabled', '记住我']
+      ],
+      cache: [
+        ['redisCaptchaDisplay', '验证码缓存展示'],
+        ['redisLoginFailureDisplay', '登录失败窗口展示'],
+        ['redisSessionDisplay', 'Sa-Token 会话展示'],
+        ['redisDictionaryDisplay', '数据字典缓存展示'],
+        ['redisBusinessDisplay', '业务缓存展示']
       ],
       file: fileFields,
       oauth: [
@@ -219,6 +234,16 @@ function isFileCredentialKey(key: string): key is FileCredentialKey {
   return key === 'accessKey' || key === 'secretKey';
 }
 
+function applyGroupDefaults() {
+  if (activeKey.value === 'login') form.captchaType ??= 'numeric';
+  if (activeKey.value === 'site') {
+    form.watermarkType ??= 'custom';
+    form.watermarkOpacity ??= 0.12;
+    form.watermarkFontSize ??= 16;
+    form.watermarkGap ??= 120;
+  }
+}
+
 function resetFileCredentialVisibility() {
   form.accessKey = '';
   form.secretKey = '';
@@ -255,12 +280,9 @@ async function load() {
       form[key] = undefined;
     });
     Object.assign(form, response.data?.values);
-    if (activeKey.value === 'login') {
-      form.captchaType = form.captchaType === 'slider' ? 'slider' : 'numeric';
-    }
+    applyGroupDefaults();
     const existingLogoId = logoFileId(String(form.siteLogo ?? ''));
     if (existingLogoId) form.siteLogo = `file:${existingLogoId}`;
-    if (activeKey.value === 'site') form.watermarkType ??= 'custom';
     await refreshLogoPreview();
     if (activeKey.value === 'site' && siteStore.siteLogoUrl && !logoPreviewObjectUrl) {
       logoPreviewUrl.value = siteStore.siteLogoUrl;
@@ -416,6 +438,17 @@ async function regenerateRsaKeys() {
   }
 }
 
+async function testFileStorage() {
+  isSaving.value = true;
+  try {
+    const response = await systemSettingApi.testFileStorage();
+    if (response.data?.success) message.success(response.data.message);
+    else message.error(response.data?.message ?? '存储测试失败');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
 function changeTab(next: SettingGroup) {
   if (next === activeKey.value) return;
   if (isSaving.value) {
@@ -515,12 +548,20 @@ onBeforeUnmount(() => {
                 <ASelect
                   v-model:value="form[key] as string"
                   :options="[
-                    {
-                      value: 'numeric',
-                      label: '数字验证码'
-                    },
-                    { value: 'slider', label: '滑块验证' }
+                    { value: 'numeric', label: '数字验证码（EasyCaptcha）' },
+                    { value: 'slider', label: '滑动验证码（AJ-Captcha）' }
                   ]"
+                />
+              </template>
+              <template v-else-if="key.endsWith('Display')">
+                <ASelect
+                  v-model:value="form[key] as string"
+                  :options="[
+                    { value: 'hidden', label: '完全隐藏' },
+                    { value: 'masked', label: '脱敏显示' },
+                    { value: 'plain', label: '明文显示' }
+                  ]"
+                  class="field-input"
                 />
               </template>
               <template v-else-if="key === 'siteLogo'">
@@ -586,6 +627,22 @@ onBeforeUnmount(() => {
                 :step="0.01"
                 class="field-input"
               />
+              <ASlider
+                v-else-if="key === 'watermarkFontSize'"
+                v-model:value="form[key] as number"
+                :min="12"
+                :max="32"
+                :step="1"
+                class="field-input"
+              />
+              <ASlider
+                v-else-if="key === 'watermarkGap'"
+                v-model:value="form[key] as number"
+                :min="20"
+                :max="240"
+                :step="10"
+                class="field-input"
+              />
               <AInput
                 v-else-if="isFileCredentialKey(key)"
                 v-model:value="form[key] as string"
@@ -633,6 +690,9 @@ onBeforeUnmount(() => {
               <span v-if="key === 'watermarkOpacity'" class="field-hint">
                 {{ Math.round(Number(form[key] ?? 0) * 100) }}%
               </span>
+              <span v-else-if="key === 'watermarkFontSize' || key === 'watermarkGap'" class="field-hint">
+                {{ form[key] }}{{ key === 'watermarkFontSize' ? ' px' : ' px' }}
+              </span>
               <div v-if="key === 'allowedExtensions'" class="field-hint">
                 可逐个输入扩展名并按 Enter 添加，也可直接粘贴 png,jpg,pdf；保存时统一按逗号分隔。
               </div>
@@ -650,6 +710,12 @@ onBeforeUnmount(() => {
               </AButton>
               <AButton :disabled="!isDirty" @click="load">重置</AButton>
               <ATypographyText v-if="isDirty" type="warning">有未保存的修改</ATypographyText>
+            </ASpace>
+            <ASpace v-if="activeKey === 'file'" wrap class="settings-action-row">
+              <AButton v-permission="'system:setting:update'" :loading="isSaving" @click="testFileStorage">
+                测试存储配置
+              </AButton>
+              <ATypographyText type="secondary">测试当前已保存配置，不会保留测试文件</ATypographyText>
             </ASpace>
             <template v-if="activeKey === 'payment'">
               <ADivider />
@@ -767,6 +833,17 @@ onBeforeUnmount(() => {
 }
 .action-hint {
   margin-left: 8px;
+}
+.settings-action-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+}
+.settings-action-row .ant-typography {
+  white-space: normal;
 }
 .logo-setting :deep(.ant-typography) {
   font-size: 12px;

@@ -27,6 +27,12 @@ public class SystemSettingService {
     private final SysSystemSettingMapper mapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SettingCipher cipher;
+    private static final Map<String, String> REDIS_DISPLAY_DEFAULTS = Map.of(
+            "redisCaptchaDisplay", "hidden",
+            "redisLoginFailureDisplay", "hidden",
+            "redisSessionDisplay", "hidden",
+            "redisDictionaryDisplay", "masked",
+            "redisBusinessDisplay", "masked");
 
     public SystemSettingService(SysSystemSettingMapper mapper, SettingCipher cipher) {
         this.mapper = mapper;
@@ -36,6 +42,7 @@ public class SystemSettingService {
     public SystemSettingVo get(SettingGroup group) {
         SysSystemSetting entity = find(group);
         Map<String, Object> values = entity == null ? new LinkedHashMap<>() : read(entity.getValuesJson());
+        if (group == SettingGroup.CACHE) values = cacheDisplayValues(values);
         Map<String, Boolean> secrets = new LinkedHashMap<>();
         if (entity != null && entity.getSecretsCiphertext() != null && !entity.getSecretsCiphertext().isBlank()) {
             read(cipher.decrypt(entity.getSecretsCiphertext())).keySet().forEach(key -> secrets.put(key, true));
@@ -68,7 +75,7 @@ public class SystemSettingService {
         response.put("site", get(SettingGroup.SITE).values());
         SystemSettingVo login = get(SettingGroup.LOGIN);
         response.put("login", Map.of("captchaEnabled", login.values().getOrDefault("captchaEnabled", true),
-                "captchaType", login.values().getOrDefault("captchaType", "numeric"),
+                "captchaType", "numeric",
                 "rememberMeEnabled", login.values().getOrDefault("rememberMeEnabled", true)));
         return response;
     }
@@ -78,10 +85,23 @@ public class SystemSettingService {
         SysSystemSetting entity = find(group);
         if (entity == null) return Map.of();
         Map<String, Object> values = new LinkedHashMap<>(read(entity.getValuesJson()));
+        if (group == SettingGroup.CACHE) values = cacheDisplayValues(values);
         if (entity.getSecretsCiphertext() != null && !entity.getSecretsCiphertext().isBlank()) {
             values.putAll(read(cipher.decrypt(entity.getSecretsCiphertext())));
         }
         return Map.copyOf(values);
+    }
+
+    private static Map<String, Object> cacheDisplayValues(Map<String, Object> source) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        boolean hasCategorySettings = REDIS_DISPLAY_DEFAULTS.keySet().stream().anyMatch(source::containsKey);
+        if (hasCategorySettings) {
+            REDIS_DISPLAY_DEFAULTS.forEach((key, fallback) -> values.put(key, source.getOrDefault(key, fallback)));
+            return values;
+        }
+        boolean legacyMasking = !(source.get("redisMaskValues") instanceof Boolean enabled) || enabled;
+        REDIS_DISPLAY_DEFAULTS.forEach((key, fallback) -> values.put(key, legacyMasking ? fallback : "plain"));
+        return values;
     }
 
     /**

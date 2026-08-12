@@ -39,7 +39,9 @@ function displayLevelColor(level: RedisKeyMetadata['displayLevel']) {
     <ATableColumn title="值预览" data-index="value" width="220">
       <template #default="{ record }">
         <ATooltip :title="record.displayLevel === 'HIDDEN' ? undefined : record.value || ''">
-          <span class="redis-value-cell">{{ record.value || '-' }}</span>
+          <span class="redis-value-cell">
+            {{ record.displayLevel === 'HIDDEN' ? '敏感数据已隐藏' : record.value || '-' }}
+          </span>
         </ATooltip>
         <ATag class="ml-2" :color="displayLevelColor(record.displayLevel)">
           {{ displayLevelLabel(record.displayLevel) }}

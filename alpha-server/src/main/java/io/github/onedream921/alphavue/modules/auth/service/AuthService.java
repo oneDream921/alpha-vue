@@ -23,6 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.time.Duration;
 import java.util.UUID;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
 
 /**
  * 认证服务
@@ -61,7 +63,7 @@ public class AuthService {
      */
     public LoginResponse login(LoginRequest request, String ipAddress, String userAgent, String traceId) {
         Client client = clientRegistryService.requireEnabled(request.clientId());
-        captchaService.validate(request.captchaId(), request.captcha());
+        captchaService.validate(request.captchaId(), request.captcha(), request.captchaVerification());
         if (!loginFailureStore.reserveAttempt(request.username(), ipAddress, maxRetry(), Duration.ofMinutes(lockMinutes()))) {
             auditLogService.recordLogin(request.username(), null, false, ipAddress, userAgent, request.clientId(),
                     request.deviceId(), request.deviceName(), traceId, 429, "Login temporarily locked");
@@ -129,6 +131,9 @@ public class AuthService {
     public CaptchaService.CaptchaResponse captcha() {
         return captchaService.create();
     }
+
+    public ResponseModel sliderCaptcha(CaptchaVO request) { return captchaService.sliderGet(request); }
+    public ResponseModel checkSliderCaptcha(CaptchaVO request) { return captchaService.sliderCheck(request); }
 
     /**
      * 查询当前登录用户可见路由

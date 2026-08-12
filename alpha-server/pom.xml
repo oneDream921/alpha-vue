@@ -26,6 +26,8 @@
         <minio.version>8.5.17</minio.version>
         <redisson.version>4.6.1</redisson.version>
         <ip2region.version>3.3.7</ip2region.version>
+        <aj-captcha.version>1.4.0</aj-captcha.version>
+        <easy-captcha.version>1.6.2</easy-captcha.version>
         <snail-job.version>2.0.2</snail-job.version>
     </properties>
 
@@ -111,6 +113,16 @@
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
             <version>0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.anji-plus</groupId>
+            <artifactId>captcha</artifactId>
+            <version>${aj-captcha.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.whvcse</groupId>
+            <artifactId>easy-captcha</artifactId>
+            <version>${easy-captcha.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

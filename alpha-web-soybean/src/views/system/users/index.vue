@@ -27,6 +27,7 @@ const total = ref(0);
 const page = ref(1);
 const size = ref(10);
 const keyword = ref('');
+const submittedKeyword = ref('');
 const selectedDeptId = ref<number>();
 const editorOpen = ref(false);
 const roleOpen = ref(false);
@@ -89,22 +90,31 @@ const deptTreeData = computed<DeptTreeNode[]>(() => {
   return roots;
 });
 const selectedDeptName = computed(() => depts.value.find(dept => dept.id === selectedDeptId.value)?.name);
-const filteredRows = computed(() => {
-  const value = keyword.value.trim().toLowerCase();
-  return value
-    ? rows.value.filter(row => `${row.username} ${row.nickname} ${row.email ?? ''}`.toLowerCase().includes(value))
-    : rows.value;
-});
-
 async function load() {
   loading.value = true;
   try {
-    const response = await userApi.page(page.value, size.value, selectedDeptId.value);
+    const response = await userApi.page({
+      page: page.value,
+      size: size.value,
+      deptId: selectedDeptId.value,
+      keyword: submittedKeyword.value
+    });
     rows.value = response.data?.records ?? [];
     total.value = response.data?.total ?? 0;
   } finally {
     loading.value = false;
   }
+}
+function search() {
+  submittedKeyword.value = keyword.value.trim();
+  page.value = 1;
+  load();
+}
+function resetSearch() {
+  keyword.value = '';
+  submittedKeyword.value = '';
+  page.value = 1;
+  load();
 }
 function selectDept(selectedKeys: (string | number)[]) {
   selectedDeptId.value = toggleDeptSelection(selectedDeptId.value, selectedKeys);
@@ -316,9 +326,19 @@ onMounted(async () => {
           </template>
         </ATree>
       </aside>
-      <div>
+      <div class="user-list-panel">
         <div class="page-toolbar">
-          <AInputSearch v-model:value="keyword" allow-clear placeholder="搜索账号、昵称或邮箱" class="toolbar-search" />
+          <AForm class="user-search-form" layout="inline" @submit.prevent="search">
+            <AFormItem>
+              <AInput v-model:value="keyword" allow-clear placeholder="账号、昵称或邮箱" class="toolbar-search" />
+            </AFormItem>
+            <AFormItem>
+              <AButton type="primary" html-type="submit">查询</AButton>
+            </AFormItem>
+            <AFormItem>
+              <AButton @click="resetSearch">重置</AButton>
+            </AFormItem>
+          </AForm>
         </div>
         <AlphaTableCard :loading="loading">
           <template #toolbar>
@@ -326,7 +346,7 @@ onMounted(async () => {
           </template>
           <ATable
             row-key="id"
-            :data-source="filteredRows"
+            :data-source="rows"
             :columns="userTableColumns"
             :pagination="false"
             :scroll="{ x: 'max-content' }"
@@ -494,6 +514,17 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   gap: 16px;
+}
+
+.user-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.user-search-form :deep(.ant-form-item) {
+  margin-bottom: 0;
 }
 
 .user-dept-filter {

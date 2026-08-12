@@ -22,7 +22,8 @@ import java.util.Set;
 public class OpenApiConfig {
 
     private static final String BEARER_AUTH = "bearerAuth";
-    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of("/api/auth/login", "/api/auth/captcha");
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of("/api/auth/login", "/api/auth/captcha",
+            "/api/auth/captcha/slider/get", "/api/auth/captcha/slider/check");
 
     /**
      * 构建管理端后端接口的 OpenAPI 主文档

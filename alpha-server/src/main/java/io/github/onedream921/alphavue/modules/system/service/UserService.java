@@ -42,9 +42,14 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     /**
      * 分页查询用户，并附带用户已关联的角色 ID
      */
-    public PageResponse<UserVo> page(int pageNumber, int pageSize, Long deptId) {
+    public PageResponse<UserVo> page(int pageNumber, int pageSize, Long deptId, String keyword) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
         Page<SysUser> page = baseMapper.selectPage(new Page<>(pageNumber, pageSize),
                 new LambdaQueryWrapper<SysUser>().eq(deptId != null, SysUser::getDeptId, deptId)
+                        .and(normalizedKeyword != null && !normalizedKeyword.isBlank(), wrapper -> wrapper
+                                .like(SysUser::getUsername, normalizedKeyword)
+                                .or().like(SysUser::getNickname, normalizedKeyword)
+                                .or().like(SysUser::getEmail, normalizedKeyword))
                         .orderByAsc(SysUser::getId));
         return new PageResponse<>(page.getRecords().stream().map(this::view).toList(),
                 page.getTotal(), pageNumber, pageSize);

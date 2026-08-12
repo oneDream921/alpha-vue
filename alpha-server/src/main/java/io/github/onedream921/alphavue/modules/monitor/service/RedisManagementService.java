@@ -9,6 +9,8 @@ import io.github.onedream921.alphavue.modules.monitor.config.RedisDisplayPolicyR
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyMetadataVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisKeyPageVo;
 import io.github.onedream921.alphavue.modules.monitor.vo.RedisOverviewVo;
+import io.github.onedream921.alphavue.modules.system.settings.SettingGroup;
+import io.github.onedream921.alphavue.modules.system.settings.service.SystemSettingService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,17 +29,24 @@ public class RedisManagementService {
     private final RedisKeyspace keyspace;
     private final RedisManagementProperties properties;
     private final RedisDisplayPolicyRegistry policyRegistry;
+    private final SystemSettingService settingService;
 
     @Autowired
     public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties,
-                                  RedisDisplayPolicyRegistry policyRegistry) {
+                                  RedisDisplayPolicyRegistry policyRegistry, SystemSettingService settingService) {
         this.keyspace = keyspace;
         this.properties = properties;
         this.policyRegistry = policyRegistry;
+        this.settingService = settingService;
     }
 
     public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties) {
-        this(keyspace, properties, new RedisDisplayPolicyRegistry());
+        this(keyspace, properties, new RedisDisplayPolicyRegistry(), null);
+    }
+
+    public RedisManagementService(RedisKeyspace keyspace, RedisManagementProperties properties,
+                                  RedisDisplayPolicyRegistry policyRegistry) {
+        this(keyspace, properties, policyRegistry, null);
     }
 
     /**
@@ -101,10 +110,23 @@ public class RedisManagementService {
     }
 
     private RedisDisplayLevel effectiveLevel(RedisDisplayPolicyRegistry.Definition definition, String key) {
-        if (isSensitiveKey(key) && !definition.sensitive()) return RedisDisplayLevel.HIDDEN;
-        RedisDisplayLevel configured = definition.defaultLevel();
-        if (properties.isMaskValues() && configured != RedisDisplayLevel.HIDDEN) return RedisDisplayLevel.MASKED;
-        return configured;
+        Object configured = settingService == null ? null
+                : settingService.runtimeValues(SettingGroup.CACHE).get(displaySettingKey(definition));
+        if (configured instanceof String value) {
+            try { return RedisDisplayLevel.valueOf(value.toUpperCase(Locale.ROOT)); }
+            catch (IllegalArgumentException ignored) { }
+        }
+        return definition.defaultLevel();
+    }
+
+    private static String displaySettingKey(RedisDisplayPolicyRegistry.Definition definition) {
+        return switch (definition.id()) {
+            case "captcha" -> "redisCaptchaDisplay";
+            case "login-failure" -> "redisLoginFailureDisplay";
+            case "session" -> "redisSessionDisplay";
+            case "dictionary" -> "redisDictionaryDisplay";
+            default -> "redisBusinessDisplay";
+        };
     }
 
     private void requireReadableKey(String key) {

@@ -63,8 +63,37 @@ class SystemSettingServiceTests {
         assertThatThrownBy(() -> service.save(SettingGroup.LOGIN,
                 new SystemSettingRequests.Save(Map.of("lockMinutes", 1.5))))
                 .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.SITE,
+                new SystemSettingRequests.Save(Map.of("watermarkFontSize", 11))))
+                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> service.save(SettingGroup.CACHE,
+                new SystemSettingRequests.Save(Map.of("redisBusinessDisplay", "unsafe"))))
+                .isInstanceOf(RuntimeException.class);
         verify(mapper, never()).insert(any(SysSystemSetting.class));
         verify(mapper, never()).updateById(any(SysSystemSetting.class));
+    }
+
+    @Test
+    void acceptsWatermarkAndRedisDisplaySettings() {
+        SysSystemSettingMapper mapper = mock(SysSystemSettingMapper.class);
+        when(mapper.selectOne(any())).thenReturn(null);
+        SystemSettingService service = new SystemSettingService(mapper, new SettingCipher(KEY));
+
+        service.save(SettingGroup.SITE, new SystemSettingRequests.Save(Map.of(
+                "watermarkFontSize", 20, "watermarkGap", 180)));
+        service.save(SettingGroup.CACHE, new SystemSettingRequests.Save(Map.of(
+                "redisCaptchaDisplay", "hidden", "redisLoginFailureDisplay", "hidden", "redisSessionDisplay", "hidden",
+                "redisDictionaryDisplay", "masked", "redisBusinessDisplay", "plain")));
+
+        verify(mapper, times(2)).insert(any(SysSystemSetting.class));
+    }
+
+    @Test
+    void rejectsLegacyRedisMaskFlagAfterFineGrainedSettingsAreEnabled() {
+        SystemSettingService service = new SystemSettingService(mock(SysSystemSettingMapper.class), new SettingCipher(KEY));
+        assertThatThrownBy(() -> service.save(SettingGroup.CACHE,
+                new SystemSettingRequests.Save(Map.of("redisSessionDisplay", "plain", "redisMaskValues", true))))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test

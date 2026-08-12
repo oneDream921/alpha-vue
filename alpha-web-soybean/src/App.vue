@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { ConfigProvider } from 'ant-design-vue';
 import type { WatermarkProps } from 'ant-design-vue';
 import { useAppStore } from './store/modules/app';
@@ -16,6 +17,7 @@ const appStore = useAppStore();
 const themeStore = useThemeStore();
 const authStore = useAuthStore();
 const siteStore = useSiteStore();
+const route = useRoute();
 
 const antdLocale = computed(() => {
   return antdLocales[appStore.locale];
@@ -28,16 +30,19 @@ const watermarkProps = computed(() => {
       : siteStore.watermarkContent;
   const props: WatermarkProps = {
     content: text,
-    width: 120,
-    height: 120,
-    font: { fontSize: 16, color: `rgba(100, 116, 139, ${siteStore.watermarkOpacity})` },
-    offset: [12, 60],
+    width: siteStore.watermarkGap,
+    height: siteStore.watermarkGap,
+    gap: [siteStore.watermarkGap, siteStore.watermarkGap],
+    font: { fontSize: siteStore.watermarkFontSize, color: `rgba(100, 116, 139, ${siteStore.watermarkOpacity})` },
+    offset: [siteStore.watermarkGap / 2, siteStore.watermarkGap / 2],
     rotate: -15,
     zIndex: 9999
   };
 
   return props;
 });
+
+const isLoginRoute = computed(() => route.path === '/login' || route.path.startsWith('/login/'));
 </script>
 
 <template>
@@ -45,7 +50,7 @@ const watermarkProps = computed(() => {
     <AppProvider>
       <RouterView class="bg-layout" />
       <AWatermark
-        v-if="siteStore.watermarkEnabled && watermarkProps.content"
+        v-if="!isLoginRoute && siteStore.watermarkEnabled && watermarkProps.content"
         v-bind="watermarkProps"
         class="pointer-events-none size-full absolute-lt!"
       />

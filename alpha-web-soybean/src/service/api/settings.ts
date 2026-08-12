@@ -3,6 +3,7 @@ import { request } from '../request';
 export type SettingGroup =
   | 'site'
   | 'login'
+  | 'cache'
   | 'file'
   | 'oauth'
   | 'payment'
@@ -23,6 +24,11 @@ export interface FileStorageCredentials {
   accessKey: string | null;
   secretKey: string | null;
 }
+export interface StorageTestResult {
+  success: boolean;
+  provider: string;
+  message: string;
+}
 export interface PaymentSimulationOrder {
   id: number;
   orderNo: string;
@@ -39,6 +45,7 @@ export const systemSettingApi = {
     request<SystemSetting>({ url: `/system/settings/${group}`, method: 'put', data: { values } }),
   revealFileStorageCredentials: () =>
     request<FileStorageCredentials>({ url: '/system/settings/file/credentials', method: 'get' }),
+  testFileStorage: () => request<StorageTestResult>({ url: '/system/settings/file/test', method: 'post' }),
   regenerateRsaKeys: () => request<RsaKeyPair>({ url: '/system/settings/security/keys/regenerate', method: 'post' }),
   publishOfficialAccountMenu: () =>
     request<null>({ url: '/system/settings/official-account/menu/publish', method: 'post' }),

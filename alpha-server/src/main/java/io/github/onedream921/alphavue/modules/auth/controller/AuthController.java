@@ -9,6 +9,8 @@ import io.github.onedream921.alphavue.modules.auth.dto.ProfileRequests;
 import io.github.onedream921.alphavue.modules.auth.service.AuthService;
 import io.github.onedream921.alphavue.modules.auth.service.OauthService;
 import io.github.onedream921.alphavue.modules.auth.service.CaptchaService;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
 import io.github.onedream921.alphavue.modules.log.BusinessType;
 import io.github.onedream921.alphavue.modules.log.OperationLog;
 import io.github.onedream921.alphavue.modules.system.vo.RouteVo;
@@ -61,6 +63,16 @@ public class AuthController extends BaseController {
     @GetMapping("/captcha")
     public ApiResponse<CaptchaService.CaptchaResponse> captcha(HttpServletRequest servletRequest) {
         return success(authService.captcha(), servletRequest);
+    }
+
+    @PostMapping("/captcha/slider/get")
+    public ApiResponse<ResponseModel> sliderCaptcha(@RequestBody CaptchaVO request, HttpServletRequest servletRequest) {
+        return success(authService.sliderCaptcha(request), servletRequest);
+    }
+
+    @PostMapping("/captcha/slider/check")
+    public ApiResponse<ResponseModel> checkSliderCaptcha(@RequestBody CaptchaVO request, HttpServletRequest servletRequest) {
+        return success(authService.checkSliderCaptcha(request), servletRequest);
     }
 
     @GetMapping("/oauth/{provider}/authorize")

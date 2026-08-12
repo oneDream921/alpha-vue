@@ -2,16 +2,16 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import {
-  CloseCircleOutlined,
-  HolderOutlined,
-  InfoCircleOutlined,
-  LockOutlined,
-  ReloadOutlined,
-  UserOutlined
-} from '@ant-design/icons-vue';
+import CryptoJS from 'crypto-js';
+import { LockOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons-vue';
 import { fetchGetBackendRoutes } from '@/service/api/route';
-import { fetchGetCaptcha, fetchGetUserInfo, fetchLogin } from '@/service/api/auth';
+import {
+  fetchCheckSliderCaptcha,
+  fetchGetCaptcha,
+  fetchGetSliderCaptcha,
+  fetchGetUserInfo,
+  fetchLogin
+} from '@/service/api/auth';
 import logoUrl from '@/assets/alpha-logo.svg';
 import { authStore } from '@/stores/auth';
 
@@ -28,31 +28,50 @@ const form = reactive({
   deviceName: '',
   rememberMe: false,
   captchaId: '',
-  captcha: ''
+  captcha: '',
+  captchaVerification: ''
 });
 const captchaEnabled = ref(false);
 const captchaType = ref<'numeric' | 'slider'>('numeric');
 const rememberMeEnabled = ref(true);
 const captchaImage = ref<string>();
-const captchaQuestion = ref<string>();
-const sliderBackground = ref<string>();
-const sliderPiece = ref<string>();
-const sliderWidth = ref(420);
-const sliderHeight = ref(280);
-const sliderPieceWidth = ref(42);
-const sliderPieceTop = ref(42);
+const sliderData = ref<{ originalImageBase64: string; jigsawImageBase64: string; token: string; secretKey: string }>();
 const sliderOffset = ref(0);
 const sliderDragging = ref(false);
-const sliderStartX = ref(0);
-const sliderStartOffset = ref(0);
+const sliderVerified = ref(false);
 const sliderModalOpen = ref(false);
-const sliderTrack = ref<SliderElement>();
-const sliderHandle = ref<SliderElement>();
-const sliderTrace = ref<Array<{ x: number; y: number; t: number }>>([]);
-const sliderStartedAt = ref(0);
-const sliderStatus = ref('');
-const sliderMaxOffset = computed(() => Math.max(0, sliderWidth.value - sliderPieceWidth.value));
-const sliderProgress = computed(() => (sliderMaxOffset.value > 0 ? sliderOffset.value / sliderMaxOffset.value : 0));
+const sliderLoading = ref(false);
+const sliderSubmitting = ref(false);
+const sliderClientUid = crypto.randomUUID();
+const sliderPictureRef = ref<HTMLElement>();
+const sliderPieceRef = ref<HTMLImageElement>();
+const sliderTrackRef = ref<HTMLElement>();
+let sliderStartX = 0;
+const SLIDER_IMAGE_WIDTH = 310;
+const SLIDER_PIECE_WIDTH = 47;
+// AJ-Captcha generates block-puzzle gaps with a 5px top margin.
+const SLIDER_PIECE_Y = 5;
+const SLIDER_HANDLE_WIDTH = SLIDER_PIECE_WIDTH;
+const sliderMax = computed(() =>
+  Math.max(0, (sliderTrackRef.value?.clientWidth ?? SLIDER_IMAGE_WIDTH) - SLIDER_HANDLE_WIDTH)
+);
+const sliderPieceLeft = computed(() => `${sliderOffset.value}px`);
+
+function encryptSlider(content: string, key: string) {
+  return CryptoJS.AES.encrypt(content, CryptoJS.enc.Utf8.parse(key), {
+    mode: CryptoJS.mode.ECB,
+    padding: CryptoJS.pad.Pkcs7
+  }).toString();
+}
+
+async function loadSliderCaptcha() {
+  const response = await fetchGetSliderCaptcha(sliderClientUid);
+  if (response.error || !response.data?.repData || response.data.repCode !== '0000') throw response.error;
+  sliderData.value = response.data.repData;
+  sliderOffset.value = 0;
+  sliderVerified.value = false;
+  form.captchaVerification = '';
+}
 
 async function loadCaptcha() {
   captchaLoading.value = true;
@@ -60,23 +79,13 @@ async function loadCaptcha() {
     const response = await fetchGetCaptcha();
     if (response.error || !response.data) throw response.error;
     captchaEnabled.value = response.data.enabled;
-    captchaType.value = response.data.type ?? 'numeric';
+    captchaType.value = response.data.type;
     rememberMeEnabled.value = response.data.rememberMeEnabled ?? true;
     if (!rememberMeEnabled.value) form.rememberMe = false;
     captchaImage.value = response.data.image ?? undefined;
-    captchaQuestion.value = response.data.question ?? undefined;
-    sliderBackground.value = response.data.sliderBackground ?? undefined;
-    sliderPiece.value = response.data.sliderPiece ?? undefined;
-    sliderWidth.value = response.data.sliderWidth ?? 420;
-    sliderHeight.value = response.data.sliderHeight ?? 280;
-    sliderPieceWidth.value = response.data.sliderPieceWidth ?? 42;
-    sliderPieceTop.value = response.data.sliderPieceTop ?? 42;
-    sliderOffset.value = 0;
-    sliderTrace.value = [];
-    sliderStartedAt.value = 0;
-    sliderStatus.value = '';
     form.captchaId = response.data.captchaId ?? '';
     form.captcha = '';
+    form.captchaVerification = '';
     captchaLoadFailed.value = false;
     return true;
   } catch {
@@ -90,104 +99,64 @@ async function loadCaptcha() {
   }
 }
 
-type SliderPointerEvent = {
-  clientX: number;
-  clientY: number;
-  currentTarget: unknown;
-  pointerId: number;
-};
-
-type SliderElement = {
-  getBoundingClientRect: () => {
-    left: number;
-    top: number;
-    width: number;
-  };
-};
-
-function startSlider(event: SliderPointerEvent) {
-  if (!sliderPiece.value || captchaLoading.value || loading.value) return;
-  sliderStatus.value = '正在验证';
+function startSlider(event: PointerEvent) {
+  if (sliderVerified.value || captchaLoading.value) return;
   sliderDragging.value = true;
-  sliderStartedAt.value = Date.now();
-  sliderStartX.value = event.clientX;
-  sliderStartOffset.value = sliderOffset.value;
-  sliderTrace.value = [];
-  recordSliderPoint(event);
-  (
-    event.currentTarget as {
-      setPointerCapture: (pointerId: number) => void;
-    }
-  ).setPointerCapture(event.pointerId);
+  const trackLeft = sliderTrackRef.value?.getBoundingClientRect().left ?? event.clientX;
+  sliderStartX = event.clientX - sliderOffset.value - trackLeft;
+  sliderTrackRef.value?.setPointerCapture(event.pointerId);
 }
 
-function moveSlider(event: SliderPointerEvent) {
+function moveSlider(event: PointerEvent) {
   if (!sliderDragging.value) return;
-  const trackWidth = sliderTrack.value?.getBoundingClientRect().width ?? 0;
-  const handleWidth = sliderHandle.value?.getBoundingClientRect().width ?? 50;
-  const displayTravel = Math.max(1, trackWidth - handleWidth);
-  const logicalDelta = ((event.clientX - sliderStartX.value) / displayTravel) * sliderMaxOffset.value;
-  sliderOffset.value = Math.min(sliderMaxOffset.value, Math.max(0, sliderStartOffset.value + logicalDelta));
-  recordSliderPoint(event);
+  const trackLeft = sliderTrackRef.value?.getBoundingClientRect().left ?? 0;
+  sliderOffset.value = Math.max(0, Math.min(sliderMax.value, event.clientX - trackLeft - sliderStartX));
 }
 
-function recordSliderPoint(event: SliderPointerEvent, elapsed = Date.now() - sliderStartedAt.value, force = false) {
-  const bounds = sliderTrack.value?.getBoundingClientRect();
-  if (!bounds) return;
-  const y = Math.max(0, Math.min(48, event.clientY - bounds.top));
-  const last = sliderTrace.value.at(-1);
-  if (!last || force || elapsed - last.t >= 16) {
-    sliderTrace.value.push({ x: sliderOffset.value, y, t: elapsed });
-  }
-}
-
-async function endSlider() {
-  if (!sliderDragging.value) return;
+async function finishSlider() {
+  if (!sliderDragging.value || !sliderData.value || sliderSubmitting.value) return;
   sliderDragging.value = false;
-  const lastTraceTime = sliderTrace.value.at(-1)?.t ?? -1;
-  const duration = Math.max(Date.now() - sliderStartedAt.value, lastTraceTime + 1);
-  recordSliderPoint(
-    {
-      clientX: sliderStartX.value + sliderOffset.value,
-      clientY: 0,
-      currentTarget: sliderTrack.value,
-      pointerId: 0
-    },
-    duration,
-    true
-  );
-  form.captcha = `${Math.round(sliderOffset.value)}~${duration}~${sliderTrace.value
-    .map(point => `${Math.round(point.x)},${Math.round(point.y)},${point.t}`)
-    .join(';')}`;
-  sliderStatus.value = '正在校验';
-  const success = await performLogin();
-  if (success) {
-    sliderModalOpen.value = false;
-  } else if (captchaEnabled.value && captchaType.value === 'slider' && !captchaLoadFailed.value) {
-    sliderModalOpen.value = true;
-    sliderStatus.value = '验证未通过，请重试';
+  sliderSubmitting.value = true;
+  const displayOffset = Math.max(0, Math.min(sliderMax.value, sliderOffset.value));
+  const displayTravel = Math.max(1, sliderMax.value);
+  const logicalTravel = SLIDER_IMAGE_WIDTH - SLIDER_PIECE_WIDTH;
+  const logicalX = Math.round((displayOffset / displayTravel) * logicalTravel);
+  const point = JSON.stringify({ x: logicalX, y: SLIDER_PIECE_Y });
+  try {
+    const response = await fetchCheckSliderCaptcha({
+      token: sliderData.value.token,
+      pointJson: encryptSlider(point, sliderData.value.secretKey),
+      clientUid: sliderClientUid
+    });
+    if (!response.error && response.data?.repCode === '0000') {
+      form.captchaVerification = encryptSlider(`${sliderData.value.token}---${point}`, sliderData.value.secretKey);
+      sliderVerified.value = true;
+      sliderModalOpen.value = false;
+      await performLogin();
+      return;
+    }
+    message.warning('验证未通过，请重试');
+    await loadSliderCaptcha();
+  } finally {
+    sliderSubmitting.value = false;
   }
-}
-
-async function refreshSlider() {
-  if (await loadCaptcha()) sliderModalOpen.value = true;
-}
-
-function closeSlider() {
-  sliderModalOpen.value = false;
-  sliderStatus.value = '';
-  form.captcha = '';
-}
-
-function showSliderInfo() {
-  message.info('请拖动圆形滑块，使拼图位置对齐');
 }
 
 async function submit() {
-  if (captchaLoading.value || captchaLoadFailed.value) return;
+  if (loading.value || captchaLoading.value || captchaLoadFailed.value || sliderSubmitting.value) return;
   await loginFormRef.value?.validate();
-  if (captchaEnabled.value && captchaType.value === 'slider' && !form.captcha) {
+  if (captchaEnabled.value && captchaType.value === 'slider') {
+    sliderVerified.value = false;
     sliderModalOpen.value = true;
+    sliderLoading.value = true;
+    try {
+      await loadSliderCaptcha();
+    } catch {
+      sliderModalOpen.value = false;
+      message.error('滑动验证加载失败，请重试');
+    } finally {
+      sliderLoading.value = false;
+    }
     return;
   }
   await performLogin();
@@ -198,7 +167,10 @@ async function performLogin() {
   await authStore.clearAuth();
   try {
     const login = await fetchLogin(form);
-    if (login.error || !login.data) throw login.error;
+    if (login.error || !login.data) {
+      message.error('账号或密码错误，请重新输入');
+      return false;
+    }
     authStore.setToken(login.data.token, form.rememberMe);
     const [profile, routes] = await Promise.all([fetchGetUserInfo(), fetchGetBackendRoutes()]);
     if (profile.error || !profile.data || routes.error || !routes.data) throw profile.error || routes.error;
@@ -209,7 +181,7 @@ async function performLogin() {
   } catch (error: unknown) {
     authStore.clearAuth();
     const apiMessage = error instanceof Error ? error.message : undefined;
-    message.error(apiMessage || '登录失败，请检查账号和密码');
+    message.error(apiMessage || '登录失败，请稍后重试');
     if (captchaEnabled.value) await loadCaptcha();
     return false;
   } finally {
@@ -234,7 +206,7 @@ onMounted(loadCaptcha);
           <p>使用管理账号进入 Alpha Vue</p>
         </div>
       </div>
-      <AForm ref="loginFormRef" :model="form" layout="vertical" @finish="submit" @keyup.enter="submit">
+      <AForm ref="loginFormRef" :model="form" layout="vertical" @finish="submit">
         <div v-if="captchaLoadFailed" class="captcha-load-error">
           <span>安全验证加载失败，暂时无法登录</span>
           <AButton size="small" @click="loadCaptcha">重试</AButton>
@@ -261,11 +233,8 @@ onMounted(loadCaptcha);
             }
           ]"
         >
-          <div v-if="captchaType === 'numeric'" class="captcha-row">
-            <div v-if="captchaQuestion" class="captcha-question">
-              {{ captchaQuestion }}
-            </div>
-            <AInput v-model:value="form.captcha" :maxlength="16" placeholder="请输入验证码" />
+          <div class="captcha-row">
+            <AInput v-model:value="form.captcha" :maxlength="4" placeholder="请输入 4 位数字验证码" />
             <AButton
               class="captcha-button"
               title="刷新验证码"
@@ -273,7 +242,7 @@ onMounted(loadCaptcha);
               :disabled="captchaLoading"
               @click="loadCaptcha"
             >
-              <img v-if="captchaImage && !captchaLoading" :src="captchaImage" alt="验证码" />
+              <img v-if="captchaImage && !captchaLoading" :src="captchaImage" alt="4 位数字验证码" />
               <ReloadOutlined v-else />
             </AButton>
           </div>
@@ -286,93 +255,48 @@ onMounted(loadCaptcha);
           class="ant-btn ant-btn-primary ant-btn-lg ant-btn-block login-submit"
           :class="{ 'ant-btn-loading': loading }"
           :disabled="loading || captchaLoading || captchaLoadFailed"
-          @click="submit"
         >
           <span>登录</span>
         </button>
       </AForm>
-      <AModal
-        v-model:open="sliderModalOpen"
-        :title="null"
-        :footer="null"
-        centered
-        :width="480"
-        :closable="false"
-        wrap-class-name="slider-captcha-modal"
-        @cancel="closeSlider"
-      >
-        <div
-          class="slider-captcha"
-          aria-describedby="slider-captcha-status"
-          @pointermove="moveSlider"
-          @pointerup="endSlider"
-          @pointercancel="endSlider"
-        >
-          <div
-            class="slider-captcha-image"
-            :style="{
-              aspectRatio: `${sliderWidth} / ${sliderHeight}`
-            }"
-          >
-            <img :src="sliderBackground" alt="滑块验证码背景" />
+    </section>
+    <AModal
+      v-model:open="sliderModalOpen"
+      title="安全验证"
+      :footer="null"
+      :mask-closable="false"
+      destroy-on-close
+      wrap-class-name="slider-captcha-modal"
+      @cancel="sliderModalOpen = false"
+    >
+      <ASpin :spinning="sliderLoading">
+        <div v-if="sliderData" class="slider-captcha">
+          <div ref="sliderPictureRef" class="slider-picture">
+            <img :src="`data:image/png;base64,${sliderData.originalImageBase64}`" alt="滑动验证码底图" />
             <img
-              class="slider-captcha-piece"
-              :src="sliderPiece"
-              alt="滑块拼图"
-              :style="{
-                width: `${(sliderPieceWidth / sliderWidth) * 100}%`,
-                height: `${(sliderPieceWidth / sliderHeight) * 100}%`,
-                top: `${(sliderPieceTop / sliderHeight) * 100}%`,
-                left: `${(sliderOffset / sliderWidth) * 100}%`
-              }"
+              ref="sliderPieceRef"
+              class="slider-piece"
+              :src="`data:image/png;base64,${sliderData.jigsawImageBase64}`"
+              alt=""
+              :style="{ left: sliderPieceLeft }"
             />
           </div>
-          <div ref="sliderTrack" class="slider-captcha-track">
-            <div
-              class="slider-captcha-fill"
-              :style="{
-                width: `${sliderProgress * 100}%`
-              }"
-            />
-            <span id="slider-captcha-status" aria-live="polite">
-              {{ sliderStatus || '拖动滑块完成验证' }}
-            </span>
-            <button
-              ref="sliderHandle"
-              type="button"
-              class="slider-captcha-handle"
-              aria-label="拖动滑块"
-              :disabled="captchaLoading || loading"
-              :style="{
-                left: `${sliderProgress * 100}%`,
-                transform: `translateX(-${sliderProgress * 100}%)`
-              }"
-              @pointerdown.stop="startSlider"
-            >
-              <HolderOutlined />
+          <div
+            ref="sliderTrackRef"
+            class="slider-track"
+            :class="{ verified: sliderVerified }"
+            @pointermove="moveSlider"
+            @pointerup="finishSlider"
+            @pointercancel="finishSlider"
+          >
+            <span>{{ sliderVerified ? '验证通过' : '向右拖动完成拼图' }}</span>
+            <button type="button" class="slider-handle" :style="{ left: sliderPieceLeft }" @pointerdown="startSlider">
+              {{ sliderVerified ? '✓' : '›' }}
             </button>
-          </div>
-          <div class="slider-captcha-toolbar">
-            <button type="button" title="关闭验证" aria-label="关闭验证" @click="closeSlider">
-              <CloseCircleOutlined />
-            </button>
-            <button
-              type="button"
-              title="刷新验证图片"
-              aria-label="刷新验证图片"
-              :disabled="captchaLoading || loading"
-              @click="refreshSlider"
-            >
-              <ReloadOutlined />
-            </button>
-            <button type="button" title="验证说明" aria-label="验证说明" @click="showSliderInfo">
-              <InfoCircleOutlined />
-            </button>
-            <span class="slider-captcha-brand">本地安全验证</span>
           </div>
         </div>
-      </AModal>
-    </section>
+      </ASpin>
+    </AModal>
   </main>
 </template>
 
@@ -500,11 +424,13 @@ onMounted(loadCaptcha);
 .captcha-row {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .captcha-row > :deep(.ant-input) {
   min-width: 0;
   flex: 1;
+  height: 40px;
 }
 
 .captcha-question {
@@ -522,7 +448,7 @@ onMounted(loadCaptcha);
 }
 
 .captcha-button {
-  width: 92px;
+  width: 128px;
   height: 40px;
   padding: 0;
   overflow: hidden;
@@ -533,6 +459,93 @@ onMounted(loadCaptcha);
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.slider-captcha {
+  width: min(100%, 310px);
+  margin: 0 auto;
+  border: 1px solid var(--alpha-border-soft);
+  border-radius: 8px;
+  background: var(--alpha-canvas);
+  box-sizing: border-box;
+}
+
+.slider-picture {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 310 / 155;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--alpha-canvas);
+  box-shadow: 0 4px 12px rgb(15 23 42 / 12%);
+}
+
+.slider-picture > img:first-child {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slider-piece {
+  position: absolute;
+  top: 0;
+  width: 47px;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.slider-track {
+  position: relative;
+  height: 40px;
+  margin-top: 8px;
+  border: 1px solid var(--alpha-border-soft);
+  border-radius: 6px;
+  background: var(--alpha-canvas);
+  color: var(--alpha-text-secondary);
+  font-size: 13px;
+  line-height: 38px;
+  text-align: center;
+  user-select: none;
+  touch-action: none;
+}
+
+.slider-track.verified {
+  border-color: var(--alpha-success);
+  color: var(--alpha-success);
+}
+
+.slider-handle {
+  position: absolute;
+  top: -1px;
+  width: 47px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--alpha-border);
+  border-radius: 6px;
+  background: var(--alpha-surface);
+  color: var(--alpha-primary);
+  cursor: grab;
+  font-size: 25px;
+  line-height: 36px;
+  touch-action: none;
+}
+
+.slider-handle:active {
+  cursor: grabbing;
+}
+
+:global(.slider-captcha-modal .ant-modal-content) {
+  border: 1px solid var(--alpha-border-soft);
+  border-radius: 12px;
+  background: var(--alpha-surface);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 22%);
+}
+
+:global(.slider-captcha-modal .ant-modal-header) {
+  margin-bottom: 18px;
+  border-bottom: 0;
+  background: transparent;
 }
 
 .captcha-load-error {

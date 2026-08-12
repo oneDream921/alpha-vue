@@ -44,6 +44,9 @@ importers:
       clipboard:
         specifier: 2.0.11
         version: 2.0.11
+      crypto-js:
+        specifier: 4.2.0
+        version: 4.2.0
       dayjs:
         specifier: 1.11.19
         version: 1.11.19
@@ -102,6 +105,9 @@ importers:
       '@soybeanjs/eslint-config':
         specifier: 1.7.5
         version: 1.7.5(@typescript-eslint/utils@8.50.1(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3))(@unocss/eslint-config@66.5.10(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3))(eslint-plugin-vue@10.6.2(@typescript-eslint/parser@8.50.1(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0)))(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0)(svelte-eslint-parser@1.4.1)(typescript@5.9.3)(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1)(supports-color@7.2.0))(supports-color@7.2.0))
+      '@types/crypto-js':
+        specifier: 4.2.2
+        version: 4.2.2
       '@types/node':
         specifier: 25.0.3
         version: 25.0.3

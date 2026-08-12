@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,9 +52,10 @@ public class UserController extends BaseController {
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @RequestParam(required = false) @Positive Long deptId,
+            @RequestParam(required = false) @Size(max = 64) String keyword,
             HttpServletRequest request) {
         access.require("system:user:list");
-        return success(userService.page(page, size, deptId), request);
+        return success(userService.page(page, size, deptId, keyword), request);
     }
 
     /**

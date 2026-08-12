@@ -7,8 +7,10 @@ import java.net.URI;
 
 /** Compile-time registry; administrators cannot create arbitrary technical settings. */
 public enum SettingGroup {
-    SITE(Set.of("siteName", "siteDescription", "siteLogo", "copyright", "icp", "watermarkEnabled", "watermarkType", "watermarkContent", "watermarkOpacity"), Set.of()),
+    SITE(Set.of("siteName", "siteDescription", "siteLogo", "copyright", "icp", "watermarkEnabled", "watermarkType", "watermarkContent", "watermarkOpacity", "watermarkFontSize", "watermarkGap"), Set.of()),
     LOGIN(Set.of("captchaEnabled", "captchaType", "maxRetry", "lockMinutes", "rememberMeEnabled"), Set.of()),
+    CACHE(Set.of("redisCaptchaDisplay", "redisLoginFailureDisplay", "redisSessionDisplay",
+            "redisDictionaryDisplay", "redisBusinessDisplay"), Set.of()),
     FILE(Set.of("provider", "accessDomain", "endpoint", "bucket", "region", "maxSizeMb", "allowedExtensions", "storagePath", "publicAccess", "privateAccessTtlMinutes"), Set.of("accessKey", "secretKey")),
     OAUTH(Set.of("wechatEnabled", "alipayEnabled", "githubEnabled", "callbackBaseUrl"), Set.of("wechatAppId", "wechatAppSecret", "alipayAppId", "alipayAppSecret", "githubClientId", "githubClientSecret")),
     PAYMENT(Set.of("wechatEnabled", "alipayEnabled", "wechatMerchantId", "wechatNotifyUrl", "alipayAppId", "alipayNotifyUrl"), Set.of("wechatApiV3Key", "wechatPrivateKey", "alipayPrivateKey", "alipayPublicKey")),
@@ -43,9 +45,12 @@ public enum SettingGroup {
         if (key.equals("watermarkOpacity")) {
             require(value instanceof Number number && number.doubleValue() >= 0.05 && number.doubleValue() <= 0.5); return;
         }
+        if (key.equals("watermarkFontSize")) { requireInteger(value, 12, 32); return; }
+        if (key.equals("watermarkGap")) { requireInteger(value, 20, 240); return; }
         if (key.equals("provider")) { requireOneOf(value, "local", "minio", "oss", "cos"); return; }
         if (key.equals("captchaType")) { requireOneOf(value, "numeric", "slider"); return; }
         if (key.equals("watermarkType")) { requireOneOf(value, "custom", "username"); return; }
+        if (key.startsWith("redis") && key.endsWith("Display")) { requireOneOf(value, "hidden", "masked", "plain"); return; }
         require(value instanceof String);
         String text = ((String) value).trim();
         require(text.length() <= (key.endsWith("Key") || key.toLowerCase().contains("private") || key.equals("customMenuJson") ? 16_384 : 1_024));

@@ -90,6 +90,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/captcha",
+                        "/api/auth/captcha/slider/**",
                         "/api/auth/oauth/**",
                         "/api/system/settings/public",
                         "/api/wechat/official-account/callback",

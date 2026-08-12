@@ -8,6 +8,7 @@ export interface LoginPayload {
   deviceName?: string;
   captcha?: string;
   captchaId?: string;
+  captchaVerification?: string;
   rememberMe?: boolean;
 }
 
@@ -23,25 +24,48 @@ export interface CaptchaResult {
   rememberMeEnabled: boolean;
   captchaId: string | null;
   image: string | null;
-  question: string | null;
-  sliderBackground: string | null;
-  sliderPiece: string | null;
-  sliderWidth: number | null;
-  sliderHeight: number | null;
-  sliderPieceWidth: number | null;
-  sliderPieceTop: number | null;
+}
+
+export interface SliderCaptchaData {
+  originalImageBase64: string;
+  jigsawImageBase64: string;
+  token: string;
+  secretKey: string;
+}
+
+interface AjCaptchaResponse<T = unknown> {
+  repCode: string;
+  repMsg: string;
+  repData: T;
 }
 
 export function fetchLogin(payload: LoginPayload) {
   return request<LoginResult>({
     url: '/auth/login',
     method: 'post',
+    headers: { 'X-Client-Silent-Error': 'true' },
     data: { ...payload, clientId: 'pc-admin' }
   });
 }
 
 export function fetchGetCaptcha() {
   return request<CaptchaResult>({ url: '/auth/captcha' });
+}
+
+export function fetchGetSliderCaptcha(clientUid: string) {
+  return request<AjCaptchaResponse<SliderCaptchaData>>({
+    url: '/auth/captcha/slider/get',
+    method: 'post',
+    data: { captchaType: 'blockPuzzle', clientUid }
+  });
+}
+
+export function fetchCheckSliderCaptcha(data: { token: string; pointJson: string; clientUid: string }) {
+  return request<AjCaptchaResponse>({
+    url: '/auth/captcha/slider/check',
+    method: 'post',
+    data: { captchaType: 'blockPuzzle', ...data }
+  });
 }
 
 export function fetchGetUserInfo() {

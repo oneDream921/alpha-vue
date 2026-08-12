@@ -22,6 +22,8 @@ export const useSiteStore = defineStore(SetupStoreId.Site, () => {
   const watermarkType = ref<'custom' | 'username'>('custom');
   const watermarkContent = ref('');
   const watermarkOpacity = ref(0.12);
+  const watermarkFontSize = ref(16);
+  const watermarkGap = ref(120);
   let siteLogoObjectUrl: string | undefined;
 
   function clearLogoObjectUrl() {
@@ -59,6 +61,10 @@ export const useSiteStore = defineStore(SetupStoreId.Site, () => {
       watermarkContent.value = String(site.watermarkContent || '');
       const opacity = Number(site.watermarkOpacity);
       watermarkOpacity.value = Number.isFinite(opacity) ? Math.min(1, Math.max(0, opacity)) : 0.12;
+      const fontSize = Number(site.watermarkFontSize);
+      watermarkFontSize.value = Number.isFinite(fontSize) ? Math.min(32, Math.max(12, fontSize)) : 16;
+      const gap = Number(site.watermarkGap);
+      watermarkGap.value = Number.isFinite(gap) ? Math.min(240, Math.max(20, gap)) : 120;
       await resolveLogo(site.siteLogo);
     } catch {
       // Public settings are optional for the shell; defaults remain usable.
@@ -75,6 +81,8 @@ export const useSiteStore = defineStore(SetupStoreId.Site, () => {
     watermarkType,
     watermarkContent,
     watermarkOpacity,
+    watermarkFontSize,
+    watermarkGap,
     refresh
   };
 });

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -64,6 +65,26 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
      */
     public FileView upload(MultipartFile file, long uploaderId) {
         return upload(file, uploaderId, null);
+    }
+
+    public StorageTestResult testStorage() {
+        String key = ".alpha-storage-test/" + UUID.randomUUID() + ".txt";
+        StorageProvider provider = providerFor(providerName());
+        byte[] payload = "alpha-storage-test".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            provider.store(key, new java.io.ByteArrayInputStream(payload), "text/plain");
+            try (InputStream input = provider.open(key)) {
+                byte[] actual = input.readAllBytes();
+                if (!java.util.Arrays.equals(payload, actual)) {
+                    throw new IOException("Storage test content mismatch");
+                }
+            }
+            return new StorageTestResult(true, provider.name(), "连接、写入、读取和删除测试通过");
+        } catch (Exception exception) {
+            return new StorageTestResult(false, provider.name(), "存储测试失败，请检查存储配置和服务状态");
+        } finally {
+            try { provider.delete(key); } catch (Exception ignored) { }
+        }
     }
 
     private FileView upload(MultipartFile file, long uploaderId, Set<String> extensionOverride) {
@@ -335,4 +356,5 @@ public class FileService extends ServiceImpl<SysFileMapper, SysFile> {
                            Long sizeBytes, String publicUrl, String uploaderName, java.time.LocalDateTime createdAt) { }
 
     public record FileContent(InputStream input, String originalName, String contentType) { }
+    public record StorageTestResult(boolean success, String provider, String message) { }
 }

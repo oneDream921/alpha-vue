@@ -26,7 +26,7 @@
 
 文件上传支持 `txt`、`pdf`、`doc/docx`、`xls/xlsx` 与 `png/jpg/jpeg/gif/webp`。文件响应中的 `publicUrl` 表示当前可访问 URL：默认 `FILE_PUBLIC_ACCESS=false` 时返回短期 HMAC 签名的 `/api/files/{id}/content` 地址；仅显式启用公开访问时，本地存储返回 `/uploads/<uuid>.<ext>`，MinIO 返回配置的公开对象 URL。图片访问 URL 可直接用于预览和头像展示。
 
-`GET /auth/captcha` 返回当前登录配置的 `type`（`numeric` 数字验证码或 `slider` 滑块验证）、验证码挑战及 `rememberMeEnabled`；滑块挑战额外返回背景图、拼图块和尺寸信息，目标位置只保存在服务端；验证码关闭时仍返回配置类型，但不创建挑战。
+`GET /auth/captcha` 返回当前登录配置的 `type`（固定为 `numeric` 数字验证码）、验证码图片挑战及 `rememberMeEnabled`；验证码关闭时仍返回配置类型，但不创建挑战。响应保留旧滑块字段为空，以兼容历史客户端。
 
 `GET /files/{id}/access-url` 需要 `file:list` 权限，仅返回指定文件新的短期访问地址，不返回对象存储凭据或文件内容；管理端用于刷新已持久化 Logo 的过期访问地址。
 
@@ -50,6 +50,8 @@ HTTP 状态与响应 `code` 一致：参数错误 400、未登录 401、无权�
 
 Redis 管理接受可选前缀筛选、键名关键词与 `SCAN` 游标（`cursor`、`count=1..100`），空前缀表示查询全库键空间。接口返回键名、分类、类型、TTL、大小估计、展示级别和值预览；展示级别为 `HIDDEN`、`MASKED` 或 `PLAIN`。验证码、失败计数、Sa-Token 会话和未注册且命中密钥特征的键始终为 `HIDDEN`。删除接口仅返回确认文本，不回显键名。
 
+缓存配置 `CACHE` 按 `redisCaptchaDisplay`、`redisLoginFailureDisplay`、`redisSessionDisplay`、`redisDictionaryDisplay` 和 `redisBusinessDisplay` 五类分别保存 `hidden`、`masked` 或 `plain`。未保存新字段时，读取接口按旧 `redisMaskValues` 兼容生成五类默认值；保存任意新字段后，运行时只使用五类字段，旧字段不再生效。
+
 `GET /monitor/redis/metrics` 需要 `monitor:redis:list` 权限，返回当前应用实例的采样状态、最后一次成功的内存和连接快照、按累计调用数排序的最多 10 条命令统计，以及最多 1,440 个趋势点。内存快照只返回白名单数值字段，包括 `usedMemoryBytes`、`usedMemoryRssBytes`、`usedMemoryPeakBytes`、`maxMemoryBytes` 和用于无 `maxmemory` 场景计算仪表盘比例的 `totalSystemMemoryBytes`。采样状态为 `DISABLED`、`COLLECTING`、`HEALTHY`、`DEGRADED` 或 `STALE`；关闭、首次采样或采样失败仍返回 200 和明确状态。接口不返回 Redis 地址、凭据、原始 INFO、键值或命令参数。
 
 在线用户按 Sa-Token 受控会话索引分页返回，每行对应一个登录终端，包含账号、部门、clientId、设备、IP、浏览器、操作系统、登录时间、最后访问时间和不可逆 token 摘要。查询页大小限制为 100；定向下线需要 `monitor:online:kickout` 权限，只影响指定用户的指定终端。
@@ -59,3 +61,9 @@ SQL 监控返回当前进程内最近 SQL 摘要，支持 `limit=1..200`、`type
 日志列表响应包含账号、结果、IP、地点、clientId、设备摘要、浏览器、操作系统和 traceId；操作日志另包含响应状态、耗时和业务错误码。操作日志详情需要 `log:operation:detail` 权限，才返回有界异常摘要、默认采集且可由注解关闭的结构化请求摘要和响应形状摘要。列表不返回这些详情字段，认证敏感信息不会落库。
 
 开发环境启动后可访问 `/swagger-ui/index.html` 查看 OpenAPI 页面，也可按分组访问 `/v3/api-docs/{group}`（`auth`、`system`、`file`、`log`、`monitor`）。生产环境默认关闭 SpringDoc API 文档与 Swagger UI；如需临时诊断，应通过受控的运维变更并由网关限制访问，而不是直接公开接口文档。
+### 登录验证码
+
+- `GET /api/auth/captcha` 返回验证码开关、类型和“记住我”策略。`numeric` 类型同时返回 EasyCaptcha 生成的 4 位数字图片及一次性 `captchaId`。
+- `POST /api/auth/captcha/slider/get` 使用 AJ-Captcha `blockPuzzle` 获取拼图挑战。
+- `POST /api/auth/captcha/slider/check` 使用 AJ-Captcha 校验加密后的滑动坐标；成功后客户端把 `captchaVerification` 随登录请求提交。
+- `POST /api/auth/login` 在数字模式校验 `captchaId`/`captcha`，在滑动模式校验并消费 `captchaVerification`。
