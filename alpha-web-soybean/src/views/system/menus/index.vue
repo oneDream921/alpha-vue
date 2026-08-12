@@ -6,6 +6,7 @@ import type { Rule } from 'ant-design-vue/es/form';
 import { fetchGetBackendRoutes } from '@/service/api/route';
 import { type Menu, menuApi } from '@/service/api/system';
 import AlphaTableCard from '@/components/AlphaTableCard.vue';
+import SvgIcon from '@/components/custom/svg-icon.vue';
 import { authStore } from '@/stores/auth';
 
 const rows = ref<Menu[]>([]);
@@ -28,6 +29,47 @@ const emptyForm = () => ({
   status: 1
 });
 const form = reactive(emptyForm());
+const commonIconNames = [
+  'ant-design:home-outlined',
+  'ant-design:user-outlined',
+  'ant-design:team-outlined',
+  'ant-design:menu-outlined',
+  'ant-design:setting-outlined',
+  'ant-design:apartment-outlined',
+  'ant-design:database-outlined',
+  'ant-design:folder-open-outlined',
+  'ant-design:file-outlined',
+  'ant-design:file-search-outlined',
+  'ant-design:dashboard-outlined',
+  'ant-design:cloud-server-outlined',
+  'ant-design:code-outlined',
+  'ant-design:book-outlined',
+  'ant-design:calendar-outlined',
+  'ant-design:bell-outlined',
+  'ant-design:lock-outlined',
+  'ant-design:search-outlined',
+  'ant-design:upload-outlined',
+  'ant-design:download-outlined',
+  'ant-design:bar-chart-outlined',
+  'ant-design:pie-chart-outlined',
+  'ant-design:tool-outlined',
+  'ant-design:api-outlined'
+];
+const iconOptions = computed(() => {
+  const current = form.icon.trim();
+  const values = current && !commonIconNames.includes(current) ? [current, ...commonIconNames] : commonIconNames;
+  return values.map(value => ({ value, label: value }));
+});
+function normalizeMenuIcon(value?: string) {
+  if (!value) return '';
+  if (value.includes(':')) return value;
+  const name = value
+    .replace(/Outlined$/, '-outlined')
+    .replace(/Filled$/, '-filled')
+    .replace(/TwoTone$/, '-twotone');
+  const kebab = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+  return `ant-design:${kebab}`;
+}
 const rules: Record<string, Rule[]> = {
   title: [
     { required: true, whitespace: true, message: '请输入菜单名称' },
@@ -115,6 +157,9 @@ function openCreateChild(row: Menu) {
   Object.assign(form, { ...emptyForm(), parentId: row.id });
   editorOpen.value = true;
 }
+function openCreateChildRecord(record: unknown) {
+  openCreateChild(record as Menu);
+}
 function expandAll() {
   expandedRowKeys.value = rows.value.map(item => item.id);
 }
@@ -130,7 +175,7 @@ type MenuTableColumn = {
   align?: 'left' | 'center' | 'right';
 };
 const menuTableColumns: MenuTableColumn[] = [
-  { key: 'title', dataIndex: 'title', title: '名称', minWidth: 180 },
+  { key: 'title', dataIndex: 'title', title: '名称', minWidth: 220 },
   {
     key: 'menuType',
     dataIndex: 'menuType',
@@ -174,9 +219,6 @@ function handleTableExpand(expanded: boolean, row: unknown) {
   else next.delete(record.id);
   expandedRowKeys.value = [...next];
 }
-function menuRecord(record: unknown) {
-  return record as Menu;
-}
 function openEdit(row: Menu) {
   editingId.value = row.id;
   Object.assign(form, {
@@ -186,12 +228,15 @@ function openEdit(row: Menu) {
     path: row.path ?? '',
     component: row.component ?? '',
     permission: row.permission ?? '',
-    icon: row.icon ?? '',
+    icon: normalizeMenuIcon(row.icon),
     sortOrder: row.sortOrder,
     visible: row.visible,
     status: row.status
   });
   editorOpen.value = true;
+}
+function openEditRecord(record: unknown) {
+  openEdit(record as Menu);
 }
 function payload() {
   return {
@@ -229,6 +274,9 @@ function remove(row: Menu) {
       await load();
     }
   });
+}
+function removeRecord(record: unknown) {
+  remove(record as Menu);
 }
 onMounted(load);
 </script>
@@ -268,7 +316,13 @@ onMounted(load);
         @expand="handleTableExpand"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'menuType'">
+          <template v-if="column.key === 'title'">
+            <span class="menu-title-cell">
+              <SvgIcon v-if="record.icon" :icon="normalizeMenuIcon(record.icon)" class="text-icon" />
+              <span>{{ record.title }}</span>
+            </span>
+          </template>
+          <template v-else-if="column.key === 'menuType'">
             <ATag>{{ menuTypeLabel(record.menuType) }}</ATag>
           </template>
           <template v-else-if="column.key === 'path'">
@@ -294,7 +348,7 @@ onMounted(load);
                 type="text"
                 size="small"
                 title="新增子菜单"
-                @click.stop="openCreateChild(menuRecord(record))"
+                @click.stop.prevent="openCreateChildRecord(record)"
               >
                 <PlusOutlined />
               </AButton>
@@ -303,7 +357,7 @@ onMounted(load);
                 type="text"
                 size="small"
                 title="编辑菜单"
-                @click.stop="openEdit(menuRecord(record))"
+                @click.stop.prevent="openEditRecord(record)"
               >
                 <EditOutlined />
               </AButton>
@@ -313,7 +367,7 @@ onMounted(load);
                 danger
                 size="small"
                 title="删除菜单"
-                @click.stop="remove(menuRecord(record))"
+                @click.stop.prevent="removeRecord(record)"
               >
                 <DeleteOutlined />
               </AButton>
@@ -370,7 +424,16 @@ onMounted(load);
         </div>
         <div class="form-grid">
           <AFormItem label="权限编码" name="permission"><AInput v-model:value="form.permission" /></AFormItem>
-          <AFormItem label="图标" name="icon"><AInput v-model:value="form.icon" /></AFormItem>
+          <AFormItem label="图标" name="icon">
+            <ASelect
+              v-model:value="form.icon"
+              show-search
+              allow-clear
+              :options="iconOptions"
+              option-filter-prop="label"
+              placeholder="请选择图标"
+            />
+          </AFormItem>
         </div>
         <div class="form-grid">
           <AFormItem label="导航可见">
@@ -384,3 +447,11 @@ onMounted(load);
     </AModal>
   </section>
 </template>
+
+<style scoped>
+.menu-title-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
