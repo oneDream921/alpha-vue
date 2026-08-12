@@ -1,0 +1,123 @@
+@import './reset.css';
+@import './nprogress.css';
+@import './transition.css';
+
+:root {
+  --alpha-canvas: rgb(var(--layout-bg-color));
+  --alpha-surface: rgb(var(--container-bg-color));
+  --alpha-border: color-mix(in srgb, rgb(var(--base-text-color)) 18%, transparent);
+  --alpha-border-soft: color-mix(in srgb, rgb(var(--base-text-color)) 12%, transparent);
+  --alpha-text: color-mix(in srgb, rgb(var(--base-text-color)) 82%, transparent);
+  --alpha-text-primary: rgb(var(--base-text-color));
+  --alpha-text-secondary: color-mix(in srgb, rgb(var(--base-text-color)) 66%, transparent);
+  --alpha-muted: color-mix(in srgb, rgb(var(--base-text-color)) 48%, transparent);
+  --alpha-primary: rgb(var(--primary-color));
+  --alpha-primary-strong: rgb(var(--primary-600-color));
+  --alpha-primary-soft: color-mix(in srgb, rgb(var(--primary-color)) 12%, transparent);
+  --alpha-info-soft: color-mix(in srgb, rgb(var(--info-color)) 12%, transparent);
+  --alpha-error: rgb(var(--error-color));
+  --alpha-error-strong: rgb(var(--error-600-color));
+  --alpha-error-soft: color-mix(in srgb, rgb(var(--error-color)) 12%, transparent);
+  --alpha-chart-primary: rgb(var(--primary-500-color));
+  --alpha-chart-info: rgb(var(--info-500-color));
+  --alpha-chart-success: rgb(var(--success-500-color));
+  --alpha-chart-warning: rgb(var(--warning-500-color));
+  --alpha-chart-error: rgb(var(--error-500-color));
+  --alpha-chart-axis: color-mix(in srgb, rgb(var(--base-text-color)) 48%, transparent);
+  --alpha-chart-grid: color-mix(in srgb, rgb(var(--base-text-color)) 14%, transparent);
+  --alpha-shadow-color: color-mix(in srgb, rgb(var(--base-text-color)) 18%, transparent);
+  --alpha-radius: 10px;
+  --alpha-shadow: 0 8px 24px color-mix(in srgb, rgb(var(--base-text-color)) 8%, transparent);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+.page-section {
+  min-height: 100%;
+  padding: 24px;
+  background: var(--alpha-canvas);
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-heading h1 {
+  margin: 0 0 5px;
+  color: var(--alpha-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.page-heading p {
+  margin: 0;
+  color: var(--alpha-text-secondary);
+  font-size: 13px;
+}
+
+.query-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.query-bar > .ant-input-search {
+  min-width: min(100%, 320px);
+  flex: 1;
+}
+
+.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.ant-btn > .anticon,
+.ant-btn > span > .anticon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  .page-section {
+    padding: 16px;
+  }
+
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-heading .ant-space {
+    width: 100%;
+  }
+
+  .query-bar {
+    align-items: stretch;
+  }
+
+  .query-bar > .ant-input-search {
+    width: 100%;
+    min-width: 0;
+    flex-basis: 100%;
+  }
+}

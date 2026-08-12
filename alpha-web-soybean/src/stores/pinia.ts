@@ -1,0 +1,1 @@
+export { pinia } from '@/store';
