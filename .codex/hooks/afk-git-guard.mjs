@@ -23,6 +23,6 @@ if (blocked) {
   const reason = `Git ${blocked} 属于 AFK 禁止 Agent 代执行的危险操作，请在本地终端自行执行。`;
   process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } })}\n`);
 } else if (localWrite) {
-  const reason = `Git ${localWrite} 属于 AFK 人工提交交接操作，请输出完整命令供用户在本地终端执行。`;
+  const reason = `Git ${localWrite} 属于 AFK 人工提交交接操作，请使用 afk-core-git-handoff Skill 输出完整命令供用户在本地终端执行。`;
   process.stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } })}\n`);
 } else process.stdout.write("{}\n");

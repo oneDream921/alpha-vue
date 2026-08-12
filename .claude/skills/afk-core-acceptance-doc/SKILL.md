@@ -1,5 +1,5 @@
 ---
-name: acceptance-doc
+name: afk-core-acceptance-doc
 description: 仅在用户明确要求形成/编写测试验收文档时，按需创建或更新 acceptance.md。
   用于需要独立执行、交接或留痕的验收；普通需求的基本验收标准保留在 requirement.md 即可。
 ---

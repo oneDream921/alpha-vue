@@ -30,6 +30,6 @@ docs/requirements/
 
 | 分支 | slug | 标题 | 状态 | 文档 |
 | --- | --- | --- | --- | --- |
-| `main` | `alpha-framework-modernization` | Alpha Vue 框架现代化与分阶段能力建设 | P1-05 已合并，G1 剩余 Redis/缓存/会话及阶段放行确认项 | [requirement.md](./main/alpha-framework-modernization/requirement.md) |
+| `main` | `alpha-framework-modernization` | Alpha Vue 框架现代化与分阶段能力建设 | P1-P3 已完成并通过阶段验收；长期候选能力仅按触发条件重评 | [requirement.md](./main/alpha-framework-modernization/requirement.md) |
 
 落盘新的 `requirement.md` 时在上表追加一行。只有 `design.md` 或 `acceptance.md`、尚未形成主需求文档时，不创建虚假的索引项。

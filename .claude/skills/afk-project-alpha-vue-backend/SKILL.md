@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-backend
+name: afk-project-alpha-vue-backend
 description: Implement, refactor, debug, or review Alpha Vue Spring Boot and
   Java code under alpha-server. Use for controllers, services, MyBatis-Plus and
   XML mappers, entities, DTOs, VOs, Sa-Token authorization, transactions, Flyway

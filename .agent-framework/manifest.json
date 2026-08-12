@@ -1,6 +1,11 @@
 {
   "schemaVersion": 1,
-  "frameworkVersion": "0.5.0",
+  "frameworkVersion": "0.5.2-rc.0",
+  "frameworkSource": {
+    "mode": "local",
+    "revision": "39411e541d17b423202d3ed9ed074cdbc814b861",
+    "dirty": false
+  },
   "targets": {
     "claude": [
       ".claude/skills/afk-core-acceptance-doc",
@@ -21,6 +26,7 @@
       ".claude/skills/afk-project-alpha-vue-generate-task-prompts",
       ".claude/skills/afk-project-alpha-vue-local-start",
       ".claude/skills/afk-project-alpha-vue-task-delivery-orchestrator",
+      ".claude/skills/afk-project-soybean-frontend",
       "CLAUDE.md"
     ],
     "codex": [
@@ -42,6 +48,7 @@
       ".agents/skills/afk-project-alpha-vue-generate-task-prompts",
       ".agents/skills/afk-project-alpha-vue-local-start",
       ".agents/skills/afk-project-alpha-vue-task-delivery-orchestrator",
+      ".agents/skills/afk-project-soybean-frontend",
       ".codex/hooks.json",
       ".codex/hooks/afk-check.mjs",
       ".codex/hooks/afk-checks.json",
@@ -76,7 +83,8 @@
       ".cursor/skills/afk-project-alpha-vue-frontend",
       ".cursor/skills/afk-project-alpha-vue-generate-task-prompts",
       ".cursor/skills/afk-project-alpha-vue-local-start",
-      ".cursor/skills/afk-project-alpha-vue-task-delivery-orchestrator"
+      ".cursor/skills/afk-project-alpha-vue-task-delivery-orchestrator",
+      ".cursor/skills/afk-project-soybean-frontend"
     ],
     "framework": [
       ".agent-framework/sync.mjs"

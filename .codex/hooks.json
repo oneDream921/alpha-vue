@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'command -v git >/dev/null 2>&1 || exit 0; root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.codex/hooks/afk-git-guard.mjs\"'",
-            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$gitCommand = Get-Command git -ErrorAction SilentlyContinue; if (-not $gitCommand) { exit 0 }; $root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.codex/hooks/afk-git-guard.mjs')\"",
+            "command": "sh -lc 'command -v git >/dev/null 2>&1 || exit 0; root=$PWD; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/afk-git-guard.mjs\" ]; do root=$(dirname \"$root\"); done; [ -f \"$root/.codex/hooks/afk-git-guard.mjs\" ] || exit 2; node \"$root/.codex/hooks/afk-git-guard.mjs\"'",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$gitCommand = Get-Command git -ErrorAction SilentlyContinue; if (-not $gitCommand) { exit 0 }; $root = (Get-Location).Path; while ($true) { $hook = Join-Path $root '.codex/hooks/afk-git-guard.mjs'; if (Test-Path -LiteralPath $hook -PathType Leaf) { break }; $parent = Split-Path -Parent $root; if (-not $parent -or $parent -eq $root) { exit 2 }; $root = $parent }; node $hook\"",
             "timeout": 5,
             "statusMessage": "Checking Git safety"
           }
@@ -20,8 +20,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.codex/hooks/afk-check.mjs\"'",
-            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.codex/hooks/afk-check.mjs')\"",
+            "command": "sh -lc 'root=$PWD; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/afk-check.mjs\" ]; do root=$(dirname \"$root\"); done; [ -f \"$root/.codex/hooks/afk-check.mjs\" ] || exit 2; node \"$root/.codex/hooks/afk-check.mjs\"'",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (Get-Location).Path; while ($true) { $hook = Join-Path $root '.codex/hooks/afk-check.mjs'; if (Test-Path -LiteralPath $hook -PathType Leaf) { break }; $parent = Split-Path -Parent $root; if (-not $parent -or $parent -eq $root) { exit 2 }; $root = $parent }; node $hook\"",
             "timeout": 60,
             "statusMessage": "Checking changed source files"
           }
@@ -33,8 +33,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -lc 'root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.codex/hooks/afk-trace-check.mjs\"'",
-            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.codex/hooks/afk-trace-check.mjs')\"",
+            "command": "sh -lc 'root=$PWD; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.codex/hooks/afk-trace-check.mjs\" ]; do root=$(dirname \"$root\"); done; [ -f \"$root/.codex/hooks/afk-trace-check.mjs\" ] || exit 2; node \"$root/.codex/hooks/afk-trace-check.mjs\"'",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$root = (Get-Location).Path; while ($true) { $hook = Join-Path $root '.codex/hooks/afk-trace-check.mjs'; if (Test-Path -LiteralPath $hook -PathType Leaf) { break }; $parent = Split-Path -Parent $root; if (-not $parent -or $parent -eq $root) { exit 2 }; $root = $parent }; node $hook\"",
             "timeout": 5,
             "statusMessage": "Checking AFK completion"
           }

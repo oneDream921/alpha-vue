@@ -1,5 +1,5 @@
 ---
-name: java-code-review
+name: afk-core-java-code-review
 description: Review Java changes against requirements and existing architecture,
   then identify security, correctness, data, performance, test, and regression
   risks. Default output is High/Medium risk points only. Use when the user says
@@ -16,7 +16,7 @@ description: Review Java changes against requirements and existing architecture,
 
 - 仅用户明确说「帮我修」「review 并修复」等时才改。改前说明设计思路、范围和影响；涉及 SQL / Mapper、删除逻辑或大范围数据变更时仍先确认。
 - 本 Skill 只负责 Java 改动，不审查混合变更中的前端部分；项目存在对应前端 Skill 时组合使用，否则按项目规则另行审查。
-- 用户要复现既有异常并定位根因时使用 `debugging`；要形成实施方案时使用 `planning`。评审中发现问题不自动切换为修复、调试或规划。
+- 用户要复现既有异常并定位根因时使用 `debugging`（投影：`afk-core-debugging`）；要形成实施方案时使用 `planning`（投影：`afk-core-planning`）。评审中发现问题不自动切换为修复、调试或规划。
 - 安全 Rule 的确认和禁止项始终生效。规格不清不代表可以放宽授权、数据或安全边界。
 
 ## Workflow
@@ -88,4 +88,4 @@ description: Review Java changes against requirements and existing architecture,
 - `path:line` - 风险、触发条件与影响。建议：最小修复方向。
 ```
 
-默认每条发现使用一个紧凑段落；仅证据链复杂时再展开「证据 / 影响 / 建议」，并省略没有发现的严重度标题。没有发现时写：`本轮改动未发现 High/Medium 风险点。审查范围：N 个文件。规格依据：...`。不要输出 Approve / Request Changes / Verdict。正文结束后仍按项目交互协议列出实际可选方向，并输出 `[下一步建议]` 与 `[TRACE]`，技能字段填 `java-code-review`。
+默认每条发现使用一个紧凑段落；仅证据链复杂时再展开「证据 / 影响 / 建议」，并省略没有发现的严重度标题。没有发现时写：`本轮改动未发现 High/Medium 风险点。审查范围：N 个文件。规格依据：...`。不要输出 Approve / Request Changes / Verdict。正文结束后不列可选方向；仅在有真实后续动作时给一条 `[下一步建议]`，并输出 `[TRACE]`，技能字段填 `java-code-review`。

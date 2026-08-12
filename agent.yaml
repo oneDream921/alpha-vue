@@ -9,8 +9,20 @@ customization:
   memory: docs/ai
 codex:
   hooks:
-    # 仅对 Codex 本次编辑的文件执行；请按项目技术栈显式配置。
-    checks: []
+    # 仅检查 Codex 本次编辑的文件；命令不得修改源码。
+    checks:
+      - patterns:
+          - "**/*.json"
+          - "**/*.js"
+          - "**/*.mjs"
+          - "**/*.ts"
+          - "**/*.tsx"
+          - "**/*.vue"
+        command:
+          - node
+          - scripts/afk-check-changed.mjs
+          - "{files}"
+        timeout: 60
 projects:
   - name: alpha-vue
     path: .

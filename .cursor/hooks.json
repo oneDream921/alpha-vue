@@ -4,8 +4,8 @@
     "beforeShellExecution": [
       {
         "type": "command",
-        "command": "sh -lc 'command -v git >/dev/null 2>&1 || exit 0; root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); node \"$root/.cursor/hooks/afk-git-guard.mjs\"'",
-        "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$gitCommand = Get-Command git -ErrorAction SilentlyContinue; if (-not $gitCommand) { exit 0 }; $root = (& git rev-parse --show-toplevel 2>$null); if (-not $root) { $root = (Get-Location).Path }; node (Join-Path $root '.cursor/hooks/afk-git-guard.mjs')\"",
+        "command": "sh -lc 'command -v git >/dev/null 2>&1 || exit 0; root=$PWD; while [ \"$root\" != \"/\" ] && [ ! -f \"$root/.cursor/hooks/afk-git-guard.mjs\" ]; do root=$(dirname \"$root\"); done; [ -f \"$root/.cursor/hooks/afk-git-guard.mjs\" ] || exit 2; node \"$root/.cursor/hooks/afk-git-guard.mjs\"'",
+        "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$gitCommand = Get-Command git -ErrorAction SilentlyContinue; if (-not $gitCommand) { exit 0 }; $root = (Get-Location).Path; while ($true) { $hook = Join-Path $root '.cursor/hooks/afk-git-guard.mjs'; if (Test-Path -LiteralPath $hook -PathType Leaf) { break }; $parent = Split-Path -Parent $root; if (-not $parent -or $parent -eq $root) { exit 2 }; $root = $parent }; node $hook\"",
         "matcher": "\\bgit\\b",
         "failClosed": true,
         "timeout": 5

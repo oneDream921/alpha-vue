@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-task-delivery-orchestrator
+name: afk-project-alpha-vue-task-delivery-orchestrator
 description: Orchestrate one approved Alpha Vue delivery task through
   strong-model planning, fast-model implementation, batched validation,
   persistent strong-model review, bounded remediation, user testing, status
@@ -29,6 +29,10 @@ Read `AGENTS.md`, the named plan and acceptance sections, applicable formal docs
 tests, and only the project Skills required by scope. Inspect branch, HEAD, worktrees, worktree
 changes, and running processes. Preserve unrelated changes and never read, print, commit, or
 shell-source `deploy/.env`.
+
+Resolve the current task's requirement directory from the user-named requirement, plan, acceptance
+file, or task identifier. Verify the directory and files exist before using them. Do not default to
+`alpha-framework-modernization`, infer a later task, or reuse status files from another requirement.
 
 Before delegating, check whether the environment can:
 
@@ -92,16 +96,14 @@ A `READY` plan must contain:
 - selected project Skills with reasons;
 - stop conditions, residual risks, and Git boundary.
 
-The planner must inspect actual code and remain read-only. If `READY`, the coordinator writes the
-plan to:
+The planner must inspect actual code and remain read-only. Keep the plan in the current conversation
+by default. Write it under `<requirement-dir>/execution-plans/<task-id>.md` only when the user has
+explicitly requested a persisted execution plan and that location matches the requirement's existing
+convention. Persisting a plan is not a prerequisite for implementation and must not create or select
+a requirement on the user's behalf.
 
-```text
-docs/requirements/main/alpha-framework-modernization/execution-plans/<task-id>.md
-```
-
-An execution plan is committed with its implementation, not as a mandatory pre-implementation
-commit. Proceed automatically after `READY`; ask the user only for unresolved architecture, scope,
-destructive data, or security decisions.
+Proceed automatically after `READY` when implementation is already authorized; ask the user only for
+unresolved architecture, scope, destructive data, or security decisions.
 
 ## 4. Continuous implementation
 
@@ -200,9 +202,11 @@ traceId, temporary-data impact, and cleanup. Never ask the user to reveal secret
 values.
 
 Wait for the exact phrase `测试通过`. Do not mark manual acceptance before it. After that phrase, create
-one standard-capability status agent. It may update only the current task execution block in
-`implementation-plan.md` and evidence-supported checks in `acceptance.md`. It must not modify
-production code, start the next task, infer unsupported checks, or commit documentation.
+one standard-capability status agent only when the current requirement already has user-authorized
+status documents. It may update only the named task block in the verified plan file and
+evidence-supported checks in the verified acceptance file under `<requirement-dir>`. It must not
+assume filenames, create missing status documents, modify production code, start the next task,
+infer unsupported checks, or commit documentation.
 
 For `CLOSEOUT`, update only evidence-supported plan, acceptance, and index status. Keep remaining
 stage gates explicit, especially formal documentation, user acceptance, and stage-release

@@ -1,5 +1,5 @@
 ---
-name: alpha-vue-frontend
+name: afk-project-alpha-vue-frontend
 description: Apply Alpha Vue's repository-specific frontend architecture,
   coding, UI, permission, responsive, testing, and delivery conventions. Use
   when planning, implementing, reviewing, debugging, or refactoring files under

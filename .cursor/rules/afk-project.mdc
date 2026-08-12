@@ -7,7 +7,7 @@ alwaysApply: true
 由 Agent Framework Kit 生成，请勿直接编辑。
 项目 Agent 源资产位于 agent.yaml、.project-agent/rules、.project-agent/skills、docs/ai 与 docs/requirements。
 修改 agent.yaml、.project-agent/rules 或 .project-agent/skills 后，默认先运行 node .agent-framework/sync.mjs --dry-run，再运行 node .agent-framework/sync.mjs。
-接管、升级、排查或已明确使用本地 AFK 源码时，使用 afk-maintenance Skill 选择同一来源的入口。
+接管、升级、排查或已明确使用本地 AFK 源码时，使用 afk-maintenance Skill（投影：afk-core-afk-maintenance）选择同一来源的入口。
 -->
 # Cursor 项目规则
 
@@ -19,7 +19,7 @@ alwaysApply: true
 
 #### 工作区与边界
 
-- 当前 workspace 是单一 Git 仓库：`alpha-web` 为 Vue 3 管理端，`alpha-server` 为 Spring Boot 服务，`deploy` 为本地部署与 smoke test，`docs` 为规范、设计和运维文档。
+- 当前 workspace 是单一 Git 仓库：`alpha-web` 为原 Vue 3 管理端，`alpha-web-soybean` 为基于 SoybeanJS 重写的新管理端，`alpha-server` 为两套前端共用的 Spring Boot 服务，`deploy` 为本地部署与 smoke test，`docs` 为规范、设计和运维文档。
 - 项目特有 Rule 和 Skill 只维护在 `.project-agent`；需要更新三端投影时运行 AFK `sync`，不得直接编辑生成文件或 AFK 框架源仓库。
 
 #### Git / 分支约定
@@ -39,7 +39,8 @@ alwaysApply: true
 #### 规范入口
 
 - 跨层编码与交付约束以 `docs/conventions.md` 为准。
-- 前端任务必须使用 `alpha-vue-frontend` Skill，并完整读取 `docs/frontend-conventions.md`。
+- 修改、评审或调试 `alpha-web` 时使用 `alpha-vue-frontend` Skill，并完整读取 `docs/frontend-conventions.md`。
+- 修改、评审或调试 `alpha-web-soybean` 时使用 `soybean-frontend` Skill；同时影响两套前端时同时使用两个 Skill，并分别遵守各自目录的规范和验证入口。
 - 涉及系统边界、模块划分、技术选型、重大非功能需求或架构评审时，使用 `alpha-vue-architecture` Skill；只有用户明确要求时才落盘 ADR 或设计文档。
 - 新增或变更前后端 API 契约时，使用 `alpha-vue-api-design` Skill，并以 `docs/api.md`、`docs/security.md` 和现有实现为准。
 - 实现、重构、调试或评审 `alpha-server` 的 Spring Boot / Java 代码时，使用 `alpha-vue-backend` Skill；它不替代 `java-code-review` 的风险审查。
@@ -56,7 +57,9 @@ alwaysApply: true
 
 #### 验证入口
 
-- 前端：`pnpm --dir alpha-web typecheck`、`test`、`lint`、`format:check`、`build`。
+- 原前端 `alpha-web`：`pnpm --dir alpha-web typecheck`、`test`、`lint`、`format:check`、`build`。
+- Soybean 前端 `alpha-web-soybean`：`pnpm --dir alpha-web-soybean exec eslint .`、`typecheck`、相关 Vitest、`build:test`；具体命令和浏览器证据以 `soybean-frontend` Skill 为准。
+- 同时修改两套前端时分别运行对应检查，不以其中一套的通过替代另一套。
 - 后端：`./mvnw -f alpha-server/pom.xml test` 和 `package`。
 - 部署配置：`docker compose --env-file deploy/.env -f deploy/docker-compose.yml config --quiet`；涉及真实联调时再运行 `deploy/smoke-test.sh`。
 - 页面变更还需验收桌面、平板和手机视口。

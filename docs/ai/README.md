@@ -8,7 +8,8 @@
 
 | 路径 | 说明 |
 |------|------|
-| `alpha-web/` | Vue 3 管理端 |
+| `alpha-web/` | 原 Vue 3 管理端 |
+| `alpha-web-soybean/` | 基于 SoybeanJS 重写的新管理端 |
 | `alpha-server/` | Spring Boot 单体服务 |
 | `deploy/` | 本地部署和 smoke test 配置 |
 | [`docs/`](../README.md) | 项目正式规范、设计和运维文档 |
@@ -18,7 +19,8 @@
 | 任务 | 先读 |
 |------|------|
 | 业务规则 / 状态 / 术语 | [`domains/`](./domains/) |
-| 前端实现与结构调整 | [`services/alpha-web/overview.md`](./services/alpha-web/overview.md) |
+| 原前端实现与结构调整 | [`services/alpha-web/overview.md`](./services/alpha-web/overview.md) |
+| Soybean 新前端实现与结构调整 | [`services/alpha-web-soybean/overview.md`](./services/alpha-web-soybean/overview.md) |
 | 后端实现与模块落点 | [`services/alpha-server/overview.md`](./services/alpha-server/overview.md) |
 | 本地启动 / 构建 / 端口 | `services/<名>/local-dev.md` |
 | 前后端联调 / 跨服务字段 | [`contracts/frontend-backend-common.md`](./contracts/frontend-backend-common.md) |

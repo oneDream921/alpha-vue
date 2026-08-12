@@ -1,7 +1,7 @@
 ---
-name: git-handoff
-description: 当用户要求提交、询问提交命令，或任务已达到可提交状态时，检查改动并生成由用户本地执行的分批 Git 提交命令。 本 Skill 不执行
-  git add、git commit 或其它 Git 写操作。
+name: afk-core-git-handoff
+description: 当用户要求提交、询问提交命令或选择提交交接时，检查改动并生成由用户本地执行的分批 Git 提交命令。 本 Skill 不执行 git
+  add、git commit 或其它 Git 写操作。
 ---
 
 # Git 提交交接
@@ -9,7 +9,6 @@ description: 当用户要求提交、询问提交命令，或任务已达到可�
 ## 入口
 
 - 用户说「提交」「commit」「帮我提交」「确认提交」、询问提交信息或选择「提交交接」。
-- 实施与验证已完成，需要整理可审阅的提交边界。
 - 仅讨论 Git 概念、查看历史或比较 diff 时不必使用。
 
 ## 步骤

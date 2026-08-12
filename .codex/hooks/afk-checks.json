@@ -1,3 +1,20 @@
 {
-  "checks": []
+  "checks": [
+    {
+      "patterns": [
+        "**/*.json",
+        "**/*.js",
+        "**/*.mjs",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.vue"
+      ],
+      "command": [
+        "node",
+        "scripts/afk-check-changed.mjs",
+        "{files}"
+      ],
+      "timeout": 60
+    }
+  ]
 }

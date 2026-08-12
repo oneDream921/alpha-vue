@@ -2,7 +2,25 @@
 
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { join, normalize, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, normalize, parse, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const hookWorkspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+async function findWorkspaceRoot(start) {
+  let current = resolve(start);
+  while (true) {
+    try {
+      await readFile(join(current, ".codex", "hooks", "afk-checks.json"), "utf8");
+      return current;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    const parent = dirname(current);
+    if (parent === current || current === parse(current).root) return null;
+    current = parent;
+  }
+}
 
 function readInput() {
   return new Promise((resolveInput, reject) => {
@@ -32,17 +50,19 @@ function patchPaths(patch) {
   return paths;
 }
 
-function safeRelativePaths(root, input) {
+function safeRelativePaths(root, cwd, input) {
   const paths = new Set([
     ...collectPaths(input.tool_input),
     ...patchPaths(input.tool_input?.patch),
     ...patchPaths(input.tool_input?.command),
   ]);
-  return [...paths].map((path) => normalize(path).replaceAll("\\", "/")).filter((path) => {
-    const absolute = resolve(root, path);
+  return [...paths].map((path) => {
+    const normalized = normalize(path);
+    const absolute = isAbsolute(normalized) ? resolve(normalized) : resolve(cwd, normalized);
     const relativePath = relative(root, absolute);
-    return relativePath !== "" && relativePath !== ".." && !relativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`);
-  });
+    if (relativePath === "" || relativePath === ".." || relativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) return null;
+    return relativePath.replaceAll("\\", "/");
+  }).filter(Boolean);
 }
 
 function matches(path, patterns) {
@@ -62,9 +82,11 @@ function run(command, cwd, timeout) {
 
 try {
   const input = await readInput();
-  const root = typeof input.cwd === "string" ? resolve(input.cwd) : process.cwd();
+  const cwd = typeof input.cwd === "string" ? resolve(input.cwd) : process.cwd();
+  const root = await findWorkspaceRoot(hookWorkspaceRoot) ?? await findWorkspaceRoot(cwd);
+  if (root === null) throw new Error("Could not locate .codex/hooks/afk-checks.json");
   const config = JSON.parse(await readFile(join(root, ".codex", "hooks", "afk-checks.json"), "utf8"));
-  const paths = safeRelativePaths(root, input);
+  const paths = safeRelativePaths(root, cwd, input);
   for (const check of config.checks ?? []) {
     const files = paths.filter((path) => matches(path, check.patterns));
     if (files.length === 0) continue;
